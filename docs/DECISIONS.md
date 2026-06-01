@@ -40,6 +40,27 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   to locate the migrations folder, which is empty under the bundled CJS output. It stays a CLI/test
   concern imported directly from source (`src/migrate.ts`, run via tsx).
 
+## M1 — Auth, tenants, API keys, billing skeleton (2026-06-01)
+
+- **D9 — Server logic lives in `apps/api/src/lib`; route handlers stay thin.** Auth, key, billing, and
+  bootstrap logic are framework-agnostic modules so they are unit/integration testable without booting
+  Next. No new `core` package (the architecture defines only shared/db/ai/ui).
+
+- **D10 — The Testcontainers harness is shared as `@lumina/db/testing`.** Moved from `test/harness.ts` to
+  `src/testing.ts` (ESM-only build entry; the auth shim SQL is inlined so there is no file-path
+  dependency in the built package). `@lumina/api` and later milestones reuse one integration-test setup.
+
+- **D11 — API key format `^(pk|sk)_(test|live)_<base64url-secret>$`.** Only `sha256(raw)` + a `prefix`
+  (`<tag>_<env>_<first8>`) are stored; verification does a prefix lookup + timing-safe hash compare +
+  revoked check. The raw key is revealed exactly once on creation.
+
+- **D12 — `PLAN_CATALOG` in `@lumina/shared`** maps each `plan_tier` → `{ includedCredits, label }`. The
+  Stripe webhook resolves price → plan → included credits from this table (no magic numbers in handlers).
+
+- **D13 — Credit grants are atomic + idempotent.** `grant_credits(merchant, amount, reason, ref)` mirrors
+  `debit_credits` (bump cache + append ledger in one tx, keeping cache == ledger sum). Stripe webhooks
+  dedupe on `webhooks_inbox(id)` so replays never double-grant.
+
 - **D8 — Apps and `packages/{ai,ui}` are buildable stubs in M0.** The first review is scoped (per the
   build prompt) to the monorepo, `@lumina/shared`, and `@lumina/db`. The other workspaces are minimal,
   type-checked stubs that import the shared contract (proving DB→API→widget type flow) and get their real
