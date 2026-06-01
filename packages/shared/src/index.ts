@@ -11,3 +11,5 @@ export * from './product.js';
 export * from './config.js';
 export * from './widget.js';
 export * from './generate.js';
+export * from './plans.js';
+export * from './account.js';
