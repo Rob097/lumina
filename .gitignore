@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build outputs
+dist/
+.next/
+out/
+.turbo/
+coverage/
+*.tsbuildinfo
+
+# env / secrets (never commit) — keep .env.example
+.env
+.env.*
+!.env.example
+
+# logs / os
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+
+# editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
