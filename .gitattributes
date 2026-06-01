@@ -1,0 +1,8 @@
+# Normalize line endings to LF across platforms (repo is developed on WSL/Linux + CI ubuntu).
+* text=auto eol=lf
+
+# Binary / generated artifacts
+pnpm-lock.yaml linguist-generated=true
+*.png binary
+*.jpg binary
+*.webp binary
