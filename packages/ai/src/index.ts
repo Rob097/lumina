@@ -1,7 +1,14 @@
 /**
- * @lumina/ai — AIOrchestrator + providers (fal/vertex/replicate) + prompts.
+ * @lumina/ai — AIOrchestrator + providers + prompts.
  *
- * M0 stub. The real `AIOrchestrator.compose()` interface and the FalProvider land in M2
- * (architecture §7). Kept as a placeholder so the workspace graph and type-flow are wired.
+ * Every model call goes through `AIOrchestrator.compose()` (CLAUDE.md HARD RULE #8). Swapping
+ * fal.ai ↔ Vertex ↔ Replicate is a one-file change behind the `AIProvider` interface.
  */
-export const AI_PACKAGE = '@lumina/ai' as const;
+export * from './types.js';
+export * from './prompt.js';
+export * from './orchestrator.js';
+export { createOrchestratorFromEnv } from './factory.js';
+export { MockProvider, MockSceneProvider } from './providers/mock.js';
+export { FalProvider, buildFalInput, type FalProviderOptions } from './providers/fal.js';
+export { VertexProvider } from './providers/vertex.js';
+export { ReplicateProvider } from './providers/replicate.js';
