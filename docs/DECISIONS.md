@@ -66,3 +66,32 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   type-checked stubs that import the shared contract (proving DB→API→widget type flow) and get their real
   implementations in their milestones (api: M1/M2, widget: M3, dashboard+ui: M4, ai: M2). External
   provisioning (Supabase/Vercel/etc.) is documented in `docs/setup.md`, not executed.
+
+## M2 — AI orchestrator + generation workflow (2026-06-01)
+
+- **D14 — `AIProvider` interface; `AIOrchestrator` owns routing/retry/fallback.** `compose(ComposeInput)`
+  is the single model entrypoint (HARD RULE #8). A routing policy (`quality|balanced|fast`) maps to an
+  ordered provider chain; each provider is retried with exponential backoff, then we fall back to the
+  next. Swapping fal ↔ vertex ↔ replicate is one file.
+
+- **D15 — `ImageRef = { url } | { bytes }`.** Providers fetch URLs (uploading bytes to fal storage when
+  needed); the orchestrator returns `{ bytes, model, costCents, latencyMs, width, height }` for the
+  margin/quality records on `generations`.
+
+- **D16 — R2 storage service lives in `apps/api/src/lib/storage`.** Object keys are always
+  merchant-prefixed (`rooms|products|results/{merchant_id}/…`); presigned PUT/GET are computed offline
+  via `@aws-sdk/s3-request-presigner` (so they're unit-testable without R2). Cloudflare image-resize URL
+  helper for thumbnails.
+
+- **D17 — Workflow = testable pure step functions + a thin Inngest wrapper.** Terminal failure sets
+  `status=failed` + `error_code` and refunds via `grant_credits(merchant, credits_spent, 'refund', id)`
+  (reuses M1) — we never bill a failed generation (HARD RULE #3).
+
+- **D18 — Idempotency key = `sha256(merchant_id|productRef|roomKey|placementHint)`** enforced by
+  `gen_idem_uidx`; an identical recent *succeeded* generation is returned for **0 credits**.
+
+- **D19 — Every model + resolution is env-configured** (`FAL_MODEL_QUALITY/FAST`, `FAL_COST_*`,
+  `AI_PROVIDER=mock` forces the deterministic mock for local/e2e).
+
+- **D20 — Realtime via migration** (`0003_realtime.sql`) adding `generations` to the `supabase_realtime`
+  publication so row updates push to subscribed widgets.
