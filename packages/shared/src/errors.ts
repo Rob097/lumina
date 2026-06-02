@@ -6,6 +6,7 @@ import { z } from 'zod';
  */
 export const ERROR_CODES = {
   INVALID_KEY: 'invalid_key',
+  UNAUTHORIZED: 'unauthorized',
   DOMAIN_NOT_ALLOWED: 'domain_not_allowed',
   RATE_LIMITED: 'rate_limited',
   INSUFFICIENT_CREDITS: 'insufficient_credits',
@@ -13,6 +14,7 @@ export const ERROR_CODES = {
   UNSUPPORTED_IMAGE: 'unsupported_image',
   GENERATION_FAILED: 'generation_failed',
   NOT_FOUND: 'not_found',
+  INTERNAL: 'internal',
 } as const;
 
 export const ERROR_CODE_VALUES = Object.values(ERROR_CODES) as [ErrorCode, ...ErrorCode[]];
@@ -20,6 +22,7 @@ export type ErrorCode = (typeof ERROR_CODES)[keyof typeof ERROR_CODES];
 
 export const ErrorCodeSchema = z.enum([
   'invalid_key',
+  'unauthorized',
   'domain_not_allowed',
   'rate_limited',
   'insufficient_credits',
@@ -27,11 +30,13 @@ export const ErrorCodeSchema = z.enum([
   'unsupported_image',
   'generation_failed',
   'not_found',
+  'internal',
 ]);
 
 /** Default HTTP status for each error code. */
 export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   invalid_key: 401,
+  unauthorized: 401,
   domain_not_allowed: 403,
   rate_limited: 429,
   insufficient_credits: 402,
@@ -39,6 +44,7 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   unsupported_image: 422,
   generation_failed: 502,
   not_found: 404,
+  internal: 500,
 };
 
 export const ErrorEnvelopeSchema = z.object({

@@ -3,7 +3,13 @@
   "compilerOptions": {
     "noEmit": true,
     "types": ["node"],
-    "lib": ["ES2022"]
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "preserve",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    }
   },
-  "include": ["src", "test", "vitest.config.ts"]
+  "include": ["src", "test", "vitest.config.ts", "next.config.mjs"],
+  "exclude": ["node_modules", ".next"]
 }

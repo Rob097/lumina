@@ -31,6 +31,11 @@ export function planForPrice(map: PriceMap, priceId: string): PlanTier | null {
   return map[priceId] ?? null;
 }
 
+/** Resolve the configured Stripe price id for a plan (`STRIPE_PRICE_<TIER>`), or null. */
+export function priceForPlan(env: Record<string, string | undefined>, plan: PlanTier): string | null {
+  return env[`STRIPE_PRICE_${plan.toUpperCase()}`] ?? null;
+}
+
 /** Minimal shape we read off a Stripe Subscription — decoupled from Stripe's version-specific types. */
 interface MinimalSubscription {
   id: string;

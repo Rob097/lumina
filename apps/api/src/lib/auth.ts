@@ -88,6 +88,16 @@ export async function resolveBySecretKey(
  * Resolve the merchants a Supabase-authenticated user belongs to. The route handler authenticates the
  * session (verifies the JWT / cookie via @supabase/ssr) and passes the resolved `userId`.
  */
+/** The merchant a session user acts on (first membership). M1 assumes one merchant per user. */
+export async function getActiveMerchantId(db: Database, userId: string): Promise<string | null> {
+  const rows = await db
+    .select({ id: memberships.merchantId })
+    .from(memberships)
+    .where(eq(memberships.userId, userId))
+    .limit(1);
+  return rows[0]?.id ?? null;
+}
+
 export async function resolveSessionMerchants(db: Database, userId: string): Promise<MeMerchant[]> {
   const rows = await db
     .select({
