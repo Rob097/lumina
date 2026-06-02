@@ -24,8 +24,9 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** M0 in progress. `apps/*`, `packages/ai`, and `packages/ui` are buildable stubs until their
-> milestones; `packages/shared` and `packages/db` are implemented and tested.
+> **Status:** M0 + M1 complete. `packages/shared`, `packages/db`, and `apps/api` (auth, keys, domains,
+> billing skeleton) are implemented and tested; `apps/dashboard` has Supabase Auth + first-login bootstrap
+> wired. `apps/widget`, `packages/ai`, and `packages/ui` remain buildable stubs until M2–M4.
 
 ## Prerequisites
 
