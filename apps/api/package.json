@@ -12,7 +12,8 @@
   "dependencies": {
     "@lumina/db": "workspace:*",
     "@lumina/shared": "workspace:*",
-    "drizzle-orm": "^0.38.3"
+    "drizzle-orm": "^0.38.3",
+    "stripe": "^17.4.0"
   },
   "devDependencies": {
     "@types/node": "^20.17.10",
