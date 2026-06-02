@@ -8,5 +8,7 @@ export default defineConfig({
     testTimeout: 120_000,
     hookTimeout: 180_000,
     fileParallelism: false,
+    // Silence the AWS SDK "Node 22" maintenance notice (we pin Node 20 per the stack).
+    env: { AWS_SDK_JS_SUPPRESS_MAINTENANCE_MODE_MESSAGE: '1' },
   },
 });
