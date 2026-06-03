@@ -1,0 +1,276 @@
+/* Shadow-DOM-scoped widget styles (HARD RULE #7). Everything is namespaced and reads only from the
+   --lumina-* custom properties set on [data-lumina-container]; nothing leaks to/from the host page. */
+
+[data-lumina-container] {
+  --lumina-accent: #0f62fe;
+  --lumina-radius: 16px;
+  --lumina-z: 2147483000;
+  --lumina-bg: #ffffff;
+  --lumina-fg: #18181b;
+  --lumina-muted: #71717a;
+  --lumina-surface: #f4f4f5;
+  --lumina-font:
+    system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+.lumina-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--lumina-z);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.55);
+  font-family: var(--lumina-font);
+  color: var(--lumina-fg);
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (min-width: 640px) {
+  .lumina-overlay {
+    align-items: center;
+  }
+}
+
+.lumina-modal {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  max-height: 92vh;
+  overflow-y: auto;
+  background: var(--lumina-bg);
+  border-radius: var(--lumina-radius) var(--lumina-radius) 0 0;
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+  outline: none;
+}
+
+@media (min-width: 640px) {
+  .lumina-modal {
+    border-radius: var(--lumina-radius);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.lumina-close {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  border-radius: 50%;
+  background: var(--lumina-surface);
+  color: var(--lumina-fg);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.lumina-body {
+  padding: 28px 22px 16px;
+}
+
+.lumina-powered {
+  padding: 8px 22px 16px;
+  font-size: 11px;
+  color: var(--lumina-muted);
+  text-align: center;
+}
+
+.lumina-state {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.lumina-title {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 650;
+}
+
+.lumina-muted {
+  margin: 0;
+  color: var(--lumina-muted);
+  font-size: 13px;
+}
+
+.lumina-link {
+  color: var(--lumina-accent);
+  text-decoration: underline;
+}
+
+.lumina-btn {
+  appearance: none;
+  border: 1px solid var(--lumina-surface);
+  background: var(--lumina-surface);
+  color: var(--lumina-fg);
+  padding: 12px 16px;
+  border-radius: calc(var(--lumina-radius) * 0.6);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.lumina-btn-primary {
+  background: var(--lumina-accent);
+  border-color: var(--lumina-accent);
+  color: #fff;
+}
+
+.lumina-dropzone {
+  display: block;
+  width: 100%;
+  border: 2px dashed color-mix(in srgb, var(--lumina-muted) 50%, transparent);
+  border-radius: var(--lumina-radius);
+  background: var(--lumina-surface);
+  padding: 32px 16px;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+}
+
+.lumina-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.lumina-chips {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.lumina-chip {
+  border: 1px solid color-mix(in srgb, var(--lumina-muted) 40%, transparent);
+  background: transparent;
+  color: inherit;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.lumina-chip.is-active {
+  border-color: var(--lumina-accent);
+  color: var(--lumina-accent);
+}
+
+.lumina-preview,
+.lumina-camera-video {
+  width: 100%;
+  border-radius: calc(var(--lumina-radius) * 0.7);
+  background: #000;
+}
+
+.lumina-error-text {
+  margin: 0;
+  color: #dc2626;
+  font-size: 13px;
+}
+
+.lumina-spinner {
+  width: 42px;
+  height: 42px;
+  margin: 6px auto 0;
+  border-radius: 50%;
+  border: 3px solid var(--lumina-surface);
+  border-top-color: var(--lumina-accent);
+  animation: lumina-spin 0.9s linear infinite;
+}
+
+@keyframes lumina-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.lumina-feedback {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* Before/after comparison slider */
+.lumina-ba {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: calc(var(--lumina-radius) * 0.7);
+  touch-action: none;
+  user-select: none;
+  background: #000;
+}
+
+.lumina-ba-img {
+  display: block;
+  width: 100%;
+  pointer-events: none;
+}
+
+.lumina-ba-clip {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+.lumina-ba-clip .lumina-ba-img {
+  width: 100vw;
+  max-width: 520px;
+}
+
+.lumina-ba-tag {
+  position: absolute;
+  bottom: 8px;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+}
+
+.lumina-ba-tag-before {
+  left: 8px;
+}
+
+.lumina-ba-tag-after {
+  right: 8px;
+}
+
+.lumina-ba-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: #fff;
+  transform: translateX(-50%);
+  cursor: ew-resize;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+}
+
+.lumina-ba-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 34px;
+  height: 34px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  [data-lumina-container][style*='--lumina-mode: auto'] {
+    --lumina-bg: #16161a;
+    --lumina-fg: #f4f4f5;
+    --lumina-muted: #a1a1aa;
+    --lumina-surface: #1f1f24;
+  }
+}

@@ -278,6 +278,9 @@ export const STRINGS: Record<Locale, StringTable> = { it, en, de, fr, es };
 
 export type TVars = Record<string, string | number>;
 
+/** A locale-bound translator (what the UI components receive). */
+export type Translate = (key: StringKey, vars?: TVars) => string;
+
 function interpolate(template: string, vars?: TVars): string {
   if (!vars) return template;
   return template.replace(/\{(\w+)\}/g, (match, name: string) =>
@@ -301,10 +304,7 @@ export function applyOverrides(
 }
 
 /** A translator bound to a locale (+ optional overrides) — what the UI uses. */
-export function createTranslator(
-  locale: Locale,
-  overrides?: Record<string, string>,
-): (key: StringKey, vars?: TVars) => string {
+export function createTranslator(locale: Locale, overrides?: Record<string, string>): Translate {
   const table = applyOverrides(STRINGS[locale] ?? STRINGS[DEFAULT_LOCALE], overrides);
   return (key, vars) => interpolate(table[key] ?? STRINGS[DEFAULT_LOCALE][key] ?? key, vars);
 }

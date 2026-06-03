@@ -11,6 +11,8 @@ export default defineConfig({
   plugins: [preact()],
   define: {
     __APP_BUNDLE_URL__: JSON.stringify(process.env.LUMINA_APP_BUNDLE_URL ?? '/widget.app.js'),
+    __API_URL__: JSON.stringify(process.env.PUBLIC_API_URL ?? 'http://localhost:3001'),
+    __SENTRY_DSN__: JSON.stringify(process.env.PUBLIC_SENTRY_DSN ?? ''),
   },
   build: {
     outDir: 'dist',
