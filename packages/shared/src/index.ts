@@ -13,3 +13,5 @@ export * from './widget.js';
 export * from './generate.js';
 export * from './plans.js';
 export * from './account.js';
+export * from './analytics.js';
+export * from './credits.js';
