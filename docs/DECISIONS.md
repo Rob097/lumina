@@ -95,3 +95,33 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
 
 - **D20 — Realtime via migration** (`0003_realtime.sql`) adding `generations` to the `supabase_realtime`
   publication so row updates push to subscribed widgets.
+
+## M3 — The widget (2026-06-03)
+
+- **D21 — Status transport is polling-primary + pluggable.** The in-bundle transport polls
+  `GET /widget/status/:id` with capped exponential backoff (500ms → ×1.5 → 4s) until a terminal status; a
+  `StatusTransport` interface is the seam for a future lazy-loaded Supabase Realtime transport. Rationale:
+  `@supabase/supabase-js` (~35 KB gz) alone would blow the **< 45 KB** budget (HARD RULE #7), which wins
+  where it conflicts with the Realtime preference. `/widget/status/:id` is the spec's designated fallback.
+
+- **D22 — Two-stage build: immutable loader + content-hashed app.** `build.mjs` builds the app first
+  (`widget.[hash].js`), then the loader with that URL injected via Vite `define` (`__APP_BUNDLE_URL__`),
+  emitting the year-cacheable `widget.js`. The loader has **no imports** (its own dependency-free trigger
+  reader) so it stays ~1.7 KB raw / 0.8 KB gz; the zod-based `parseTrigger` lives only in the app bundle.
+
+- **D23 — Framework-agnostic core, thin Preact view.** All flow logic (config, API client, the
+  `LuminaController` state machine, status, i18n, image pipeline) is pure/injectable in `src/core`,
+  unit-tested under happy-dom; `src/ui` Preact components only render controller state. Keeps logic testable
+  without rendering and the bundle lean (app bundle 30.9 KB gz).
+
+- **D24 — Client image pipeline = downscale ≤ 2048 + EXIF-orientation fix + re-encode (WebP→JPEG).**
+  Re-encoding through a canvas strips EXIF/GPS client-side (defense-in-depth for HARD RULE #9; the server
+  strips again). `computeTargetSize`/`parseExifOrientation`/`pickEncoding`/`applyOrientation` are pure +
+  tested; the canvas `processImage` shell is E2E-covered.
+
+- **D25 — Anonymous visitor id** is a client-generated UUID persisted in `localStorage` (`lumina_anon_id`),
+  sent as `anonId` for per-visitor abuse caps (§3.9); tolerates blocked storage with an ephemeral id.
+
+- **D26 — Bundle-budget gate.** `build.mjs` fails the build if the gzipped app bundle exceeds 45 KB; an
+  explicit `pnpm -F @lumina/widget size` step in CI surfaces it. The widget validates API responses with
+  the shared zod schemas via a structural `Parser<T>` type (no direct `zod` dependency, keeps imports lean).

@@ -35,4 +35,11 @@ export default tseslint.config(
       globals: { ...globals.browser },
     },
   },
+  {
+    // Widget E2E + mock host run in both worlds (Playwright Node + in-page browser code).
+    files: ['apps/widget/e2e/**', 'apps/widget/playwright.config.ts'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
+    },
+  },
 );

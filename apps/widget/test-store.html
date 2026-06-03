@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LUMINA — test store</title>
+  </head>
+  <body>
+    <h1>Demo store</h1>
+
+    <!-- ✦ The single line a merchant pastes ✦ -->
+    <script async src="/widget.js" data-site-key="pk_test_demo"></script>
+
+    <!-- A) Declarative install — any element with [data-lumina-trigger] becomes a launcher -->
+    <button
+      id="declarative"
+      data-lumina-trigger
+      data-lumina-product-name="Aura Lamp"
+      data-lumina-product-image="http://localhost:5188/fixtures/before.png"
+      data-lumina-category="lighting"
+    >
+      Try in your room
+    </button>
+
+    <!-- Out-of-credits scenario (the mock returns 402 for NOCREDIT products) -->
+    <button id="nocredit" data-lumina-trigger data-lumina-product="NOCREDIT-1">Try (no credits)</button>
+
+    <!-- B) Programmatic install — open from your own button via the public API -->
+    <button id="programmatic">Open programmatically</button>
+    <div id="spa-slot"></div>
+
+    <script>
+      document.getElementById('programmatic').addEventListener('click', function () {
+        window.Lumina.open({
+          product: {
+            name: 'Nube Sofa',
+            imageUrl: 'http://localhost:5188/fixtures/before.png',
+            category: 'furniture',
+          },
+          metadata: { source: 'programmatic' },
+        });
+      });
+
+      // SPA / infinite-scroll: a trigger added after load must still work (delegation + MutationObserver).
+      setTimeout(function () {
+        var b = document.createElement('button');
+        b.id = 'late';
+        b.setAttribute('data-lumina-trigger', '');
+        b.setAttribute('data-lumina-product', 'LATE-1');
+        b.textContent = 'Late trigger';
+        document.getElementById('spa-slot').appendChild(b);
+      }, 50);
+    </script>
+  </body>
+</html>

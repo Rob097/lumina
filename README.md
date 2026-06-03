@@ -24,10 +24,12 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** M0–M2 complete. `packages/{shared,db,ai}` and `apps/api` (auth/keys/domains/billing +
+> **Status:** M0–M3 complete. `packages/{shared,db,ai}` and `apps/api` (auth/keys/domains/billing +
 > the AI orchestrator, R2 storage, generation workflow, and public `/v1/widget/*` endpoints) are
-> implemented and tested; `apps/dashboard` has Supabase Auth + first-login bootstrap wired.
-> `apps/widget` (M3) and `packages/ui` (M4) remain buildable stubs.
+> implemented and tested; `apps/dashboard` has Supabase Auth + first-login bootstrap wired; `apps/widget`
+> is the full Preact + Shadow-DOM widget (2-file loader, public `window.Lumina` API, camera/upload,
+> before/after result) at **30.9 KB gz**, with a happy-dom unit suite + a Playwright acceptance suite.
+> `packages/ui` (M4) remains a buildable stub.
 
 ## Prerequisites
 

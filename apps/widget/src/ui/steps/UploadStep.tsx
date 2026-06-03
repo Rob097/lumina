@@ -166,7 +166,7 @@ function CameraCapture({
           {t('close')}
         </button>
         <button class="lumina-btn lumina-btn-primary" type="button" onClick={capture}>
-          {t('upload.camera')}
+          {t('camera.capture')}
         </button>
       </div>
     </div>
