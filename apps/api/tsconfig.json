@@ -10,6 +10,6 @@
       "@/*": ["src/*"]
     }
   },
-  "include": ["src", "test", "vitest.config.ts", "next.config.mjs"],
+  "include": ["src", "test", "scripts", "vitest.config.ts", "next.config.mjs"],
   "exclude": ["node_modules", ".next"]
 }

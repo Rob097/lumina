@@ -34,8 +34,36 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 | POST | `/api/v1/billing/portal` | session | Stripe Customer Portal URL |
 | POST | `/api/v1/webhooks/stripe` | signature | idempotent plan + credit grant |
 
+### Public widget API (M2, PUBLISHABLE key + Origin/CORS)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/v1/widget/config` | theme/buttonText/locale/i18n/watermark/limits/resultCta |
+| POST | `/api/v1/widget/sign-upload` | presigned R2 PUT → `{ uploadUrl, roomKey, expiresIn }` |
+| POST | `/api/v1/widget/generate` | rate-limit + anon cap → debit + queue, or cached result (0 credits); `402` insufficient |
+| GET | `/api/v1/widget/status/:id` | polling fallback (signed result/before URLs) |
+| POST | `/api/v1/widget/feedback` | 👍/👎 → usage_event (`204`) |
+| POST | `/api/v1/widget/event` | impression/open/cta beacon → usage_event (`204`) |
+| GET/POST/PUT | `/internal/inngest` | Inngest serve endpoint |
+
 All responses use the standard envelope on error:
 `{ "error": { "code", "message", "requestId" } }` with the correct HTTP status.
+
+## Generation pipeline (M2)
+
+`POST /widget/generate` resolves the product, computes an idempotency key
+(`sha256(merchant|product|room|hint)`), returns an identical succeeded result for **0 credits**, else
+`debit_credits` (1) + inserts a `queued` generation + sends `generation.requested` to Inngest — all atomic.
+
+The Inngest workflow (`generation.requested`, per-merchant + global concurrency caps) runs
+`processGeneration`: `processing` → `AIOrchestrator.compose()` (the single model entrypoint;
+policy-routed with retry + provider fallback) → store to R2 → finalize (`succeeded`, cost/latency/model +
+result asset + usage_event). **Terminal failure refunds the credit** (`grant_credits(...,'refund')`) — we
+never bill a failed generation.
+
+```bash
+pnpm -F @lumina/api e2e   # offline end-to-end (mock provider + Testcontainers DB): generate → workflow → cache
+```
 
 ## Billing
 

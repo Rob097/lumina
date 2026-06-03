@@ -48,6 +48,10 @@ begin
   if not exists (select 1 from pg_roles where rolname = 'anon') then create role anon nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'authenticated') then create role authenticated nologin; end if;
   if not exists (select 1 from pg_roles where rolname = 'service_role') then create role service_role nologin bypassrls; end if;
+  -- Supabase ships an (empty) supabase_realtime publication; recreate it so 0003 applies on bare PG.
+  if not exists (select 1 from pg_publication where pubname = 'supabase_realtime') then
+    execute 'create publication supabase_realtime';
+  end if;
 end $$;
 `;
 
@@ -67,7 +71,9 @@ export async function setupTestDb(): Promise<TestDb> {
     connectionString = container.getConnectionUri();
   }
 
-  const admin = postgres(connectionString, { max: 1 });
+  // `onnotice` is silenced: the shim's CREATE PUBLICATION warns on a test container where wal_level is
+  // 'replica' (Supabase prod is 'logical'); the warning is irrelevant to the schema/RLS under test.
+  const admin = postgres(connectionString, { max: 1, onnotice: () => {} });
   await admin.unsafe(AUTH_SHIM_SQL);
   await admin.end();
   await runMigrations(connectionString);

@@ -24,9 +24,10 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** M0 + M1 complete. `packages/shared`, `packages/db`, and `apps/api` (auth, keys, domains,
-> billing skeleton) are implemented and tested; `apps/dashboard` has Supabase Auth + first-login bootstrap
-> wired. `apps/widget`, `packages/ai`, and `packages/ui` remain buildable stubs until M2–M4.
+> **Status:** M0–M2 complete. `packages/{shared,db,ai}` and `apps/api` (auth/keys/domains/billing +
+> the AI orchestrator, R2 storage, generation workflow, and public `/v1/widget/*` endpoints) are
+> implemented and tested; `apps/dashboard` has Supabase Auth + first-login bootstrap wired.
+> `apps/widget` (M3) and `packages/ui` (M4) remain buildable stubs.
 
 ## Prerequisites
 
