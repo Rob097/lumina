@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LUMINA — Foundations &amp; Components</title>
+<link rel="stylesheet" href="assets/lumina-tokens.css" />
+<link rel="stylesheet" href="assets/lumina-components.css" />
+<style>
+  .doc { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
+
+  /* Side nav */
+  .doc-nav { position: sticky; top: 0; align-self: start; height: 100vh; border-right: 1px solid var(--border); background: var(--surface); padding: 22px 16px; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
+  .brandmark { display: flex; align-items: center; gap: 10px; padding: 0 8px 18px; }
+  .brandmark .logo { width: 28px; height: 28px; }
+  .brandmark .name { font-family: var(--font-display); font-weight: 700; font-size: 17px; letter-spacing: -.02em; }
+  .brandmark .name b { color: var(--accent); }
+  .doc-nav a { padding: 7px 10px; border-radius: var(--r-md); font-size: var(--fs-sm); color: var(--text-secondary); font-weight: 450; }
+  .doc-nav a:hover { background: var(--surface-3); color: var(--text); }
+  .doc-nav a.active { background: var(--accent-weak); color: var(--accent); font-weight: 500; }
+  .nav-sec { font-size: var(--fs-micro); text-transform: uppercase; letter-spacing: .08em; color: var(--text-faint); font-weight: 600; padding: 16px 10px 6px; }
+
+  /* Content */
+  .doc-main { padding: 0 56px 120px; max-width: 1080px; }
+  .doc-top { position: sticky; top: 0; z-index: var(--z-sticky); display: flex; align-items: center; justify-content: space-between; padding: 18px 0; margin-bottom: 8px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); border-bottom: 1px solid var(--hairline); }
+  .theme-toggle { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--r-md); }
+  .theme-toggle button { display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 12px; border: none; background: transparent; color: var(--text-secondary); font-size: var(--fs-sm); font-weight: 500; border-radius: var(--r-sm); cursor: pointer; }
+  .theme-toggle button.on { background: var(--surface); color: var(--text); box-shadow: var(--e-1); }
+  .theme-toggle svg { width: 15px; height: 15px; }
+
+  section.block { padding: 44px 0; border-bottom: 1px solid var(--hairline); scroll-margin-top: 80px; }
+  .sec-eyebrow { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .sec-eyebrow .num { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--accent); }
+  .sec-desc { max-width: 620px; margin-top: 10px; color: var(--text-secondary); font-size: var(--fs-body-lg); }
+
+  .hero { padding: 64px 0 40px; }
+  .hero h1 { font-size: 60px; line-height: 1.0; }
+
+  /* swatches */
+  .ramp { display: grid; grid-template-columns: repeat(11, 1fr); border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--border); }
+  .ramp div { height: 72px; display: flex; align-items: flex-end; padding: 6px; }
+  .ramp span { font-family: var(--font-mono); font-size: 10px; }
+  .swatch-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+  .swatch { border: 1px solid var(--border); border-radius: var(--r-lg); overflow: hidden; background: var(--surface); }
+  .swatch .chip { height: 64px; }
+  .swatch .meta { padding: 9px 11px; }
+  .swatch .meta .nm { font-size: var(--fs-sm); font-weight: 500; }
+  .swatch .meta .hx { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--text-muted); }
+
+  .specimens > div { display: flex; align-items: baseline; gap: 20px; padding: 14px 0; border-bottom: 1px solid var(--hairline); }
+  .specimens .meta { width: 168px; flex: none; }
+  .specimens .meta .nm { font-size: var(--fs-sm); font-weight: 500; }
+  .specimens .meta .sp { font-family: var(--font-mono); font-size: var(--fs-caption); color: var(--text-muted); }
+
+  .scale-strip { display: flex; align-items: flex-end; gap: 10px; }
+  .scale-strip .u { background: var(--accent-weak); border: 1px solid var(--accent-border); border-radius: var(--r-xs); }
+  .scale-strip .lab { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); text-align: center; margin-top: 6px; }
+
+  .radius-grid, .elev-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px,1fr)); gap: 18px; }
+  .radius-cell .box { height: 78px; background: var(--accent-weak); border: 1px solid var(--accent-border); }
+  .elev-cell .box { height: 78px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-lg); }
+
+  .comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .comp-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--e-1); overflow: hidden; }
+  .comp-card .cc-head { padding: 12px 16px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; justify-content: space-between; }
+  .comp-card .cc-head .nm { font-size: var(--fs-sm); font-weight: 600; }
+  .comp-card .cc-head .tag { font-family: var(--font-mono); font-size: var(--fs-micro); color: var(--text-faint); }
+  .comp-card .cc-body { padding: 22px; display: flex; flex-wrap: wrap; align-items: center; gap: 12px; min-height: 92px; }
+  .comp-span2 { grid-column: span 2; }
+
+  .motion-demo { display: flex; gap: 12px; flex-wrap: wrap; }
+  .motion-chip { padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); font-size: var(--fs-sm); }
+  .motion-chip .mono { display: block; color: var(--accent); margin-top: 2px; }
+
+  @media (max-width: 920px){ .doc { grid-template-columns: 1fr; } .doc-nav { display: none; } .doc-main { padding: 0 22px 80px; } .comp-grid { grid-template-columns: 1fr; } .comp-span2 { grid-column: span 1; } }
+</style>
+</head>
+<body>
+<div class="doc">
+  <!-- ============ SIDE NAV ============ -->
+  <nav class="doc-nav">
+    <div class="brandmark">
+      <svg class="logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="1" y="1" width="30" height="30" rx="8" fill="var(--accent)"/>
+        <path d="M9 9v14h10" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="20.5" cy="11.5" r="2.6" fill="#fff"/>
+      </svg>
+      <div class="name">LUMIN<b>A</b></div>
+    </div>
+    <div class="nav-sec">Foundations</div>
+    <a href="#overview" class="active">Overview</a>
+    <a href="#color">Color</a>
+    <a href="#type">Typography</a>
+    <a href="#space">Spacing</a>
+    <a href="#radius">Radius</a>
+    <a href="#elevation">Elevation</a>
+    <a href="#motion">Motion</a>
+    <div class="nav-sec">Components</div>
+    <a href="#buttons">Buttons</a>
+    <a href="#inputs">Inputs &amp; controls</a>
+    <a href="#badges">Badges &amp; status</a>
+    <a href="#data">Data &amp; tables</a>
+    <a href="#code">Code &amp; keys</a>
+    <a href="#signature">Signature: before/after</a>
+    <div class="nav-sec">Screens</div>
+    <a href="Overview.html">↳ Overview dashboard</a>
+    <a href="Widget Settings.html">↳ Widget Settings</a>
+    <a href="Shopper Result.html">↳ Shopper Result</a>
+  </nav>
+
+  <!-- ============ MAIN ============ -->
+  <main class="doc-main">
+    <div class="doc-top">
+      <div class="row gap-2">
+        <span class="badge badge-neutral">Design System</span>
+        <span class="text-sm t-muted">v1.0 · Build-ready</span>
+      </div>
+      <div class="theme-toggle" id="themeToggle">
+        <button class="on" data-theme="light">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19"/></svg>
+          Light
+        </button>
+        <button data-theme="dark">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          Dark
+        </button>
+      </div>
+    </div>
+
+    <!-- HERO -->
+    <header class="hero spatial-glow" id="overview">
+      <div class="sec-eyebrow"><span class="overline">LUMINA Spatial Engine</span></div>
+      <h1 class="display-2xl">A design language for<br/>visual commerce.</h1>
+      <p class="sec-desc">Precise, premium, calm, spatial. Confident whitespace and crisp type, with one decisive electric-blue accent reserved for action and signal. Every screen is built from the tokens and components below — light and dark, mobile and desktop.</p>
+      <div class="row gap-3 wrap" style="margin-top:26px;">
+        <div class="kpi" style="width:200px;">
+          <div class="kpi-label">Base unit</div>
+          <div class="kpi-value">4<span style="font-size:18px;color:var(--text-muted);">px</span></div>
+          <div class="kpi-foot t-muted">8-step spacing scale</div>
+        </div>
+        <div class="kpi" style="width:200px;">
+          <div class="kpi-label">Type families</div>
+          <div class="kpi-value">3</div>
+          <div class="kpi-foot t-muted">Display · UI · Mono</div>
+        </div>
+        <div class="kpi" style="width:200px;">
+          <div class="kpi-label">Themes</div>
+          <div class="kpi-value">2</div>
+          <div class="kpi-foot t-muted">Light-first · deep dark</div>
+        </div>
+        <div class="kpi" style="width:200px;">
+          <div class="kpi-label">Accent</div>
+          <div class="kpi-value" style="color:var(--accent);">1</div>
+          <div class="kpi-foot t-muted mono">#0F62FE</div>
+        </div>
+      </div>
+    </header>
+
+    <!-- COLOR -->
+    <section class="block" id="color">
+      <div class="sec-eyebrow"><span class="num">01</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Color</h2>
+      <p class="sec-desc">Cool architectural greys on an off-white canvas. The accent is electric blue, used only for primary actions, focus, links, and live data. Semantic colors signal state; the data-viz set is deliberately small.</p>
+
+      <h3 class="title" style="margin:30px 0 12px;">Neutral ramp</h3>
+      <div class="ramp">
+        <div style="background:var(--n-0)"><span style="color:var(--n-700)">0</span></div>
+        <div style="background:var(--n-50)"><span style="color:var(--n-700)">50</span></div>
+        <div style="background:var(--n-100)"><span style="color:var(--n-700)">100</span></div>
+        <div style="background:var(--n-200)"><span style="color:var(--n-700)">200</span></div>
+        <div style="background:var(--n-300)"><span style="color:var(--n-800)">300</span></div>
+        <div style="background:var(--n-400)"><span style="color:var(--n-0)">400</span></div>
+        <div style="background:var(--n-500)"><span style="color:var(--n-0)">500</span></div>
+        <div style="background:var(--n-600)"><span style="color:var(--n-0)">600</span></div>
+        <div style="background:var(--n-700)"><span style="color:var(--n-0)">700</span></div>
+        <div style="background:var(--n-800)"><span style="color:var(--n-0)">800</span></div>
+        <div style="background:var(--n-900)"><span style="color:var(--n-0)">900</span></div>
+      </div>
+
+      <h3 class="title" style="margin:30px 0 12px;">Accent &amp; semantic</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:var(--accent)"></div><div class="meta"><div class="nm">Accent</div><div class="hx">#0F62FE</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--accent-weak); border-bottom:1px solid var(--accent-border)"></div><div class="meta"><div class="nm">Accent weak</div><div class="hx">tint · focus ring</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--success)"></div><div class="meta"><div class="nm">Success</div><div class="hx">#0E8A55</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--warning)"></div><div class="meta"><div class="nm">Warning</div><div class="hx">#B26A00</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--danger)"></div><div class="meta"><div class="nm">Danger</div><div class="hx">#CF3A3A</div></div></div>
+      </div>
+
+      <h3 class="title" style="margin:30px 0 12px;">Data visualization</h3>
+      <div class="swatch-grid">
+        <div class="swatch"><div class="chip" style="background:var(--viz-1)"></div><div class="meta"><div class="nm">Viz 1 · Blue</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--viz-2)"></div><div class="meta"><div class="nm">Viz 2 · Teal</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--viz-3)"></div><div class="meta"><div class="nm">Viz 3 · Violet</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--viz-4)"></div><div class="meta"><div class="nm">Viz 4 · Amber</div></div></div>
+        <div class="swatch"><div class="chip" style="background:var(--viz-5)"></div><div class="meta"><div class="nm">Viz 5 · Rose</div></div></div>
+      </div>
+    </section>
+
+    <!-- TYPE -->
+    <section class="block" id="type">
+      <div class="sec-eyebrow"><span class="num">02</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Typography</h2>
+      <p class="sec-desc"><b>Schibsted Grotesk</b> for display — section titles and hero numbers, tighter and more editorial. <b>Geist</b> for all UI and body. <b>Geist Mono</b> for code, keys, and metrics. Generous line-height; tabular figures wherever numbers live.</p>
+
+      <div class="specimens" style="margin-top:24px;">
+        <div><div class="meta"><div class="nm">Display 2XL</div><div class="sp">Schibsted · 700 · 56/-2.2</div></div><div class="display-2xl">Try in your room</div></div>
+        <div><div class="meta"><div class="nm">Display LG</div><div class="sp">Schibsted · 600 · 36</div></div><div class="display-lg">Light, scale &amp; shadow</div></div>
+        <div><div class="meta"><div class="nm">Title XL</div><div class="sp">Schibsted · 600 · 28</div></div><div class="title-xl">Generations this month</div></div>
+        <div><div class="meta"><div class="nm">Title</div><div class="sp">Geist · 600 · 18</div></div><div class="title">Widget settings</div></div>
+        <div><div class="meta"><div class="nm">Body</div><div class="sp">Geist · 400 · 14/1.5</div></div><div class="body" style="max-width:480px;">A shopper uploads a photo of their space and the product is composited in with realistic light and perspective.</div></div>
+        <div><div class="meta"><div class="nm">Mono</div><div class="sp">Geist Mono · 13</div></div><div class="mono text-sm">pk_live_8f3a2c91 · 1,284 credits</div></div>
+      </div>
+    </section>
+
+    <!-- SPACING -->
+    <section class="block" id="space">
+      <div class="sec-eyebrow"><span class="num">03</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Spacing</h2>
+      <p class="sec-desc">A 4px base scale keeps rhythm consistent across every screen. Layout breathes — premium products are mostly whitespace.</p>
+      <div class="scale-strip" style="margin-top:28px;">
+        <div><div class="u" style="width:4px;height:4px;"></div><div class="lab">1·4</div></div>
+        <div><div class="u" style="width:8px;height:8px;"></div><div class="lab">2·8</div></div>
+        <div><div class="u" style="width:12px;height:12px;"></div><div class="lab">3·12</div></div>
+        <div><div class="u" style="width:16px;height:16px;"></div><div class="lab">4·16</div></div>
+        <div><div class="u" style="width:20px;height:20px;"></div><div class="lab">5·20</div></div>
+        <div><div class="u" style="width:24px;height:24px;"></div><div class="lab">6·24</div></div>
+        <div><div class="u" style="width:32px;height:32px;"></div><div class="lab">7·32</div></div>
+        <div><div class="u" style="width:40px;height:40px;"></div><div class="lab">8·40</div></div>
+        <div><div class="u" style="width:48px;height:48px;"></div><div class="lab">9·48</div></div>
+        <div><div class="u" style="width:64px;height:64px;"></div><div class="lab">10·64</div></div>
+      </div>
+    </section>
+
+    <!-- RADIUS -->
+    <section class="block" id="radius">
+      <div class="sec-eyebrow"><span class="num">04</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Radius</h2>
+      <p class="sec-desc">Restrained corners — crisp, architectural, never bubbly. Controls use 6–8px; cards 12px; modals and the widget 16px.</p>
+      <div class="radius-grid" style="margin-top:26px;">
+        <div class="radius-cell"><div class="box" style="border-radius:var(--r-sm)"></div><div class="lab caption t-muted" style="margin-top:8px;">sm · 6 — controls</div></div>
+        <div class="radius-cell"><div class="box" style="border-radius:var(--r-md)"></div><div class="lab caption t-muted" style="margin-top:8px;">md · 8 — buttons</div></div>
+        <div class="radius-cell"><div class="box" style="border-radius:var(--r-xl)"></div><div class="lab caption t-muted" style="margin-top:8px;">xl · 12 — cards</div></div>
+        <div class="radius-cell"><div class="box" style="border-radius:var(--r-2xl)"></div><div class="lab caption t-muted" style="margin-top:8px;">2xl · 16 — modal</div></div>
+        <div class="radius-cell"><div class="box" style="border-radius:var(--r-full)"></div><div class="lab caption t-muted" style="margin-top:8px;">full — pills</div></div>
+      </div>
+    </section>
+
+    <!-- ELEVATION -->
+    <section class="block" id="elevation">
+      <div class="sec-eyebrow"><span class="num">05</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Elevation</h2>
+      <p class="sec-desc">Soft, layered, low-opacity shadows — light filling a room, not heavy drop shadows. Five steps from hairline rest to modal.</p>
+      <div class="elev-grid" style="margin-top:26px;">
+        <div class="elev-cell"><div class="box" style="box-shadow:var(--e-1)"></div><div class="lab caption t-muted" style="margin-top:10px;">e-1 · rest</div></div>
+        <div class="elev-cell"><div class="box" style="box-shadow:var(--e-2)"></div><div class="lab caption t-muted" style="margin-top:10px;">e-2 · raised</div></div>
+        <div class="elev-cell"><div class="box" style="box-shadow:var(--e-3)"></div><div class="lab caption t-muted" style="margin-top:10px;">e-3 · popover</div></div>
+        <div class="elev-cell"><div class="box" style="box-shadow:var(--e-4)"></div><div class="lab caption t-muted" style="margin-top:10px;">e-4 · modal</div></div>
+      </div>
+    </section>
+
+    <!-- MOTION -->
+    <section class="block" id="motion">
+      <div class="sec-eyebrow"><span class="num">06</span><span class="overline">Foundations</span></div>
+      <h2 class="title-xl">Motion</h2>
+      <p class="sec-desc">Purposeful and quick: 140–280ms, ease-out. The signature moment is the before→after reveal. All motion respects <span class="code-inline">prefers-reduced-motion</span>.</p>
+      <div class="motion-demo" style="margin-top:24px;">
+        <div class="motion-chip">Fast<span class="mono">140ms</span></div>
+        <div class="motion-chip">Base<span class="mono">200ms</span></div>
+        <div class="motion-chip">Slow<span class="mono">280ms</span></div>
+        <div class="motion-chip">Ease-out<span class="mono">cubic-bezier(.22,.7,.3,1)</span></div>
+        <div class="motion-chip">Spring<span class="mono">cubic-bezier(.34,1.4,.5,1)</span></div>
+      </div>
+    </section>
+
+    <!-- BUTTONS -->
+    <section class="block" id="buttons">
+      <div class="sec-eyebrow"><span class="num">07</span><span class="overline">Components</span></div>
+      <h2 class="title-xl">Buttons</h2>
+      <div class="comp-grid" style="margin-top:24px;">
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Variants</span><span class="tag">.btn</span></div>
+          <div class="cc-body">
+            <button class="btn btn-primary">Generate</button>
+            <button class="btn btn-secondary">Cancel</button>
+            <button class="btn btn-ghost">Skip</button>
+            <button class="btn btn-quiet-danger">Revoke</button>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Sizes &amp; icon</span><span class="tag">.btn-sm / -lg</span></div>
+          <div class="cc-body">
+            <button class="btn btn-primary btn-sm">Small</button>
+            <button class="btn btn-primary">Default</button>
+            <button class="btn btn-primary btn-lg">Large</button>
+            <button class="btn btn-secondary btn-icon" aria-label="More"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="19" cy="12" r="1.4"/></svg></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- INPUTS -->
+    <section class="block" id="inputs">
+      <div class="sec-eyebrow"><span class="num">08</span><span class="overline">Components</span></div>
+      <h2 class="title-xl">Inputs &amp; controls</h2>
+      <div class="comp-grid" style="margin-top:24px;">
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Text field</span><span class="tag">.input</span></div>
+          <div class="cc-body" style="display:block;">
+            <div class="field"><label class="label">Domain</label><input class="input" value="shop.lumina-demo.com" /><span class="hint">Used to gate the widget via CORS.</span></div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">With affix · error</span><span class="tag">.input-affix</span></div>
+          <div class="cc-body" style="display:block;">
+            <div class="field"><label class="label">Search</label>
+              <div class="input-affix"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg><input class="input input-error" value="lamp" /></div>
+              <span class="hint-error">No products match that name.</span>
+            </div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Switch &amp; segmented</span><span class="tag">.switch / .segmented</span></div>
+          <div class="cc-body">
+            <label class="switch"><input type="checkbox" checked /><span class="track"></span><span class="thumb"></span></label>
+            <label class="switch"><input type="checkbox" /><span class="track"></span><span class="thumb"></span></label>
+            <div class="segmented"><button aria-selected="true">Light</button><button>Dark</button><button>Auto</button></div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Select &amp; tabs</span><span class="tag">.select / .tabs</span></div>
+          <div class="cc-body" style="display:block;">
+            <select class="select" style="margin-bottom:16px;"><option>English (US)</option><option>Italiano</option><option>Deutsch</option></select>
+            <div class="tabs"><button class="tab" aria-selected="true">Shopify</button><button class="tab">WordPress</button><button class="tab">Custom HTML</button></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BADGES -->
+    <section class="block" id="badges">
+      <div class="sec-eyebrow"><span class="num">09</span><span class="overline">Components</span></div>
+      <h2 class="title-xl">Badges &amp; status</h2>
+      <div class="comp-card" style="margin-top:24px;">
+        <div class="cc-head"><span class="nm">Status &amp; environment</span><span class="tag">.badge</span></div>
+        <div class="cc-body">
+          <span class="badge badge-live"><span class="dot"></span>Live</span>
+          <span class="badge badge-test"><span class="dot"></span>Test</span>
+          <span class="badge badge-success">Succeeded</span>
+          <span class="badge badge-warning">Queued</span>
+          <span class="badge badge-danger">Failed</span>
+          <span class="badge badge-accent">Growth plan</span>
+          <span class="badge badge-neutral">Draft</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- DATA -->
+    <section class="block" id="data">
+      <div class="sec-eyebrow"><span class="num">10</span><span class="overline">Components</span></div>
+      <h2 class="title-xl">Data &amp; tables</h2>
+      <div class="comp-grid" style="margin-top:24px;">
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">KPI tile</span><span class="tag">.kpi</span></div>
+          <div class="cc-body" style="display:block;">
+            <div class="kpi" style="box-shadow:none;border:none;padding:0;">
+              <div class="kpi-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>Generations</div>
+              <div class="kpi-value tnum">12,847</div>
+              <div class="kpi-foot"><span class="delta delta-up"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M7 17L17 7M9 7h8v8"/></svg>18.2%</span><span class="t-muted">vs last month</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="comp-card">
+          <div class="cc-head"><span class="nm">Credit meter</span><span class="tag">.meter</span></div>
+          <div class="cc-body" style="display:block;">
+            <div class="row between" style="margin-bottom:8px;"><span class="text-sm w-500">Credits used</span><span class="text-sm t-muted tnum">7,160 / 10,000</span></div>
+            <div class="meter"><div class="meter-fill warn" style="width:71%;"></div></div>
+            <div class="text-sm t-muted" style="margin-top:8px;">2,840 remaining this cycle.</div>
+          </div>
+        </div>
+        <div class="comp-card comp-span2">
+          <div class="cc-head"><span class="nm">Table</span><span class="tag">.table</span></div>
+          <div style="overflow:hidden;">
+            <table class="table">
+              <thead><tr><th>Product</th><th>Category</th><th>Generations</th><th>Success</th><th>Status</th></tr></thead>
+              <tbody>
+                <tr><td class="table-cell-strong">Aura Floor Lamp</td><td class="t-secondary">Lighting</td><td class="tnum">1,284</td><td class="tnum">96.4%</td><td><span class="badge badge-live"><span class="dot"></span>Live</span></td></tr>
+                <tr><td class="table-cell-strong">Nube Lounge Chair</td><td class="t-secondary">Furniture</td><td class="tnum">982</td><td class="tnum">94.1%</td><td><span class="badge badge-live"><span class="dot"></span>Live</span></td></tr>
+                <tr><td class="table-cell-strong">Linea Oak Shelf</td><td class="t-secondary">Furniture</td><td class="tnum">741</td><td class="tnum">91.8%</td><td><span class="badge badge-test"><span class="dot"></span>Test</span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CODE -->
+    <section class="block" id="code">
+      <div class="sec-eyebrow"><span class="num">11</span><span class="overline">Components</span></div>
+      <h2 class="title-xl">Code &amp; keys</h2>
+      <p class="sec-desc">The one-line install is the merchant's first magic moment — it deserves a first-class block with a big copy affordance. Secret keys communicate secrecy with masking and reveal-once.</p>
+      <div class="comp-grid" style="margin-top:24px;">
+        <div class="comp-card comp-span2">
+          <div class="cc-head"><span class="nm">Install snippet</span><span class="tag">.code-block</span></div>
+          <div style="padding:18px;">
+            <div class="code-block">
+              <button class="btn btn-secondary btn-sm code-copy">Copy</button>
+<span class="tok-punc">&lt;</span><span class="tok-tag">script</span> <span class="tok-attr">async</span> <span class="tok-attr">src</span><span class="tok-punc">=</span><span class="tok-str">"https://cdn.lumina.app/widget.js"</span>
+        <span class="tok-attr">data-site-key</span><span class="tok-punc">=</span><span class="tok-str">"pk_live_8f3a2c91"</span><span class="tok-punc">&gt;&lt;/</span><span class="tok-tag">script</span><span class="tok-punc">&gt;</span>
+            </div>
+          </div>
+        </div>
+        <div class="comp-card comp-span2">
+          <div class="cc-head"><span class="nm">API key row</span><span class="tag">reveal-once</span></div>
+          <div class="cc-body" style="display:block;">
+            <div class="row between gap-3" style="padding:10px 0;">
+              <div class="row gap-3">
+                <span class="badge badge-test"><span class="dot"></span>Test</span>
+                <span class="mono text-sm">sk_test_••••••••••••••••4f9a</span>
+              </div>
+              <div class="row gap-2">
+                <button class="btn btn-ghost btn-sm">Reveal</button>
+                <button class="btn btn-quiet-danger btn-sm">Revoke</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SIGNATURE -->
+    <section class="block" id="signature" style="border-bottom:none;">
+      <div class="sec-eyebrow"><span class="num">12</span><span class="overline">Signature component</span></div>
+      <h2 class="title-xl">Before / after reveal</h2>
+      <p class="sec-desc">The defining LUMINA interaction. Drag the handle to wipe between the shopper's empty room and the AI composite. Keyboard-accessible, reduced-motion-safe, and reused in the widget result and the merchant gallery.</p>
+
+      <div class="card card-2" style="margin-top:24px; max-width:560px; padding:14px;">
+        <div class="ba" id="baDemo">
+          <div class="ba-after">
+            <div class="ba-ph" data-label="AFTER · composite">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/></svg>
+              <span>Product composited in room</span>
+            </div>
+          </div>
+          <div class="ba-before" id="baBefore">
+            <div class="ba-ph alt" data-label="BEFORE · your room">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 21V9l9-6 9 6v12"/></svg>
+              <span>Empty room photo</span>
+            </div>
+          </div>
+          <div class="ba-handle" id="baHandle"><div class="ba-grip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 7l-4 5 4 5M16 7l4 5-4 5"/></svg></div></div>
+          <input class="ba-range" id="baRange" type="range" min="0" max="100" value="52" aria-label="Reveal before and after" />
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- thumbnail for bundler -->
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><rect width="64" height="64" rx="14" fill="#0f62fe"/><path d="M20 18v28h22" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="42" cy="23" r="5" fill="#fff"/></svg>
+</template>
+
+<style>
+  /* Before/after slider styles (shared signature component) */
+  .ba { position: relative; aspect-ratio: 4/3; border-radius: var(--r-lg); overflow: hidden; user-select: none; touch-action: none; }
+  .ba-before, .ba-after { position: absolute; inset: 0; }
+  .ba-before { width: 52%; overflow: hidden; border-right: 2px solid #fff; }
+  .ba-ph { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #fff; }
+  .ba-ph svg { width: 44px; height: 44px; opacity: .9; }
+  .ba-ph span { font-size: var(--fs-sm); font-weight: 500; opacity: .92; }
+  .ba-ph::before { content: attr(data-label); position: absolute; top: 12px; left: 12px; font-family: var(--font-mono); font-size: 10px; letter-spacing: .06em; padding: 4px 8px; border-radius: var(--r-sm); background: rgba(0,0,0,.42); backdrop-filter: blur(4px); }
+  .ba-after .ba-ph { background: linear-gradient(135deg, #1a2740, #0f62fe 140%); }
+  .ba-ph.alt { background: linear-gradient(135deg, #3a3f47, #1b1e24); }
+  .ba-handle { position: absolute; top: 0; bottom: 0; left: 52%; width: 2px; background: #fff; transform: translateX(-50%); pointer-events: none; box-shadow: 0 0 0 1px rgba(0,0,0,.06); }
+  .ba-grip { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 38px; height: 38px; border-radius: 50%; background: #fff; box-shadow: var(--e-3); display: flex; align-items: center; justify-content: center; color: var(--n-700); }
+  .ba-range { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: ew-resize; margin: 0; }
+</style>
+
+<script>
+  // Theme toggle
+  const tt = document.getElementById('themeToggle');
+  tt.addEventListener('click', (e) => {
+    const btn = e.target.closest('button'); if (!btn) return;
+    const theme = btn.dataset.theme;
+    document.documentElement.setAttribute('data-theme', theme === 'dark' ? 'dark' : 'light');
+    tt.querySelectorAll('button').forEach(b => b.classList.toggle('on', b === btn));
+  });
+
+  // Scrollspy
+  const links = [...document.querySelectorAll('.doc-nav a[href^="#"]')];
+  const map = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(en => { if (en.isIntersecting) {
+      links.forEach(l => l.classList.remove('active'));
+      map.get(en.target.id)?.classList.add('active');
+    }});
+  }, { rootMargin: '-20% 0px -70% 0px' });
+  document.querySelectorAll('section.block, header.hero').forEach(s => obs.observe(s));
+
+  // Before/after slider
+  function wireBA(root) {
+    const range = root.querySelector('.ba-range');
+    const before = root.querySelector('.ba-before');
+    const handle = root.querySelector('.ba-handle');
+    const set = v => { before.style.width = v + '%'; handle.style.left = v + '%'; };
+    range.addEventListener('input', () => set(range.value));
+    set(range.value);
+  }
+  document.querySelectorAll('.ba').forEach(wireBA);
+
+  // Copy buttons
+  document.querySelectorAll('.code-copy').forEach(b => b.addEventListener('click', () => {
+    const t = b.textContent; b.textContent = 'Copied'; setTimeout(() => b.textContent = t, 1400);
+  }));
+</script>
+</body>
+</html>

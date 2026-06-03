@@ -1,0 +1,5 @@
+/* @lumina/ui — LUMINA design system entrypoint. Import once (dashboard root layout).
+   Order matters: tokens (vars + reset) -> components (class library) -> app (dashboard shell). */
+@import './tokens.css';
+@import './components.css';
+@import './app.css';
