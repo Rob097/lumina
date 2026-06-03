@@ -1,6 +1,17 @@
 import { cookies } from 'next/headers';
 import { z } from 'zod';
-import { ApiKeySummarySchema, MeResponseSchema, type ApiKeySummary, type MeResponse } from '@lumina/shared';
+import {
+  AnalyticsSummarySchema,
+  ApiKeySummarySchema,
+  CreditsResponseSchema,
+  MeResponseSchema,
+  TimeseriesResponseSchema,
+  type AnalyticsSummary,
+  type ApiKeySummary,
+  type CreditsResponse,
+  type MeResponse,
+  type TimeseriesResponse,
+} from '@lumina/shared';
 
 function apiBase(): string {
   return process.env.API_URL ?? 'http://localhost:3001';
@@ -43,4 +54,28 @@ export async function fetchDomains(): Promise<string[]> {
     return [];
   }
   return z.object({ domains: z.array(z.string()) }).parse(await res.json()).domains;
+}
+
+export async function fetchCredits(): Promise<CreditsResponse | null> {
+  const res = await apiFetch('/credits');
+  if (!res.ok) {
+    return null;
+  }
+  return CreditsResponseSchema.parse(await res.json());
+}
+
+export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> {
+  const res = await apiFetch('/analytics/summary');
+  if (!res.ok) {
+    return null;
+  }
+  return AnalyticsSummarySchema.parse(await res.json());
+}
+
+export async function fetchAnalyticsTimeseries(): Promise<TimeseriesResponse | null> {
+  const res = await apiFetch('/analytics/timeseries');
+  if (!res.ok) {
+    return null;
+  }
+  return TimeseriesResponseSchema.parse(await res.json());
 }

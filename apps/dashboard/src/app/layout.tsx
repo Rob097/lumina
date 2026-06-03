@@ -1,14 +1,26 @@
 import type { ReactNode } from 'react';
+import { cookies } from 'next/headers';
+import '@lumina/ui/styles.css';
+import { Providers, type Env } from '@/lib/providers';
 
 export const metadata = {
   title: 'LUMINA Dashboard',
   description: 'LUMINA merchant control plane',
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+// Set the theme before paint to avoid a flash (reads localStorage / system preference).
+const THEME_SCRIPT = `try{var t=localStorage.getItem('lumina-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}`;
+
+export default async function RootLayout({ children }: { children: ReactNode }) {
+  const env: Env = (await cookies()).get('lumina-env')?.value === 'test' ? 'test' : 'live';
   return (
-    <html lang="en">
-      <body style={{ fontFamily: 'system-ui, sans-serif', margin: 0 }}>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
+      <body>
+        <Providers initialEnv={env}>{children}</Providers>
+      </body>
     </html>
   );
 }
