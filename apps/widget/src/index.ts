@@ -1,13 +1,11 @@
 /**
- * @lumina/widget — Preact + Vite embeddable widget (loader.js + widget.[hash].js, Shadow DOM).
+ * @lumina/widget — public type surface.
  *
- * M0 stub. The loader, command queue, and Preact app land in M3 (architecture §3). This placeholder
- * imports the shared `LuminaConfig` type to keep the public-API contract in sync.
+ * Re-exports the wire-contract types a consumer (or the merchant's own TypeScript) needs to talk to
+ * the widget. The runtime lives in the loader (`widget.js`) + the content-hashed app bundle; this
+ * module carries types only (erased at build) plus the bundle version string.
  */
-import type { LuminaConfig } from '@lumina/shared';
+export type { LuminaConfig, OpenOptions, WidgetEventName } from '@lumina/shared';
 
-export const widgetGlobalName = 'Lumina' as const;
-
-export function describeConfig(config: LuminaConfig): string {
-  return `LUMINA widget for site_key ${config.siteKey}`;
-}
+/** Loaded bundle version, exposed as `window.Lumina.version` (§3.4). */
+export const WIDGET_VERSION = '0.1.0';

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>LUMINA widget — dev harness</title>
+  </head>
+  <body>
+    <!-- Local dev harness for `pnpm -F @lumina/widget dev`. The acceptance fixture is test-store.html (Task 15). -->
+    <button
+      data-lumina-trigger
+      data-lumina-product-name="Demo Lamp"
+      data-lumina-product-image="https://example.com/lamp.png"
+      data-lumina-category="lighting"
+    >
+      Try in your room
+    </button>
+    <script type="module" src="/src/app.ts"></script>
+  </body>
+</html>

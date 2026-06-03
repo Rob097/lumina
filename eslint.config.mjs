@@ -28,4 +28,11 @@ export default tseslint.config(
       ],
     },
   },
+  {
+    // The widget runs in the browser (Shadow DOM, getUserMedia, canvas, Web Share, …).
+    files: ['apps/widget/src/**/*.{ts,tsx}'],
+    languageOptions: {
+      globals: { ...globals.browser },
+    },
+  },
 );
