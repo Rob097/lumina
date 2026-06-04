@@ -3,18 +3,24 @@ import { z } from 'zod';
 import {
   AnalyticsSummarySchema,
   ApiKeySummarySchema,
+  BillingPlansResponseSchema,
   BulkProductsResultSchema,
+  CreateKeyResponseSchema,
   CreditsResponseSchema,
   GenerationDetailSchema,
   GenerationsListResponseSchema,
   MeResponseSchema,
   ProductSchema,
   ProductsListResponseSchema,
+  TeamResponseSchema,
   TimeseriesResponseSchema,
   WidgetSettingsSchema,
   type AnalyticsSummary,
   type ApiKeySummary,
+  type BillingPlansResponse,
   type BulkProductsResult,
+  type CreateKeyRequest,
+  type CreateKeyResponse,
   type CreditsResponse,
   type GenerationDetail,
   type GenerationsListResponse,
@@ -23,6 +29,7 @@ import {
   type ProductUpdate,
   type ProductsListResponse,
   type MeResponse,
+  type TeamMember,
   type TimeseriesResponse,
   type WidgetSettings,
 } from '@lumina/shared';
@@ -60,6 +67,79 @@ export async function fetchKeys(): Promise<ApiKeySummary[]> {
     return [];
   }
   return z.array(ApiKeySummarySchema).parse(await res.json());
+}
+
+/** Create an API key — the raw secret is returned exactly once (reveal-once). */
+export async function createKey(req: CreateKeyRequest): Promise<CreateKeyResponse | null> {
+  const res = await apiFetch('/keys', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+  return res.ok ? CreateKeyResponseSchema.parse(await res.json()) : null;
+}
+
+export async function revokeKey(id: string): Promise<boolean> {
+  const res = await apiFetch(`/keys/${id}`, { method: 'DELETE' });
+  return res.ok;
+}
+
+export async function updateDomains(domains: string[]): Promise<string[] | null> {
+  const res = await apiFetch('/domains', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ domains }),
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return z.object({ domains: z.array(z.string()) }).parse(await res.json()).domains;
+}
+
+export async function fetchTeam(): Promise<TeamMember[]> {
+  const res = await apiFetch('/team');
+  if (!res.ok) {
+    return [];
+  }
+  return TeamResponseSchema.parse(await res.json()).members;
+}
+
+export async function updateMerchant(name: string): Promise<boolean> {
+  const res = await apiFetch('/merchant', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  return res.ok;
+}
+
+// ─────────────────────────────── billing ───────────────────────────────
+
+export async function fetchBillingPlans(): Promise<BillingPlansResponse | null> {
+  const res = await apiFetch('/billing/plans');
+  return res.ok ? BillingPlansResponseSchema.parse(await res.json()) : null;
+}
+
+/** Start a Stripe Checkout for a plan; returns the redirect URL, or null. */
+export async function startCheckout(plan: string): Promise<string | null> {
+  const res = await apiFetch('/billing/checkout', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ plan }),
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return z.object({ checkoutUrl: z.string() }).parse(await res.json()).checkoutUrl;
+}
+
+/** Open the Stripe billing portal; returns the redirect URL, or null. */
+export async function openBillingPortal(): Promise<string | null> {
+  const res = await apiFetch('/billing/portal', { method: 'POST' });
+  if (!res.ok) {
+    return null;
+  }
+  return z.object({ portalUrl: z.string() }).parse(await res.json()).portalUrl;
 }
 
 export async function fetchDomains(): Promise<string[]> {
