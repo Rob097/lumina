@@ -151,3 +151,24 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
 - **D31 — Theme + env are client state in a thin provider.** Light/dark via `:root[data-theme]` (the design
   tokens define both) with a no-flash inline script; the Test/Live env toggle persists in a cookie. Both are
   exposed via a small client provider so server components stay the default.
+
+- **D32 — Widget Settings persists the editable subset to the active `widget_configs` row.** The merchant
+  `GET/PUT /v1/widget-config` reads/upserts the merchant's single **active** row — the same row the public
+  `GET /v1/widget/config` derives the shopper response from — so a save is reflected by the live widget
+  immediately, and exactly one active row is kept (no `widget_active_uidx` conflict). The editable
+  `WidgetSettingsSchema` (`packages/shared`) is a tighter, validated mirror (hex accent, 0–24px radius,
+  ≤32-char label) of the permissive runtime `ThemeSchema`; the in-dashboard live preview is driven from the
+  same settings via a pure `previewVars`. Only settings the widget actually honors are exposed — the
+  prototype's non-functional "show icon" toggle is omitted (honesty, as with the funnel).
+
+- **D33 — The install snippet shows the publishable-key *prefix*, never a fabricated key.** API keys are
+  reveal-once (D11), so the Script & Install screen renders the active env's `pk_…` prefix with guidance to
+  paste the full value captured at creation (or roll a new key in Settings) — the dashboard never reconstructs
+  or exposes a working key client-side (HARD RULE #2). The loader-script + trigger-button builders are pure
+  and unit-tested; the snippet content reacts to the global Test/Live env toggle.
+
+- **D34 — Onboarding completion is derived from live signals, not stored flags.** `deriveOnboarding` computes
+  each step's done state from real merchant data (widget config ≠ shipped defaults, product try-on activity,
+  domains/impressions for "installed", generations for "go-live"), so the checklist always reflects what the
+  merchant has actually done and needs no extra persistence. The "has products" signal is a temporary proxy
+  (products with activity) that Phase C upgrades to the real catalog count.

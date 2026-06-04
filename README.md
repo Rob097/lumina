@@ -24,12 +24,13 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** M0–M3 complete; **M4 in progress** (Phase A done). `packages/{shared,db,ai}` and `apps/api`
+> **Status:** M0–M3 complete; **M4 in progress** (Phases A–B done). `packages/{shared,db,ai}` and `apps/api`
 > (auth/keys/domains/billing + the AI orchestrator, R2 storage, generation workflow, public `/v1/widget/*`
-> endpoints, and the merchant `/v1/credits` + `/v1/analytics/*` endpoints) are implemented and tested;
-> `apps/widget` is the full Preact + Shadow-DOM widget at **30.9 KB gz**; `packages/ui` now ships the ported
-> LUMINA design system; `apps/dashboard` has the app shell + **Overview** ROI dashboard (the rest of the
-> screens land in M4 phases B–D).
+> endpoints, and the merchant `/v1/credits`, `/v1/analytics/*` + `/v1/widget-config` endpoints) are
+> implemented and tested; `apps/widget` is the full Preact + Shadow-DOM widget at **31.2 KB gz**; `packages/ui`
+> ships the ported LUMINA design system; `apps/dashboard` has the app shell + **Overview**, **Widget Settings**
+> (live preview), **Script & Install**, and **Onboarding** screens (Products/Generations/Analytics/Billing/
+> Settings land in M4 phases C–D).
 
 ## Prerequisites
 
