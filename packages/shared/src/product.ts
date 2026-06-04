@@ -30,6 +30,22 @@ export const ProductInputSchema = z.object({
 });
 export type ProductInput = z.infer<typeof ProductInputSchema>;
 
+/** Partial update payload for `PUT /v1/products/:id` (§6.3) — any subset of the input fields. */
+export const ProductUpdateSchema = ProductInputSchema.partial();
+export type ProductUpdate = z.infer<typeof ProductUpdateSchema>;
+
+/** Batch upsert for `POST /v1/products/bulk` (CSV import) — keyed by `externalId` when present. */
+export const BulkProductsInputSchema = z.object({
+  products: z.array(ProductInputSchema).min(1).max(1000),
+});
+export type BulkProductsInput = z.infer<typeof BulkProductsInputSchema>;
+
+export const BulkProductsResultSchema = z.object({
+  created: z.number().int().nonnegative(),
+  updated: z.number().int().nonnegative(),
+});
+export type BulkProductsResult = z.infer<typeof BulkProductsResultSchema>;
+
 /** Full product record as returned by the merchant API. */
 export const ProductSchema = z.object({
   id: z.string().uuid(),
@@ -46,3 +62,10 @@ export const ProductSchema = z.object({
   updatedAt: z.string(),
 });
 export type Product = z.infer<typeof ProductSchema>;
+
+/** Response of `GET /v1/products` (§6.3). */
+export const ProductsListResponseSchema = z.object({
+  products: z.array(ProductSchema),
+  total: z.number().int().nonnegative(),
+});
+export type ProductsListResponse = z.infer<typeof ProductsListResponseSchema>;
