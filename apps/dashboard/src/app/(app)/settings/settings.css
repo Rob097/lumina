@@ -1,0 +1,147 @@
+/* Settings — account, keys, domains, team, danger zone. */
+
+.settings {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 860px;
+}
+.settings-section .card-pad {
+  padding: 20px;
+}
+.settings-p {
+  margin: 0 0 14px;
+  font-size: var(--fs-body);
+}
+.settings-empty {
+  margin: 6px 0 0;
+  font-size: var(--fs-body);
+}
+
+/* account */
+.settings-account {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.inline-edit {
+  display: flex;
+  gap: 10px;
+  max-width: 460px;
+}
+.inline-edit .input {
+  flex: 1;
+}
+.settings-readonly {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  padding-top: 4px;
+}
+.ro-value {
+  display: block;
+  margin-top: 4px;
+  font-size: var(--fs-body);
+}
+.ro-value a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+/* keys */
+.key-create {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.key-table {
+  margin-top: 4px;
+}
+
+/* domains */
+.domain-add {
+  display: flex;
+  gap: 10px;
+  max-width: 460px;
+  margin-bottom: 12px;
+}
+.domain-add .input {
+  flex: 1;
+}
+.domain-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.domain-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--hairline);
+}
+.domain-list li:last-child {
+  border-bottom: none;
+}
+
+/* team */
+.team-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.team-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.team-list li:last-child {
+  border-bottom: none;
+}
+.team-email {
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+.team-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* danger zone */
+.danger-card {
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+.danger-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.danger-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--hairline);
+}
+.danger-row:last-child {
+  border-bottom: none;
+}
+.danger-title {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+.btn.is-disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
