@@ -1,30 +1,43 @@
 # @lumina/dashboard
 
-Merchant control plane (Next.js 15 App Router). M1 wires **Supabase Auth** (email/password + Google) and
-triggers first-login provisioning; the full dashboard UI (onboarding, products, analytics, billing) lands
-in M4.
+Merchant control plane (Next.js 15 App Router). The premium, pixel-faithful dashboard built on the
+LUMINA design system (`@lumina/ui`). M1 wired **Supabase Auth**; **M4** builds the app shell + screens.
 
 ## Run
 
 ```bash
 cp .env.example .env   # NEXT_PUBLIC_SUPABASE_URL/ANON_KEY, API_URL, APP_URL
 pnpm -F @lumina/dashboard dev   # http://localhost:3000  (needs @lumina/api on :3001)
+pnpm -F @lumina/dashboard test  # vitest — pure logic (format, funnel, shell helpers)
 ```
 
-## Auth flow
+## Architecture
 
-- `middleware.ts` refreshes the Supabase session cookie on every request (`@supabase/ssr` canonical
-  pattern in `src/lib/supabase/middleware.ts`).
-- `src/app/login` — email/password sign-in + sign-up and "Continue with Google" (server actions).
-- `src/app/auth/callback` — exchanges the OAuth/confirmation `code` for a session.
-- `src/app/page.tsx` — requires a session, calls `POST /v1/auth/bootstrap` (idempotent), then renders the
-  merchant's plan, credit balance, API keys, and allowed domains by calling the API with the forwarded
-  session cookie (`src/lib/api.ts`).
+- **Design system (D27):** `import '@lumina/ui/styles.css'` (tokens + components + app shell, ported
+  verbatim) in the root layout; screens use the prototype's class names (`.card`, `.kpi`, `.table`,
+  `.side`, `.topbar`…) for fidelity. Charts use **Recharts** styled with the `--viz-*` tokens; KPI
+  sparklines + the funnel are inline SVG (D30).
+- **Data layer (D28):** server components/actions call the **merchant API** in `@lumina/api` over HTTP via
+  `src/lib/api.ts`, which forwards the Supabase session cookie and validates responses with shared Zod
+  schemas. No DB access or secrets in the dashboard.
+- **Shell:** the `(app)` route group gates the session, provisions the merchant on first login, and renders
+  `Sidebar` (merchant switcher, grouped nav, credit pill, account) + `Topbar` (route-derived title,
+  Test/Live env toggle, theme toggle, search). Theme (light/dark via `:root[data-theme]`) + env live in a
+  thin client provider (D31).
+
+## Screens
+
+| Status | Screen | Notes |
+|---|---|---|
+| ✅ M4·A | **Overview** | ROI dashboard — KPIs (+ deltas, sparklines), conversion funnel, generations/CTA timeseries, top products, recent strip. |
+| ⏳ M4·B | Widget Settings · Script & Install · Onboarding | live preview, snippet, 5-step wizard. |
+| ⏳ M4·C | Products · Generations gallery · Analytics | catalog + CSV import, before/after gallery, deeper charts. |
+| ⏳ M4·D | Credits & Billing · Settings · Auth reskin | plan cards, ledger, team/keys/domains/danger zone. |
 
 ## Status
 
-Auth + bootstrap wiring is type-checked and follows the canonical pattern, but the live flow requires a
-real Supabase project (and Stripe for checkout); those aren't provisioned in this environment. M1's
-server-side logic is fully covered by `@lumina/api` unit + integration tests.
+Logic (formatting, funnel, shell helpers) is unit-tested; the merchant API behind the screens
+(`/credits`, `/analytics/*`) is covered by `@lumina/api` Testcontainers tests. The live flow needs a real
+Supabase project + the API running.
 
-> M1 build runs `tsc --noEmit`. Tailwind/shadcn UI + `next build` land with the full dashboard in M4.
+> M4 build runs `tsc --noEmit`; `next build` + font optimization (next/font) land in M5.

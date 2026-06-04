@@ -125,3 +125,29 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
 - **D26 — Bundle-budget gate.** `build.mjs` fails the build if the gzipped app bundle exceeds 45 KB; an
   explicit `pnpm -F @lumina/widget size` step in CI surfaces it. The widget validates API responses with
   the shared zod schemas via a structural `Parser<T>` type (no direct `zod` dependency, keeps imports lean).
+
+## M4 — Merchant dashboard (2026-06-03)
+
+- **D27 — Design system = global CSS from `packages/ui`.** The Claude Design bundle's three stylesheets are
+  copied verbatim into `packages/ui/styles/{tokens,components,app}.css`, re-exported as `@lumina/ui/styles.css`,
+  imported once in the dashboard root layout; screens use the prototype class names for pixel fidelity. Fonts
+  load via the design's Google-Fonts `@import` (next/font optimization deferred to M5). The prototype HTML is
+  archived under `docs/design/` for reference.
+
+- **D28 — Dashboard ↔ API over HTTP with the forwarded Supabase session.** All merchant endpoints live in
+  `apps/api` (§6.1 "same Vercel app"); the dashboard's server components/actions call them via `lib/api.ts`
+  (cookie-forwarding `apiFetch`) and validate responses with shared Zod schemas. No DB access or secrets in
+  the dashboard (HARD RULE #2).
+
+- **D29 — Analytics via merchant-scoped SQL aggregation.** `summary`/`timeseries` are computed in `apps/api`
+  over `usage_events` + `generations` (RLS-enforced, scoped by `merchant_id`), shaped to Zod response
+  schemas. Metrics use the event types the widget actually emits (impression/open/cta) + the generations
+  table — no fabricated numbers; the dashboard renders skeletons + empty states.
+
+- **D30 — Recharts for large charts; inline SVG for sparklines/funnel.** The Overview timeseries (and later
+  Analytics) use Recharts styled with the `--viz-*` tokens; KPI sparklines + the funnel bars stay inline SVG
+  (as the prototype) to keep pages light.
+
+- **D31 — Theme + env are client state in a thin provider.** Light/dark via `:root[data-theme]` (the design
+  tokens define both) with a no-flash inline script; the Test/Live env toggle persists in a cookie. Both are
+  exposed via a small client provider so server components stay the default.
