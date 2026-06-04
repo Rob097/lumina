@@ -1,0 +1,62 @@
+/* Script & install — guided two-snippet setup. */
+
+.install-guide {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+}
+.install-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.install-head p {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+.install-p {
+  margin: 0 0 14px;
+  font-size: var(--fs-body);
+}
+.install-note {
+  margin: 12px 0 0;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.install-note a,
+.install-checks a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.install-note a:hover,
+.install-checks a:hover {
+  text-decoration: underline;
+}
+.step-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--accent-weak);
+  color: var(--accent);
+  font-size: var(--fs-caption);
+  font-weight: 700;
+  margin-right: 8px;
+}
+.install-checks {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+}
+.code-block code {
+  white-space: inherit;
+}
