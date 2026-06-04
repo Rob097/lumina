@@ -1,0 +1,122 @@
+/* Products — catalog table, add/edit drawer, CSV import modal. */
+
+.products {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.products-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.products-toolbar .grow {
+  flex: 1;
+}
+.search-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-width: 240px;
+}
+.search-field svg {
+  position: absolute;
+  left: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+.search-field .input {
+  padding-left: 34px;
+}
+
+.products-card {
+  overflow: hidden;
+}
+.prod-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.prod-thumb {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--r-md);
+  object-fit: cover;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+  flex: none;
+}
+.row-actions {
+  display: flex;
+  gap: 4px;
+  justify-content: flex-end;
+}
+.btn-ghost.danger {
+  color: var(--danger);
+}
+.products-noresults {
+  padding: 24px 16px;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: var(--fs-body);
+}
+
+/* ---- product-specific drawer/import bits (shared scaffold lives in overlay.css) ---- */
+.dims-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 72px;
+  gap: 8px;
+}
+.drawer-preview {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+  border-radius: var(--r-lg);
+  border: 1px solid var(--border);
+  background: var(--surface-3);
+}
+
+.import-p {
+  margin: 0;
+  font-size: var(--fs-body);
+}
+.import-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-align: center;
+  transition: border-color var(--dur-fast);
+}
+.import-drop:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.import-summary {
+  display: flex;
+  gap: 8px;
+}
+.import-errors {
+  margin: 0;
+  padding-left: 18px;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.import-sample summary {
+  font-size: var(--fs-caption);
+  color: var(--accent);
+  cursor: pointer;
+}
+.import-sample .code-block {
+  margin-top: 10px;
+  white-space: pre-wrap;
+}

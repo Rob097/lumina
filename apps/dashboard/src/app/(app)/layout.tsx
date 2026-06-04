@@ -1,3 +1,4 @@
+import './overlay.css';
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { PLAN_CATALOG } from '@lumina/shared';
