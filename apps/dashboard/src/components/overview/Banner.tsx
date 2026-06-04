@@ -32,8 +32,8 @@ export function Banner({ domainCount, rangeLabel }: { domainCount: number; range
             <Icon name="chevron-down" size={14} strokeWidth={2} />
           </button>
         ) : (
-          <Link className="btn btn-primary btn-sm" href="/script">
-            Get your script
+          <Link className="btn btn-primary btn-sm" href="/onboarding">
+            Finish setup
           </Link>
         )}
       </div>

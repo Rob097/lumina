@@ -1,0 +1,127 @@
+/* Onboarding — guided setup checklist. */
+
+.onboard {
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.onboard-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.onboard-title {
+  font-family: var(--font-display);
+  font-size: var(--fs-title-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+.onboard-sub {
+  margin: 4px 0 0;
+  font-size: var(--fs-body);
+}
+.onboard-progress {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+}
+.onboard-count {
+  font-family: var(--font-display);
+  font-size: var(--fs-title-lg);
+  font-weight: 600;
+}
+
+.onboard-focus,
+.onboard-done {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 20px 22px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.onboard-focus:hover {
+  box-shadow: var(--e-3);
+  transform: translateY(-1px);
+}
+.onboard-focus-ic,
+.onboard-done-ic {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--r-xl);
+  background: var(--accent-weak);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+.onboard-done-ic {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success);
+}
+.onboard-focus-title {
+  font-size: var(--fs-title);
+  font-weight: 600;
+  margin: 8px 0 4px;
+}
+
+.onboard-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  overflow: hidden;
+}
+.onboard-step {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--hairline);
+}
+.onboard-step:last-child {
+  border-bottom: none;
+}
+.onboard-step-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-caption);
+  font-weight: 600;
+  flex: none;
+  background: var(--surface-3);
+  color: var(--text-muted);
+}
+.onboard-step.is-active .onboard-step-mark {
+  background: var(--accent-weak);
+  color: var(--accent);
+}
+.onboard-step.is-done .onboard-step-mark {
+  background: color-mix(in srgb, var(--success) 16%, transparent);
+  color: var(--success);
+}
+.onboard-step-title {
+  display: block;
+  font-size: var(--fs-body);
+  font-weight: 500;
+}
+.onboard-step.is-done .onboard-step-title {
+  color: var(--text-muted);
+}
+.onboard-step-body {
+  display: block;
+  font-size: var(--fs-caption);
+  margin-top: 2px;
+}
