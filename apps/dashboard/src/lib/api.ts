@@ -64,16 +64,29 @@ export async function fetchCredits(): Promise<CreditsResponse | null> {
   return CreditsResponseSchema.parse(await res.json());
 }
 
-export async function fetchAnalyticsSummary(): Promise<AnalyticsSummary | null> {
-  const res = await apiFetch('/analytics/summary');
+function queryString(params: Record<string, string | undefined>): string {
+  const qs = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v) qs.set(k, v);
+  }
+  const s = qs.toString();
+  return s ? `?${s}` : '';
+}
+
+export async function fetchAnalyticsSummary(
+  range?: { from?: string; to?: string },
+): Promise<AnalyticsSummary | null> {
+  const res = await apiFetch(`/analytics/summary${queryString({ ...range })}`);
   if (!res.ok) {
     return null;
   }
   return AnalyticsSummarySchema.parse(await res.json());
 }
 
-export async function fetchAnalyticsTimeseries(): Promise<TimeseriesResponse | null> {
-  const res = await apiFetch('/analytics/timeseries');
+export async function fetchAnalyticsTimeseries(
+  params?: { from?: string; to?: string; interval?: string },
+): Promise<TimeseriesResponse | null> {
+  const res = await apiFetch(`/analytics/timeseries${queryString({ ...params })}`);
   if (!res.ok) {
     return null;
   }
