@@ -172,3 +172,23 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   domains/impressions for "installed", generations for "go-live"), so the checklist always reflects what the
   merchant has actually done and needs no extra persistence. The "has products" signal is a temporary proxy
   (products with activity) that Phase C upgrades to the real catalog count.
+
+- **D35 — Products: soft-delete + `external_id` bulk upsert; CSV parsed client-side.** `DELETE /products/:id`
+  archives (`active = false`) so historical generations keep their product reference; `POST /products/bulk`
+  upserts by `external_id` inside a transaction and reports `{ created, updated }`. The Import flow parses the
+  file with a pure, fully-tested `parseProductsCsv` (header aliases, quoted fields, per-row errors with line
+  numbers) before sending validated rows — invalid rows are surfaced inline, never silently dropped. The
+  Products list filters/searches the loaded page in-memory (catalog ≤ 100/page) to avoid round-trips.
+
+- **D36 — Generations: keyset pagination + injected image URLs.** `GET /generations` is cursor-paginated with a
+  `(created_at, id)` keyset and an opaque base64 cursor (stable under ties), newest-first. Product name/category
+  come from the stored `product_snapshot` so they survive product deletion. Result/room URLs are derived through
+  an **injected** builder (R2 `resizeUrl`, D16) so the service is unit-testable without storage and returns
+  `null` → a styled placeholder when R2 is unconfigured (no fake images). The dashboard before/after wipe reuses
+  the unit-tested `pctFromPointer`/`clampSliderPct` math.
+
+- **D37 — Analytics screen reuses the Phase-A API + Overview components.** The dedicated Analytics page is
+  server-rendered with a range selector (7/30/90d via `?range`, day/week interval) over the **same**
+  `/analytics/{summary,timeseries}` endpoints and the Overview's KPI / funnel / timeseries / top-products
+  components — no new API and no duplicated metric logic. The shared overlay scaffold (drawer/modal/form-field
+  CSS) was extracted to `(app)/overlay.css`, imported once by the app-group layout.

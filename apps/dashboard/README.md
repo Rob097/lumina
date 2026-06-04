@@ -33,7 +33,9 @@ pnpm -F @lumina/dashboard test  # vitest — pure logic (format, funnel, shell h
 | ✅ M4·B | **Widget Settings** | Theme/copy/CTA/branding form with a self-contained live preview (button · modal · result), saved to `/v1/widget-config`. |
 | ✅ M4·B | **Script & Install** | Env-aware loader `<script>` + trigger-button snippets with copy + verify checklist. |
 | ✅ M4·B | **Onboarding** | 5-step guided checklist; completion derived from live signals (config, products, install, generations). |
-| ⏳ M4·C | Products · Generations gallery · Analytics | catalog + CSV import, before/after gallery, deeper charts. |
+| ✅ M4·C | **Products** | Catalog table with search/category filter, add/edit drawer, CSV import (client-parsed, per-row errors); soft-delete archive. |
+| ✅ M4·C | **Generations** | Status-filtered card gallery, cursor "Load more", before/after wipe detail with run metadata. |
+| ✅ M4·C | **Analytics** | Range selector (7/30/90d) over the Phase-A analytics API — KPIs, funnel, timeseries, top products. |
 | ⏳ M4·D | Credits & Billing · Settings · Auth reskin | plan cards, ledger, team/keys/domains/danger zone. |
 
 ## Status
