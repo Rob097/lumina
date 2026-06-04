@@ -1,0 +1,229 @@
+/* Generations — filter chips, card grid, before/after detail. */
+
+.gens {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.gens-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip {
+  height: 30px;
+  padding: 0 14px;
+  border-radius: var(--r-full);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background var(--dur-fast),
+    border-color var(--dur-fast),
+    color var(--dur-fast);
+}
+.chip:hover {
+  background: var(--surface-2);
+}
+.chip.is-on {
+  background: var(--text);
+  border-color: var(--text);
+  color: var(--surface);
+}
+
+.gens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+.gen-card {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.gen-card:hover {
+  box-shadow: var(--e-3);
+  transform: translateY(-2px);
+}
+.gen-thumb {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--surface-3);
+  overflow: hidden;
+}
+.gen-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.gen-thumb-fallback {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(140deg, #14223c, #1d3a6b 60%, var(--accent) 130%);
+}
+.gen-thumb-fallback.status-failed {
+  background: linear-gradient(140deg, #3a2230, #5b2334 70%, var(--danger) 140%);
+}
+.gen-thumb-fallback.status-queued,
+.gen-thumb-fallback.status-processing {
+  background: linear-gradient(140deg, #23262b, #2f343d);
+}
+.gen-card-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+}
+.gen-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 11px 13px;
+}
+.gen-card-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gen-card-sub {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.gens-more {
+  display: flex;
+  justify-content: center;
+  padding: 6px 0 4px;
+}
+
+/* ---- detail modal ---- */
+.gen-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gen-modal-title h3 {
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+.gen-modal-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  overflow-y: auto;
+}
+.gen-meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 14px 20px;
+}
+.gen-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.gen-meta-k {
+  font-size: var(--fs-micro);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.gen-meta-v {
+  font-size: var(--fs-sm);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---- before/after wipe ---- */
+.ba2 {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  user-select: none;
+  touch-action: none;
+  cursor: ew-resize;
+  box-shadow: var(--e-2);
+  background: var(--surface-3);
+}
+.ba2-layer {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+.ba2-layer img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.ba2-before {
+  border-right: 2.5px solid #fff;
+}
+.ba2-fallback {
+  position: absolute;
+  inset: 0;
+}
+.ba2-fallback-after {
+  background: linear-gradient(150deg, #14223c, #1d3a6b 55%, var(--accent) 130%);
+}
+.ba2-fallback-before {
+  background: linear-gradient(150deg, #34383f, #232730 60%, #15181d 100%);
+}
+.ba2-cap {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.42);
+  padding: 4px 8px;
+  border-radius: var(--r-sm);
+}
+.ba2-before .ba2-cap {
+  left: auto;
+  right: 12px;
+}
+.ba2-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2.5px;
+  background: #fff;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.ba2-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: var(--e-4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--n-700);
+}
