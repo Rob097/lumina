@@ -1,0 +1,42 @@
+/* Analytics — range tabs above the reused KPI/funnel/timeseries layout. */
+
+.analytics-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 4px;
+}
+.analytics-head .sub {
+  font-size: var(--fs-body);
+  color: var(--text-secondary);
+}
+.range-tabs {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--surface-3);
+  border-radius: var(--r-lg);
+}
+.range-tab {
+  height: 30px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--r-md);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition:
+    background var(--dur-fast),
+    color var(--dur-fast);
+}
+.range-tab:hover {
+  color: var(--text);
+}
+.range-tab.is-on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--e-1);
+}
