@@ -3,13 +3,25 @@ import { z } from 'zod';
 import {
   AnalyticsSummarySchema,
   ApiKeySummarySchema,
+  BulkProductsResultSchema,
   CreditsResponseSchema,
+  GenerationDetailSchema,
+  GenerationsListResponseSchema,
   MeResponseSchema,
+  ProductSchema,
+  ProductsListResponseSchema,
   TimeseriesResponseSchema,
   WidgetSettingsSchema,
   type AnalyticsSummary,
   type ApiKeySummary,
+  type BulkProductsResult,
   type CreditsResponse,
+  type GenerationDetail,
+  type GenerationsListResponse,
+  type Product,
+  type ProductInput,
+  type ProductUpdate,
+  type ProductsListResponse,
   type MeResponse,
   type TimeseriesResponse,
   type WidgetSettings,
@@ -114,4 +126,71 @@ export async function fetchAnalyticsTimeseries(
     return null;
   }
   return TimeseriesResponseSchema.parse(await res.json());
+}
+
+// ─────────────────────────────── products ───────────────────────────────
+
+export async function fetchProducts(
+  params?: { category?: string; search?: string; includeArchived?: boolean },
+): Promise<ProductsListResponse> {
+  const res = await apiFetch(
+    `/products${queryString({
+      category: params?.category,
+      search: params?.search,
+      includeArchived: params?.includeArchived ? 'true' : undefined,
+    })}`,
+  );
+  if (!res.ok) {
+    return { products: [], total: 0 };
+  }
+  return ProductsListResponseSchema.parse(await res.json());
+}
+
+export async function createProduct(input: ProductInput): Promise<Product | null> {
+  const res = await apiFetch('/products', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return res.ok ? ProductSchema.parse(await res.json()) : null;
+}
+
+export async function updateProduct(id: string, patch: ProductUpdate): Promise<Product | null> {
+  const res = await apiFetch(`/products/${id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  return res.ok ? ProductSchema.parse(await res.json()) : null;
+}
+
+export async function archiveProduct(id: string): Promise<boolean> {
+  const res = await apiFetch(`/products/${id}`, { method: 'DELETE' });
+  return res.ok;
+}
+
+export async function bulkUpsertProducts(products: ProductInput[]): Promise<BulkProductsResult | null> {
+  const res = await apiFetch('/products/bulk', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ products }),
+  });
+  return res.ok ? BulkProductsResultSchema.parse(await res.json()) : null;
+}
+
+// ───────────────────────────── generations ─────────────────────────────
+
+export async function fetchGenerations(
+  params?: { status?: string; productId?: string; cursor?: string; limit?: string },
+): Promise<GenerationsListResponse> {
+  const res = await apiFetch(`/generations${queryString({ ...params })}`);
+  if (!res.ok) {
+    return { items: [], nextCursor: null };
+  }
+  return GenerationsListResponseSchema.parse(await res.json());
+}
+
+export async function fetchGeneration(id: string): Promise<GenerationDetail | null> {
+  const res = await apiFetch(`/generations/${id}`);
+  return res.ok ? GenerationDetailSchema.parse(await res.json()) : null;
 }
