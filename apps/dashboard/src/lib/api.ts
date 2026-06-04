@@ -6,11 +6,13 @@ import {
   CreditsResponseSchema,
   MeResponseSchema,
   TimeseriesResponseSchema,
+  WidgetSettingsSchema,
   type AnalyticsSummary,
   type ApiKeySummary,
   type CreditsResponse,
   type MeResponse,
   type TimeseriesResponse,
+  type WidgetSettings,
 } from '@lumina/shared';
 
 function apiBase(): string {
@@ -62,6 +64,27 @@ export async function fetchCredits(): Promise<CreditsResponse | null> {
     return null;
   }
   return CreditsResponseSchema.parse(await res.json());
+}
+
+export async function fetchWidgetConfig(): Promise<WidgetSettings | null> {
+  const res = await apiFetch('/widget-config');
+  if (!res.ok) {
+    return null;
+  }
+  return WidgetSettingsSchema.parse(await res.json());
+}
+
+/** Persist the Widget Settings form. Returns the saved settings, or `null` on failure. */
+export async function saveWidgetConfig(input: WidgetSettings): Promise<WidgetSettings | null> {
+  const res = await apiFetch('/widget-config', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return WidgetSettingsSchema.parse(await res.json());
 }
 
 function queryString(params: Record<string, string | undefined>): string {
