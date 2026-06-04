@@ -1,0 +1,83 @@
+/* Auth — centered card on the LUMINA canvas. */
+
+.auth-wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(120% 90% at 50% -10%, var(--accent-weak) 0%, transparent 55%), var(--bg);
+}
+.auth-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-2xl);
+  box-shadow: var(--e-3);
+  padding: 32px;
+}
+.auth-brand {
+  font-family: var(--font-display);
+  font-size: var(--fs-title-lg);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.auth-sub {
+  margin: 4px 0 24px;
+  color: var(--text-secondary);
+  font-size: var(--fs-body);
+}
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.auth-field span {
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.auth-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.auth-actions .btn {
+  flex: 1;
+  justify-content: center;
+}
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+  color: var(--text-muted);
+  font-size: var(--fs-caption);
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+.auth-google {
+  width: 100%;
+  justify-content: center;
+}
+.auth-error {
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  font-size: var(--fs-caption);
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+  color: var(--danger);
+}
