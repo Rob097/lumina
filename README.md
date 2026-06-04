@@ -24,14 +24,14 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** M0–M3 complete; **M4 in progress** (Phases A–C done). `packages/{shared,db,ai}` and `apps/api`
-> (auth/keys/domains/billing + the AI orchestrator, R2 storage, generation workflow, public `/v1/widget/*`
-> endpoints, and the merchant `/v1/credits`, `/v1/analytics/*`, `/v1/widget-config`, `/v1/products*` +
-> `/v1/generations*` endpoints) are implemented and tested; `apps/widget` is the full Preact + Shadow-DOM
-> widget at **31.2 KB gz**; `packages/ui` ships the ported LUMINA design system; `apps/dashboard` has the app
-> shell + **Overview**, **Widget Settings** (live preview), **Script & Install**, **Onboarding**, **Products**
-> (CSV import), **Generations** (before/after gallery), and **Analytics** screens (Billing + Settings land in
-> M4 phase D).
+> **Status:** **M0–M4 complete.** `packages/{shared,db,ai}` and `apps/api` (auth/keys/domains/billing + the AI
+> orchestrator, R2 storage, generation workflow, public `/v1/widget/*` endpoints, and the full merchant API —
+> `/v1/credits`, `/v1/analytics/*`, `/v1/widget-config`, `/v1/products*`, `/v1/generations*`, `/v1/billing/plans`,
+> `/v1/team`, `/v1/merchant`) are implemented and tested; `apps/widget` is the full Preact + Shadow-DOM widget at
+> **31.4 KB gz**; `packages/ui` ships the ported LUMINA design system; `apps/dashboard` is the complete merchant
+> control plane — Overview, Widget Settings (live preview), Script & Install, Onboarding, Products (CSV import),
+> Generations (before/after gallery), Analytics, Credits & Billing, Settings, reskinned auth + 404. **M5 next**
+> (deploy/observability + real `next build`).
 
 ## Prerequisites
 

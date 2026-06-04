@@ -192,3 +192,22 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   `/analytics/{summary,timeseries}` endpoints and the Overview's KPI / funnel / timeseries / top-products
   components — no new API and no duplicated metric logic. The shared overlay scaffold (drawer/modal/form-field
   CSS) was extracted to `(app)/overlay.css`, imported once by the app-group layout.
+
+- **D38 — Plan presentation is separate from the billing contract.** `PLAN_PRESENTATION` (price/features/
+  highlight) lives beside `PLAN_CATALOG` but is **display-only** — list prices are business copy, never
+  authoritative for charging (the real amount is the Stripe price resolved from env at checkout, `priceForPlan`).
+  `GET /v1/billing/plans` composes the two via the pure `buildBillingPlans(currentPlan)`; the dashboard's
+  `planCta`/`planRank`/`formatPrice` are pure + unit-tested. Upgrade/switch routes through the existing Stripe
+  Checkout; "Manage billing" through the existing portal — Phase D adds no new money path.
+
+- **D39 — Team emails come from a read-only `auth.users` reference, not a managed table.** `GET /v1/team` joins
+  `memberships` to a locally-declared `pgSchema('auth').table('users', …)` (id + email only) so member emails
+  resolve with a type-safe join — but because it lives in the service (not `schema.ts`), drizzle-kit never
+  manages the Supabase-owned table (consistent with D6). Merchant-scoped (HARD RULE #1), Testcontainers-tested
+  against the auth shim.
+
+- **D40 — Danger zone is honest: cancel via portal, deletion via a GDPR request.** "Cancel subscription" links
+  to the real Stripe portal; "Delete account" requires typing the store name and then opens a pre-filled GDPR
+  erasure request to the DPO — the dashboard never fakes an irreversible deletion it can't perform. API keys are
+  created through the existing reveal-once endpoint and shown once in a copy modal (HARD RULE #2); domains are
+  validated client-side with the shared `HostnameSchema` before the `PUT`.

@@ -36,12 +36,15 @@ pnpm -F @lumina/dashboard test  # vitest — pure logic (format, funnel, shell h
 | ✅ M4·C | **Products** | Catalog table with search/category filter, add/edit drawer, CSV import (client-parsed, per-row errors); soft-delete archive. |
 | ✅ M4·C | **Generations** | Status-filtered card gallery, cursor "Load more", before/after wipe detail with run metadata. |
 | ✅ M4·C | **Analytics** | Range selector (7/30/90d) over the Phase-A analytics API — KPIs, funnel, timeseries, top products. |
-| ⏳ M4·D | Credits & Billing · Settings · Auth reskin | plan cards, ledger, team/keys/domains/danger zone. |
+| ✅ M4·D | **Credits & Billing** | Credit meter, plan cards (upgrade → Stripe Checkout, manage → portal), credit ledger. |
+| ✅ M4·D | **Settings** | Account rename, reveal-once API keys, allowed domains, team list, honest danger zone. |
+| ✅ M4·D | **Auth + 404** | Reskinned login (email/password + Google) and a branded not-found page. |
 
 ## Status
 
-Logic (formatting, funnel, shell helpers) is unit-tested; the merchant API behind the screens
-(`/credits`, `/analytics/*`) is covered by `@lumina/api` Testcontainers tests. The live flow needs a real
-Supabase project + the API running.
+**M4 complete** — all screens built. Pure logic (formatting, funnel, shell, CSV, slider, plan helpers) is
+unit-tested; the merchant API behind the screens (`/credits`, `/analytics/*`, `/widget-config`, `/products*`,
+`/generations*`, `/billing/plans`, `/team`, `/merchant`) is covered by `@lumina/api` Testcontainers tests.
+The live flow needs a real Supabase project + the API running.
 
 > M4 build runs `tsc --noEmit`; `next build` + font optimization (next/font) land in M5.
