@@ -5,6 +5,8 @@ import {
   CreateKeyResponseSchema,
   DomainsSchema,
   MeResponseSchema,
+  MerchantUpdateSchema,
+  TeamMemberSchema,
 } from './account.js';
 
 describe('api key schemas', () => {
@@ -54,5 +56,23 @@ describe('me schema', () => {
       ],
     });
     expect(me.merchants[0]?.role).toBe('owner');
+  });
+});
+
+describe('team + merchant-update schemas', () => {
+  it('parses a team member with a nullable email', () => {
+    const m = TeamMemberSchema.parse({
+      userId: 'u1',
+      email: 'sofia@store.it',
+      role: 'admin',
+      joinedAt: '2026-06-01T00:00:00.000Z',
+    });
+    expect(m.role).toBe('admin');
+    expect(TeamMemberSchema.parse({ ...m, email: null }).email).toBeNull();
+  });
+
+  it('rejects an empty merchant name', () => {
+    expect(MerchantUpdateSchema.parse({ name: 'Atelier' }).name).toBe('Atelier');
+    expect(() => MerchantUpdateSchema.parse({ name: '' })).toThrow();
   });
 });

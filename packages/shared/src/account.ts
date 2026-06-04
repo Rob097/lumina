@@ -57,3 +57,24 @@ export const MeResponseSchema = z.object({
   merchants: z.array(MeMerchantSchema),
 });
 export type MeResponse = z.infer<typeof MeResponseSchema>;
+
+/** A member of the active merchant (Settings → Team). Email comes from Supabase auth. */
+export const TeamMemberSchema = z.object({
+  userId: z.string(),
+  email: z.string().nullable(),
+  role: MemberRoleSchema,
+  joinedAt: z.string(),
+});
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+/** `GET /v1/team` (§6.3) — members of the session's active merchant. */
+export const TeamResponseSchema = z.object({
+  members: z.array(TeamMemberSchema),
+});
+export type TeamResponse = z.infer<typeof TeamResponseSchema>;
+
+/** `PUT /v1/merchant` — editable merchant fields (Settings → Account). */
+export const MerchantUpdateSchema = z.object({
+  name: z.string().min(1).max(80),
+});
+export type MerchantUpdate = z.infer<typeof MerchantUpdateSchema>;
