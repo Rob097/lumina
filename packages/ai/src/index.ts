@@ -7,6 +7,8 @@
 export * from './types.js';
 export * from './prompt.js';
 export * from './orchestrator.js';
+export * from './moderation.js';
+export * from './eval.js';
 export { createOrchestratorFromEnv } from './factory.js';
 export { MockProvider, MockSceneProvider } from './providers/mock.js';
 export { FalProvider, buildFalInput, type FalProviderOptions } from './providers/fal.js';
