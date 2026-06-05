@@ -1,0 +1,42 @@
+[
+  {
+    "id": "lighting-aura-floor",
+    "category": "lighting",
+    "roomUrl": "https://golden.lumina.app/rooms/living-room-evening.jpg",
+    "productUrl": "https://golden.lumina.app/products/aura-floor-lamp.png",
+    "placementHint": "in the corner next to the sofa"
+  },
+  {
+    "id": "furniture-nube-sofa",
+    "category": "furniture",
+    "roomUrl": "https://golden.lumina.app/rooms/loft-daylight.jpg",
+    "productUrl": "https://golden.lumina.app/products/nube-sofa.png",
+    "placementHint": "against the back wall"
+  },
+  {
+    "id": "decor-arch-mirror",
+    "category": "mirror",
+    "roomUrl": "https://golden.lumina.app/rooms/hallway.jpg",
+    "productUrl": "https://golden.lumina.app/products/arch-mirror.png"
+  },
+  {
+    "id": "tiles-zellige-kitchen",
+    "category": "tiles",
+    "roomUrl": "https://golden.lumina.app/rooms/kitchen-backsplash.jpg",
+    "productUrl": "https://golden.lumina.app/products/zellige-tile.png",
+    "placementHint": "as the backsplash surface"
+  },
+  {
+    "id": "decor-rug-bedroom",
+    "category": "decor",
+    "roomUrl": "https://golden.lumina.app/rooms/bedroom-morning.jpg",
+    "productUrl": "https://golden.lumina.app/products/wool-rug.png",
+    "placementHint": "centered under the bed"
+  },
+  {
+    "id": "outdoor-lounge-patio",
+    "category": "outdoor",
+    "roomUrl": "https://golden.lumina.app/rooms/patio-sunset.jpg",
+    "productUrl": "https://golden.lumina.app/products/teak-lounger.png"
+  }
+]

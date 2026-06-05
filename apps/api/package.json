@@ -6,10 +6,12 @@
   "scripts": {
     "dev": "next dev -p 3001",
     "build": "tsc -p tsconfig.json --noEmit",
+    "build:next": "next build",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "e2e": "tsx scripts/e2e-generate.ts"
+    "e2e": "tsx scripts/e2e-generate.ts",
+    "eval": "tsx scripts/eval-run.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.713.0",
