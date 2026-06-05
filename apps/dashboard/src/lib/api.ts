@@ -113,6 +113,12 @@ export async function updateMerchant(name: string): Promise<boolean> {
   return res.ok;
 }
 
+/** GDPR erasure of the active workspace (owner-only, server-enforced). */
+export async function deleteMerchant(): Promise<boolean> {
+  const res = await apiFetch('/merchant', { method: 'DELETE' });
+  return res.ok;
+}
+
 // ─────────────────────────────── billing ───────────────────────────────
 
 export async function fetchBillingPlans(): Promise<BillingPlansResponse | null> {

@@ -8,7 +8,15 @@ import {
   type ApiKeySummary,
   type CreateKeyResponse,
 } from '@lumina/shared';
-import { createKey, fetchKeys, revokeKey, updateDomains, updateMerchant } from '@/lib/api';
+import {
+  createKey,
+  deleteMerchant,
+  fetchKeys,
+  revokeKey,
+  updateDomains,
+  updateMerchant,
+} from '@/lib/api';
+import { createSupabaseServerClient } from '@/lib/supabase/server';
 
 export type ActionResult<T = undefined> =
   | { ok: true; data: T }
@@ -51,6 +59,17 @@ export async function revokeKeyAction(id: string): Promise<ActionResult> {
 
 export async function listKeysAction(): Promise<ApiKeySummary[]> {
   return fetchKeys();
+}
+
+/** Owner-only GDPR erasure: delete the workspace + all data, then sign out. */
+export async function deleteAccountAction(): Promise<ActionResult> {
+  const ok = await deleteMerchant();
+  if (!ok) {
+    return { ok: false, error: "Couldn't delete the workspace. Only the owner can do this." };
+  }
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  return { ok: true, data: undefined };
 }
 
 export async function saveDomainsAction(domains: unknown): Promise<ActionResult<string[]>> {

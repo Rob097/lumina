@@ -6,7 +6,7 @@ import { PLAN_CATALOG, type ApiKeySummary, type PlanTier, type TeamMember } from
 import { shortDate } from '@/lib/format';
 import { KeysSection } from './KeysSection';
 import { DomainsSection } from './DomainsSection';
-import { renameMerchantAction } from './actions';
+import { deleteAccountAction, renameMerchantAction } from './actions';
 
 function AccountSection({
   name,
@@ -112,13 +112,22 @@ function TeamSection({ members }: { members: TeamMember[] }) {
 function DangerZone({ merchantName }: { merchantName: string }) {
   const [confirming, setConfirming] = useState(false);
   const [typed, setTyped] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
   const matches = typed.trim() === merchantName;
 
-  const mailto = `mailto:privacy@lumina.app?subject=${encodeURIComponent(
-    `Data deletion request — ${merchantName}`,
-  )}&body=${encodeURIComponent(
-    `Please erase all data for "${merchantName}" under GDPR Art. 17. I understand this is irreversible.`,
-  )}`;
+  function confirmDelete() {
+    if (!matches) return;
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteAccountAction();
+      if (res.ok) {
+        window.location.href = '/login';
+      } else {
+        setError(res.error);
+      }
+    });
+  }
 
   return (
     <section className="card settings-section danger-card">
@@ -139,7 +148,7 @@ function DangerZone({ merchantName }: { merchantName: string }) {
           <div>
             <div className="danger-title">Delete account &amp; data</div>
             <div className="t-muted text-sm">
-              Erase this workspace and all generations. Processed within 30 days (GDPR).
+              Permanently erase this workspace, products, and generations. This cannot be undone.
             </div>
           </div>
           <button className="btn btn-danger btn-sm" type="button" onClick={() => setConfirming(true)}>
@@ -164,14 +173,20 @@ function DangerZone({ merchantName }: { merchantName: string }) {
                 value={typed}
                 onChange={(e) => setTyped(e.target.value)}
               />
+              {error && <p className="field-error">{error}</p>}
             </div>
             <footer className="drawer-foot">
-              <button className="btn btn-ghost" type="button" onClick={() => setConfirming(false)}>
+              <button className="btn btn-ghost" type="button" onClick={() => setConfirming(false)} disabled={pending}>
                 Cancel
               </button>
-              <a className={`btn btn-danger ${matches ? '' : 'is-disabled'}`} href={matches ? mailto : undefined} aria-disabled={!matches}>
-                Request deletion
-              </a>
+              <button
+                className="btn btn-danger"
+                type="button"
+                disabled={!matches || pending}
+                onClick={confirmDelete}
+              >
+                {pending ? 'Deleting…' : 'Delete forever'}
+              </button>
             </footer>
           </div>
         </div>
