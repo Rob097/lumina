@@ -210,4 +210,40 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   to the real Stripe portal; "Delete account" requires typing the store name and then opens a pre-filled GDPR
   erasure request to the DPO — the dashboard never fakes an irreversible deletion it can't perform. API keys are
   created through the existing reveal-once endpoint and shown once in a copy modal (HARD RULE #2); domains are
-  validated client-side with the shared `HostnameSchema` before the `PUT`.
+  validated client-side with the shared `HostnameSchema` before the `PUT`. *(Superseded by D43: the real
+  `DELETE /v1/merchant` endpoint now backs the danger zone.)*
+
+## M5 — Hardening & deploy (2026-06-05)
+
+- **D41 — Moderation = a pure policy behind a provider seam.** `classifyInput`/`classifyOutput` are pure +
+  unit-tested (reject unsafe content, non-interior rooms, and face-dominant photos for non-fashion categories);
+  the classifier itself lives behind a `ModerationProvider` (mirrors `AIProvider`, HARD RULE #8). The workflow
+  runs **validate → compose → moderate**; a reject is terminal and **refunds** the credit (never bill a rejected
+  generation, HARD RULE #3). `WorkflowDeps.moderation` defaults to an always-safe mock so local/e2e stay green;
+  the real fal/vision classifier is wired at deploy.
+
+- **D42 — Server-side EXIF strip = a pure JPEG segment stripper, sanitize-on-ingest.** `stripJpegMetadata`
+  drops APP1–APP15 + COM (EXIF/GPS/XMP/IPTC) while preserving JFIF, the frame, and the scan — no native deps
+  (no `sharp`). The workflow re-stores the room object stripped before compose, defense-in-depth atop the
+  widget's canvas re-encode (D24). Non-JPEG (already-clean WebP/PNG) passes through untouched.
+
+- **D43 — GDPR erasure + retention via FK cascade; the ledger is preserved.** `purgeMerchant` deletes the
+  merchant row (every tenant table cascades on `merchant_id`) + R2 objects by `{root}/{merchant_id}/` prefix;
+  `DELETE /v1/merchant` is **owner-only** and the dashboard danger zone calls it then signs out. Retention
+  `purgeGenerationsOlderThan` deletes old generations + their room/result objects on an Inngest cron
+  (`RETENTION_DAYS`/`RETENTION_CRON`); the credit ledger survives because `generation_id` is `ON DELETE SET
+  NULL`, so balances never drift. Testcontainers-verified (cascade, tenant isolation, ledger integrity).
+
+- **D44 — Observability seams are env-gated + no-op offline.** `generationEvent` (pure) shapes
+  cost/latency/model/status; `createEventSink` POSTs to **Axiom** only when `AXIOM_TOKEN`+`AXIOM_DATASET` are
+  set (console fallback otherwise), fire-and-forget so telemetry never breaks a request. Emitted from every
+  workflow terminal path (success + each failure/reject) for the margin/failure-rate dashboards. **Sentry**
+  init stays a documented deploy step — the SDK isn't added pre-deploy to avoid heavy deps before the joint
+  deploy session.
+
+- **D45 — Eval harness: pure `scoreEval` + a mock-driven runner.** `scoreEval` aggregates success / latency /
+  cost / 👍 rate by category (pure, tested); `pnpm -F @lumina/api eval` composes a golden set through the
+  orchestrator (mock offline, real fal when `FAL_KEY` is set) and prints the report. **Deploy is configured
+  but not executed** — `infra/` (Cloudflare R2 + widget-CDN Worker + WAF notes), per-app `vercel.json` +
+  `build:next`, `docs/deploy.md`, and `docs/release-checklist.md` are in place; provisioning with the vendor
+  CLIs (HARD RULE #10) is a deliberate collaborative step.

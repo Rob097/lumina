@@ -24,14 +24,15 @@ infra/         # IaC notes, Cloudflare/Vercel config
 docs/          # setup, decisions, plans
 ```
 
-> **Status:** **M0–M4 complete.** `packages/{shared,db,ai}` and `apps/api` (auth/keys/domains/billing + the AI
-> orchestrator, R2 storage, generation workflow, public `/v1/widget/*` endpoints, and the full merchant API —
-> `/v1/credits`, `/v1/analytics/*`, `/v1/widget-config`, `/v1/products*`, `/v1/generations*`, `/v1/billing/plans`,
-> `/v1/team`, `/v1/merchant`) are implemented and tested; `apps/widget` is the full Preact + Shadow-DOM widget at
-> **31.4 KB gz**; `packages/ui` ships the ported LUMINA design system; `apps/dashboard` is the complete merchant
-> control plane — Overview, Widget Settings (live preview), Script & Install, Onboarding, Products (CSV import),
-> Generations (before/after gallery), Analytics, Credits & Billing, Settings, reskinned auth + 404. **M5 next**
-> (deploy/observability + real `next build`).
+> **Status:** **M0–M4 complete; M5 hardening done, deploy prepared (not executed).** `packages/{shared,db,ai}`
+> and `apps/api` (auth/keys/domains/billing + the AI orchestrator, R2 storage, generation workflow, public
+> `/v1/widget/*` endpoints, and the full merchant API) are implemented and tested; `apps/widget` is the full
+> Preact + Shadow-DOM widget at **31.4 KB gz**; `packages/ui` ships the ported LUMINA design system;
+> `apps/dashboard` is the complete merchant control plane. **M5** adds input/output moderation + server-side EXIF
+> strip, GDPR erasure (`DELETE /v1/merchant`) + a retention cron, env-gated Sentry/Axiom observability, and a
+> quality eval harness (`pnpm -F @lumina/api eval`). Deployment is fully **configured** (`infra/`, `vercel.json`,
+> `docs/deploy.md`, release checklist) but **not yet executed** — provisioning is done collaboratively with the
+> vendor CLIs.
 
 ## Prerequisites
 
