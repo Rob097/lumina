@@ -8,6 +8,7 @@ export default tseslint.config(
     ignores: [
       '**/dist/**',
       '**/.next/**',
+      '**/next-env.d.ts',
       '**/.turbo/**',
       '**/node_modules/**',
       '**/coverage/**',

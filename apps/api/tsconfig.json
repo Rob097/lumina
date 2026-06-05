@@ -2,14 +2,39 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "noEmit": true,
-    "types": ["node"],
-    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": [
+      "node"
+    ],
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
     "jsx": "preserve",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
-    }
+      "@/*": [
+        "src/*"
+      ]
+    },
+    "allowJs": true,
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
-  "include": ["src", "test", "scripts", "vitest.config.ts", "next.config.mjs"],
-  "exclude": ["node_modules", ".next"]
+  "include": [
+    "next.config.mjs",
+    "scripts",
+    "src",
+    "test",
+    "vitest.config.ts",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next"
+  ]
 }

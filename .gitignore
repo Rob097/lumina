@@ -5,6 +5,7 @@ node_modules/
 # build outputs
 dist/
 .next/
+next-env.d.ts
 out/
 .turbo/
 coverage/
