@@ -1,4 +1,11 @@
-import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import {
+  DeleteObjectCommand,
+  DeleteObjectsCommand,
+  GetObjectCommand,
+  ListObjectsV2Command,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
 export interface R2Config {
@@ -67,6 +74,37 @@ export class R2Storage {
       throw new Error(`R2 object not found: ${key}`);
     }
     return res.Body.transformToByteArray();
+  }
+
+  async deleteObject(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({ Bucket: this.cfg.bucket, Key: key }));
+  }
+
+  /** Delete every object under a key prefix (GDPR erasure). Returns the count removed. */
+  async deleteByPrefix(prefix: string): Promise<number> {
+    let total = 0;
+    let token: string | undefined;
+    do {
+      const list = await this.client.send(
+        new ListObjectsV2Command({
+          Bucket: this.cfg.bucket,
+          Prefix: prefix,
+          ContinuationToken: token,
+        }),
+      );
+      const objects = (list.Contents ?? [])
+        .map((o) => o.Key)
+        .filter((k): k is string => Boolean(k))
+        .map((Key) => ({ Key }));
+      if (objects.length > 0) {
+        await this.client.send(
+          new DeleteObjectsCommand({ Bucket: this.cfg.bucket, Delete: { Objects: objects } }),
+        );
+        total += objects.length;
+      }
+      token = list.IsTruncated ? list.NextContinuationToken : undefined;
+    } while (token);
+    return total;
   }
 
   /** Cloudflare image-resizing URL for a thumbnail/variant of a stored object. */

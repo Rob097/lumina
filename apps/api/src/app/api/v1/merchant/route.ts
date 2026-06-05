@@ -1,9 +1,11 @@
-import { eq } from 'drizzle-orm';
-import { merchants } from '@lumina/db';
+import { and, eq } from 'drizzle-orm';
+import { memberships, merchants } from '@lumina/db';
 import { MerchantUpdateSchema } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
-import { errorResponse, jsonResponse } from '@/lib/http';
+import { errorResponse, jsonResponse, noContent } from '@/lib/http';
 import { updateMerchantName } from '@/lib/account/service';
+import { purgeMerchant, type MerchantPurgeStorage } from '@/lib/account/purge';
+import { createR2FromEnv } from '@/lib/storage/r2';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -28,4 +30,27 @@ export async function PUT(request: Request): Promise<Response> {
     .where(eq(merchants.id, guard.merchantId))
     .limit(1);
   return jsonResponse(row);
+}
+
+/** DELETE /v1/merchant — owner-only GDPR erasure of the workspace + all its data (§9). */
+export async function DELETE(): Promise<Response> {
+  const guard = await requireMerchant();
+  if (!guard.ok) {
+    return guard.response;
+  }
+  const [membership] = await guard.db
+    .select({ role: memberships.role })
+    .from(memberships)
+    .where(
+      and(eq(memberships.merchantId, guard.merchantId), eq(memberships.userId, guard.user.id)),
+    )
+    .limit(1);
+  if (membership?.role !== 'owner') {
+    return errorResponse('unauthorized', 'Only the workspace owner can delete it');
+  }
+
+  const r2 = createR2FromEnv(process.env);
+  const storage: MerchantPurgeStorage = r2 ?? { deleteByPrefix: async () => 0 };
+  await purgeMerchant(guard.db, storage, guard.merchantId);
+  return noContent();
 }
