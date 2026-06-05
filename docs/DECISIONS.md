@@ -247,3 +247,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   but not executed** — `infra/` (Cloudflare R2 + widget-CDN Worker + WAF notes), per-app `vercel.json` +
   `build:next`, `docs/deploy.md`, and `docs/release-checklist.md` are in place; provisioning with the vendor
   CLIs (HARD RULE #10) is a deliberate collaborative step.
+
+- **D46 — Staging lockdown migration `0004`: Supabase default privileges silently exposed the server-only
+  tables.** On the live Supabase project, the six tables never granted in 0001 (`api_keys`, `audit_log`,
+  `generation_assets`, `memberships`, `subscriptions`, `webhooks_inbox`) were still readable AND writable via
+  PostgREST with the public `anon` key, because Supabase's project DEFAULT PRIVILEGES auto-grant
+  `anon`/`authenticated` on every new `public` table — a gap the bare-Postgres Testcontainers harness can't
+  surface (it has no such defaults). `0004_lockdown_server_tables.sql` does `REVOKE ALL … FROM anon,
+  authenticated` + `ENABLE ROW LEVEL SECURITY` on those six (deny-all to client roles; the table-owner
+  `postgres` role and `service_role` bypass RLS, so the API/workflow are unaffected and the dashboard never
+  touches them per D28), and pins `search_path` on `debit_credits`/`grant_credits` (linter 0011). Verified via
+  `has_table_privilege` (anon/authenticated denied, service_role retained) + the advisors (critical
+  `rls_disabled_in_public` and the function WARNs cleared; the remaining `rls_enabled_no_policy` INFOs are the
+  intended deny-all state). The `current_merchant_ids` SECURITY-DEFINER WARN is by design — the RLS policies
+  call it and it returns empty for `anon`.
