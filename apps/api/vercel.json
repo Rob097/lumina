@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "cd ../.. && pnpm -F @lumina/api build:next",
+  "installCommand": "cd ../.. && pnpm install --frozen-lockfile",
+  "regions": ["fra1"],
+  "functions": {
+    "src/app/api/v1/widget/generate/route.ts": { "maxDuration": 30 },
+    "src/app/internal/inngest/route.ts": { "maxDuration": 60 }
+  }
+}

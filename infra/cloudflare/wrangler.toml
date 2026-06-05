@@ -1,0 +1,27 @@
+# Cloudflare Worker — serves the immutable widget loader (cdn.lumina.app/widget.js) from R2.
+# The loader is content-addressed (D22): widget.js is year-cacheable and injects the hashed app bundle.
+#
+# Deploy (during the deploy session — NOT run automatically):
+#   cd infra/cloudflare && wrangler deploy
+# Upload the built loader + app bundle to R2 first:
+#   wrangler r2 object put lumina-cdn/widget.js --file apps/widget/dist/widget.js
+#   wrangler r2 object put lumina-cdn/widget.<hash>.js --file apps/widget/dist/widget.<hash>.js
+
+name = "lumina-widget-cdn"
+main = "worker.js"
+compatibility_date = "2025-01-01"
+workers_dev = false
+
+# Bind the public CDN bucket that holds the widget bundles.
+[[r2_buckets]]
+binding = "CDN"
+bucket_name = "lumina-cdn"
+
+# Custom domain route — cdn.lumina.app/widget*.js
+[[routes]]
+pattern = "cdn.lumina.app/widget*"
+zone_name = "lumina.app"
+
+[vars]
+# Immutable, year-long cache for content-hashed assets; the loader itself is also immutable.
+CACHE_CONTROL = "public, max-age=31536000, immutable"
