@@ -42,6 +42,7 @@ async function main(): Promise<void> {
 
     const objects = new Map<string, Uint8Array>();
     const storage: StoragePort = {
+      getObject: async (key) => objects.get(key) ?? new Uint8Array([0xff, 0xd8, 0xff, 0xd9]),
       presignDownload: async (key) => `https://signed.example/${key}`,
       putObject: async (key, body) => {
         objects.set(key, body);

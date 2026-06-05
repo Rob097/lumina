@@ -1,7 +1,7 @@
 import { createOrchestratorFromEnv } from '@lumina/ai';
 import { getDb } from '@/lib/db';
 import { createR2FromEnv } from '@/lib/storage/r2';
-import { reportError } from '@/lib/observability';
+import { createEventSink, reportError } from '@/lib/observability';
 import { inngest } from './client.js';
 import { processGeneration } from './workflow.js';
 
@@ -28,7 +28,7 @@ export const generationRequested = inngest.createFunction(
       }
       const orchestrator = createOrchestratorFromEnv(process.env);
       return processGeneration(
-        { db: getDb(), orchestrator, storage, reportError },
+        { db: getDb(), orchestrator, storage, events: createEventSink(process.env), reportError },
         event.data.generationId,
       );
     });

@@ -1,5 +1,11 @@
 import { eq, sql } from 'drizzle-orm';
-import type { AIOrchestrator, RoutingPolicy } from '@lumina/ai';
+import {
+  MockModerationProvider,
+  type AIOrchestrator,
+  type ModerationProvider,
+  type ModerationReason,
+  type RoutingPolicy,
+} from '@lumina/ai';
 import {
   generationAssets,
   generations,
@@ -9,9 +15,12 @@ import {
 } from '@lumina/db';
 import type { ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
+import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
+import { generationEvent, type EventSink } from '../observability.js';
 
 /** Minimal storage surface the workflow needs (satisfied by `R2Storage`). */
 export interface StoragePort {
+  getObject(key: string): Promise<Uint8Array>;
   presignDownload(key: string, expiresIn?: number): Promise<string>;
   putObject(key: string, body: Uint8Array, contentType: string): Promise<void>;
 }
@@ -20,10 +29,29 @@ export interface WorkflowDeps {
   db: Database;
   orchestrator: AIOrchestrator;
   storage: StoragePort;
+  /** Input/output safety filter (§7.4). Defaults to an always-safe mock (local/e2e). */
+  moderation?: ModerationProvider;
+  /** Ops/cost event sink (Axiom). Optional — no-op when unset. */
+  events?: EventSink;
   reportError?: (err: unknown, context: Record<string, unknown>) => void;
 }
 
 export type ProcessOutcome = 'succeeded' | 'failed' | 'skipped';
+
+/** Map a moderation reason to a terminal generation error code. */
+function moderationErrorCode(reason: ModerationReason): string {
+  switch (reason) {
+    case 'not_interior':
+      return 'not_interior';
+    case 'face_dominant':
+      return 'face_dominant';
+    case 'corrupt':
+      return 'corrupt_image';
+    case 'unsafe':
+    default:
+      return 'unsafe_content';
+  }
+}
 
 /** Map a merchant plan to a routing policy (free → fast/watermark, top tiers → quality). */
 export function planToPolicy(plan: string): RoutingPolicy {
@@ -118,16 +146,65 @@ export async function processGeneration(
       .limit(1);
     const plan = merchantRows[0]?.plan ?? 'free';
 
+    const moderation = deps.moderation ?? new MockModerationProvider();
+
+    // Sanitize on ingest: strip EXIF/GPS from the stored room (defense-in-depth, HARD RULE #9).
+    const original = await deps.storage.getObject(gen.roomKey);
+    const sanitized = stripJpegMetadata(original);
+    if (sanitized !== original) {
+      await deps.storage.putObject(gen.roomKey, sanitized, contentTypeForKey(gen.roomKey));
+    }
+
     const roomUrl = await deps.storage.presignDownload(gen.roomKey);
     const snapshot = gen.productSnapshot;
+    const category = snapshot.category as ProductCategory;
+
+    // Step 1 — validate input (reject non-interior / unsafe, fail fast + refund, §7.4).
+    const inputVerdict = await moderation.moderateInput({
+      room: { url: roomUrl },
+      product: { url: snapshot.imageUrl },
+      category,
+    });
+    if (!inputVerdict.ok) {
+      const errorCode = moderationErrorCode(inputVerdict.reason);
+      await refundAndFail(db, {
+        generationId,
+        merchantId: gen.merchantId,
+        creditsSpent: gen.creditsSpent,
+        errorCode,
+      });
+      deps.events?.track(
+        generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode }),
+      );
+      return 'failed';
+    }
+
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: { url: snapshot.imageUrl },
-      category: snapshot.category as ProductCategory,
+      category,
       placementHint: gen.placementHint ?? undefined,
       policy: planToPolicy(plan),
       watermark: plan === 'free',
     });
+
+    // Step 5 — moderate output before persisting; an unsafe composite is never billed.
+    const outputVerdict = await moderation.moderateOutput(
+      { bytes: composed.bytes, contentType: composed.contentType },
+      category,
+    );
+    if (!outputVerdict.ok) {
+      await refundAndFail(db, {
+        generationId,
+        merchantId: gen.merchantId,
+        creditsSpent: gen.creditsSpent,
+        errorCode: 'unsafe_output',
+      });
+      deps.events?.track(
+        generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode: 'unsafe_output' }),
+      );
+      return 'failed';
+    }
 
     const key = buildResultKey(gen.merchantId, generationId);
     await deps.storage.putObject(key, composed.bytes, composed.contentType);
@@ -141,15 +218,30 @@ export async function processGeneration(
       width: composed.width,
       height: composed.height,
     });
+    deps.events?.track(
+      generationEvent({
+        generationId,
+        merchantId: gen.merchantId,
+        status: 'succeeded',
+        model: composed.model,
+        costCents: composed.costCents,
+        latencyMs: composed.latencyMs,
+        creditsSpent: gen.creditsSpent,
+      }),
+    );
     return 'succeeded';
   } catch (err) {
     deps.reportError?.(err, { generationId, merchantId: gen.merchantId });
+    const errorCode = errorCodeFor(err);
     await refundAndFail(db, {
       generationId,
       merchantId: gen.merchantId,
       creditsSpent: gen.creditsSpent,
-      errorCode: errorCodeFor(err),
+      errorCode,
     });
+    deps.events?.track(
+      generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode }),
+    );
     return 'failed';
   }
 }
