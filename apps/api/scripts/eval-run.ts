@@ -1,8 +1,8 @@
 /**
  * eval-run — the quality eval harness (§M5.3). Composes a golden set of room+product pairs through the
  * AIOrchestrator and prints a launch-readiness report (success rate, latency, cost, 👍 rate by category,
- * scored by the pure `scoreEval`). Offline it uses the deterministic mock provider; set `FAL_KEY` (and
- * unset `AI_PROVIDER=mock`) to score the real model against a real golden set.
+ * scored by the pure `scoreEval`). Offline it uses the deterministic mock provider; set
+ * `AI_GATEWAY_API_KEY` (and unset `AI_PROVIDER=mock`) to score the real model against a real golden set.
  *
  * Run: `pnpm -F @lumina/api eval`
  */
@@ -23,8 +23,9 @@ async function main(): Promise<void> {
   const goldenPath = fileURLToPath(new URL('./eval-golden.json', import.meta.url));
   const golden = JSON.parse(readFileSync(goldenPath, 'utf8')) as GoldenCase[];
 
-  // Force the mock provider unless a real FAL_KEY is present (so the harness runs offline by default).
-  const env = { ...process.env, AI_PROVIDER: process.env.FAL_KEY ? process.env.AI_PROVIDER : 'mock' };
+  // Force the mock provider unless real gateway creds are present (so the harness runs offline by default).
+  const hasGatewayCreds = Boolean(process.env.AI_GATEWAY_API_KEY ?? process.env.VERCEL_OIDC_TOKEN);
+  const env = { ...process.env, AI_PROVIDER: hasGatewayCreds ? process.env.AI_PROVIDER : 'mock' };
   const orchestrator = createOrchestratorFromEnv(env);
 
   const results: EvalCaseResult[] = [];

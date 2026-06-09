@@ -279,3 +279,18 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   gets its own Testcontainers DB so dev stays parallel. Agent pushes use a fine-grained GitHub PAT
   (`GITHUB_TOKEN` in `.env.dev`) via an ephemeral git credential-helper (never persisted). Inngest auto-sync
   (Vercel integration) + widget-CDN upload remain follow-ups.
+
+- **D49 — AI compositing moves from fal.ai to the Vercel AI Gateway, single multimodal path.** The provider
+  behind `AIOrchestrator` (HARD RULE #8) is now `GatewayProvider` (`packages/ai/providers/gateway.ts`),
+  swapped in via `factory.ts` — fal.ai (`fal.ts`) is kept **dormant** so the swap stays reversible. Both
+  tiers use **one** code path: AI SDK 6 `generateText` against a multimodal image model, with the room +
+  product passed as **message image parts** (ROOM first, PRODUCT second) and the result read from
+  `result.files`. We deliberately chose this over `experimental_generateImage`: in AI SDK 6.0.198
+  `generateImage` has **no typed reference-image parameter** (editing would ride provider-specific
+  `providerOptions`), whereas multimodal messages are first-class and typed. Consequence: the **fast tier is
+  Nano Banana 2** (`google/gemini-3.1-flash-image-preview`) instead of FLUX.2 — spec-allowed ("fast tier
+  FLUX.2 / NB2") and same robust path; quality stays **Nano Banana Pro** (`google/gemini-3-pro-image`).
+  FLUX-as-fast would need an additive `generateImage` path later. Auth is `AI_GATEWAY_API_KEY` locally and
+  **`VERCEL_OIDC_TOKEN`** on Vercel (no key to manage); models/costs are env-configured
+  (`GATEWAY_MODEL_*`, `GATEWAY_COST_*`). The network call is an **injectable runner** so the provider's
+  input-ordering + output-extraction logic is unit-tested without hitting the gateway.

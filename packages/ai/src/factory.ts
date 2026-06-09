@@ -1,31 +1,33 @@
 import { AIOrchestrator } from './orchestrator.js';
-import { FalProvider } from './providers/fal.js';
+import { GatewayProvider } from './providers/gateway.js';
 import { MockProvider } from './providers/mock.js';
 import type { AIProvider, RoutingPolicy } from './types.js';
 
 /**
- * Build an orchestrator from env. Falls back to a deterministic mock provider when `FAL_KEY` is unset
- * or `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
- * env-configured (D19).
+ * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
+ * credentials are present (`AI_GATEWAY_API_KEY` or, on Vercel, `VERCEL_OIDC_TOKEN`) or when
+ * `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
+ * env-configured (D19, D49).
  */
 export function createOrchestratorFromEnv(env: Record<string, string | undefined>): AIOrchestrator {
-  const key = env.FAL_KEY;
-  if (!key || env.AI_PROVIDER === 'mock') {
+  const apiKey = env.AI_GATEWAY_API_KEY;
+  const hasCreds = Boolean(apiKey || env.VERCEL_OIDC_TOKEN);
+  if (!hasCreds || env.AI_PROVIDER === 'mock') {
     const mock = new MockProvider({ name: 'mock', model: 'mock-compose', costCents: 0 });
     return new AIOrchestrator({ chains: { quality: [mock], balanced: [mock], fast: [mock] } });
   }
 
-  const quality = new FalProvider({
-    name: 'fal-quality',
-    model: env.FAL_MODEL_QUALITY ?? 'fal-ai/nano-banana-pro/edit',
-    key,
-    costCents: Number(env.FAL_COST_QUALITY ?? 13),
+  const quality = new GatewayProvider({
+    name: 'gateway-quality',
+    model: env.GATEWAY_MODEL_QUALITY ?? 'google/gemini-3-pro-image',
+    costCents: Number(env.GATEWAY_COST_QUALITY ?? 13),
+    apiKey,
   });
-  const fast = new FalProvider({
-    name: 'fal-fast',
-    model: env.FAL_MODEL_FAST ?? 'fal-ai/flux-2/edit',
-    key,
-    costCents: Number(env.FAL_COST_FAST ?? 6),
+  const fast = new GatewayProvider({
+    name: 'gateway-fast',
+    model: env.GATEWAY_MODEL_FAST ?? 'google/gemini-3.1-flash-image-preview',
+    costCents: Number(env.GATEWAY_COST_FAST ?? 6),
+    apiKey,
   });
 
   const chains: Record<RoutingPolicy, AIProvider[]> = {
