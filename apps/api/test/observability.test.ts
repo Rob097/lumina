@@ -54,4 +54,20 @@ describe('createEventSink', () => {
     expect(init?.method).toBe('POST');
     vi.unstubAllGlobals();
   });
+
+  it('honors AXIOM_URL for a non-default (e.g. EU) region deployment', () => {
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve(new Response(null, { status: 200 })),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    const sink = createEventSink({
+      AXIOM_TOKEN: 'tok',
+      AXIOM_DATASET: 'lumina',
+      AXIOM_URL: 'https://api.eu.axiom.co',
+    });
+    sink.track({ event: 'generation.finished' });
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(String(url)).toBe('https://api.eu.axiom.co/v1/datasets/lumina/ingest');
+    vi.unstubAllGlobals();
+  });
 });

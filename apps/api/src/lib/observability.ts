@@ -53,9 +53,12 @@ export function createEventSink(env: Record<string, string | undefined>): EventS
       },
     };
   }
+  // Axiom is multi-region; datasets in the EU deployment must ingest via api.eu.axiom.co. Default to
+  // the US host, overridable per deployment with AXIOM_URL.
+  const base = env.AXIOM_URL ?? 'https://api.axiom.co';
   return {
     track: (fields) => {
-      void fetch(`https://api.axiom.co/v1/datasets/${dataset}/ingest`, {
+      void fetch(`${base}/v1/datasets/${dataset}/ingest`, {
         method: 'POST',
         headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
         body: JSON.stringify([{ _time: new Date().toISOString(), ...fields }]),
