@@ -62,3 +62,31 @@ jobs:
 
       - name: Test
         run: pnpm test
+
+  migrate:
+    name: DB migrations (master only)
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Drizzle migrations are idempotent (journaled); applies only new ones. Uses the Supabase
+      # SESSION pooler (port 5432) — the transaction pooler breaks the migrator's prepared statements.
+      - name: Apply Drizzle migrations
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: pnpm db:migrate
