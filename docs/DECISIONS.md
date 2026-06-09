@@ -261,3 +261,21 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   `rls_disabled_in_public` and the function WARNs cleared; the remaining `rls_enabled_no_policy` INFOs are the
   intended deny-all state). The `current_merchant_ids` SECURITY-DEFINER WARN is by design — the RLS policies
   call it and it returns empty for `anon`.
+
+- **D47 — Axiom telemetry posts to a full, configurable ingest URL (`AXIOM_URL`).** The staging Axiom token
+  authenticates against the US deployment but the `lumina` dataset lives in the EU region, and only the
+  **edge** endpoint accepts it: `https://<region>.aws.edge.axiom.co/v1/ingest/<dataset>` (the standard
+  `api.eu.axiom.co/v1/datasets/<ds>/ingest` returns 403). So `createEventSink` now treats `AXIOM_URL`, when
+  set, as the **complete ingest URL** (used verbatim) and otherwise builds the default
+  `https://api.axiom.co/v1/datasets/<AXIOM_DATASET>/ingest`. Still fire-and-forget; unset ⇒ console fallback.
+  Region/endpoint is now deployment config, not a code constant.
+
+- **D48 — CI/CD: push to `master` is the deploy.** Vercel's Git integration auto-builds + deploys both apps
+  on every push. `ci.yml` gained a **`migrate`** job (`needs: quality`, master-push only) that runs
+  `pnpm db:migrate` with the `DATABASE_URL` **Actions secret** (Supabase **session pooler** 5432 — the
+  transaction pooler breaks the migrator). The test task graph is serialized on CI (`pnpm test --
+  --concurrency=1`): the db + api integration suites share the single CI Postgres, so parallel `turbo`
+  tasks raced on migration DDL (`duplicate pg_type` / `tuple concurrently updated`); locally each package
+  gets its own Testcontainers DB so dev stays parallel. Agent pushes use a fine-grained GitHub PAT
+  (`GITHUB_TOKEN` in `.env.dev`) via an ephemeral git credential-helper (never persisted). Inngest auto-sync
+  (Vercel integration) + widget-CDN upload remain follow-ups.
