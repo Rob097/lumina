@@ -60,8 +60,12 @@ jobs:
       - name: Widget bundle budget (< 45 KB gz)
         run: pnpm -F @lumina/widget size
 
+      # The db + api integration suites share the single CI Postgres service. `turbo run test` would
+      # run those package test tasks in parallel, so two processes apply the migrations to the same DB
+      # at once and race on DDL (duplicate pg_type / "tuple concurrently updated"). Serialize the task
+      # graph on CI. Locally each package gets its own Testcontainers DB, so dev `pnpm test` stays parallel.
       - name: Test
-        run: pnpm test
+        run: pnpm test -- --concurrency=1
 
   migrate:
     name: DB migrations (master only)
