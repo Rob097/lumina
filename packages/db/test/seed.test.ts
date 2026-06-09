@@ -49,8 +49,16 @@ describe('runSeed()', () => {
   it('is idempotent: a second run is a no-op', async () => {
     const result = await runSeed(ctx.db, ctx.sqlClient);
     expect(result.created).toBe(false);
-    const allKeys = await ctx.db.select().from(creditLedger);
+    // Scope to the demo merchant: a shared CI database (TEST_DATABASE_URL) is reused across suites,
+    // so other tests also write `grant` ledger rows — count only this merchant's to stay order-independent.
+    const merchant = firstOrThrow(
+      await ctx.db.select().from(merchants).where(eq(merchants.slug, DEMO_SLUG)),
+    );
+    const grants = await ctx.db
+      .select()
+      .from(creditLedger)
+      .where(sql`${creditLedger.merchantId} = ${merchant.id} and ${creditLedger.reason} = 'grant'`);
     // Still exactly one grant row — the second run did not duplicate anything.
-    expect(allKeys.filter((r) => r.reason === 'grant')).toHaveLength(1);
+    expect(grants).toHaveLength(1);
   });
 });
