@@ -4,6 +4,7 @@ import {
   fetchAnalyticsTimeseries,
   fetchCredits,
   fetchDomains,
+  fetchGenerations,
 } from '@/lib/api';
 import { rangeLabel } from '@/lib/format';
 import { Banner } from '@/components/overview/Banner';
@@ -21,12 +22,13 @@ export default async function OverviewPage() {
   const curFrom = new Date(now.getTime() - PERIOD_MS);
   const prevFrom = new Date(now.getTime() - 2 * PERIOD_MS);
 
-  const [summary, prev, series, credits, domains] = await Promise.all([
+  const [summary, prev, series, credits, domains, recent] = await Promise.all([
     fetchAnalyticsSummary({ from: curFrom.toISOString(), to: now.toISOString() }),
     fetchAnalyticsSummary({ from: prevFrom.toISOString(), to: curFrom.toISOString() }),
     fetchAnalyticsTimeseries({ from: curFrom.toISOString(), to: now.toISOString() }),
     fetchCredits(),
     fetchDomains(),
+    fetchGenerations({ limit: '8' }),
   ]);
 
   if (!summary) {
@@ -86,7 +88,7 @@ export default async function OverviewPage() {
 
       <div className="grid-2b">
         <TopProducts products={summary.topProducts} />
-        <RecentStrip />
+        <RecentStrip items={recent.items} />
       </div>
     </div>
   );

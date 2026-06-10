@@ -5,6 +5,7 @@ import { PRODUCT_CATEGORIES, type Product, type ProductCategory } from '@lumina/
 import { categoryLabel } from '@/lib/product-format';
 import { shortDate } from '@/lib/format';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ProductThumb } from '@/components/ui/ProductThumb';
 import { ProductDrawer } from './ProductDrawer';
 import { ImportModal } from './ImportModal';
 import { archiveProductAction } from './actions';
@@ -110,7 +111,7 @@ export function ProductsManager({ initial }: { initial: Product[] }) {
                 <tr key={p.id}>
                   <td>
                     <div className="prod-cell">
-                      <img className="prod-thumb" src={p.imageUrl} alt="" loading="lazy" />
+                      <ProductThumb src={p.imageUrl} />
                       <span className="table-cell-strong">{p.name}</span>
                     </div>
                   </td>

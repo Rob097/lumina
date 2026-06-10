@@ -47,6 +47,12 @@
   border: 1px solid var(--border);
   flex: none;
 }
+.prod-thumb-fallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-muted);
+}
 .row-actions {
   display: flex;
   gap: 4px;

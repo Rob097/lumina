@@ -185,6 +185,53 @@
   flex: none;
 }
 
+/* recent generations strip */
+.recent-strip {
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.recent-item {
+  flex: 0 0 116px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+}
+.recent-thumb {
+  display: block;
+  aspect-ratio: 1 / 1;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--surface-3);
+  box-shadow: var(--e-1);
+}
+.recent-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.recent-thumb-fallback {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(150deg, var(--surface-3), var(--surface-2));
+}
+.recent-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.recent-sub {
+  font-size: var(--fs-micro);
+  color: var(--text-muted);
+}
+
 @media (max-width: 1180px) {
   .kpi-row {
     grid-template-columns: repeat(2, 1fr);

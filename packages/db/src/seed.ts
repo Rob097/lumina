@@ -101,21 +101,21 @@ export async function runSeed(db: Database, client: Sql): Promise<SeedResult> {
         externalId: 'SKU-1',
         name: 'Aura Floor Lamp',
         category: 'lighting',
-        imageUrl: 'https://shop.demo.lumina.app/img/aura.png',
+        imageUrl: 'https://placehold.co/600x600/1d3a6b/ffffff.png?text=Aura+Floor+Lamp',
       },
       {
         merchantId: inserted.id,
         externalId: 'SKU-2',
         name: 'Nube Lounge Chair',
         category: 'furniture',
-        imageUrl: 'https://shop.demo.lumina.app/img/nube.png',
+        imageUrl: 'https://placehold.co/600x600/34383f/ffffff.png?text=Nube+Lounge+Chair',
       },
       {
         merchantId: inserted.id,
         externalId: 'SKU-3',
         name: 'Terra Wall Mirror',
         category: 'mirror',
-        imageUrl: 'https://shop.demo.lumina.app/img/terra.png',
+        imageUrl: 'https://placehold.co/600x600/232730/ffffff.png?text=Terra+Wall+Mirror',
       },
     ]);
 
