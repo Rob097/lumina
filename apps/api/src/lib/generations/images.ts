@@ -1,12 +1,17 @@
-import { createR2FromEnv } from '@/lib/storage/r2';
+import { createR2FromEnv, type R2Storage } from '@/lib/storage/r2';
 import type { GenerationDeps } from './service';
 
+/** Minimal storage surface the dashboard image deps need — just short-lived signed reads. */
+type SignedReadStorage = Pick<R2Storage, 'presignDownload'>;
+
 /**
- * Build the image-URL deps for the generations API from the R2 env. Result/room objects are served
- * as resized CDN URLs (D16); when R2 is unconfigured the URLs are `null` and the dashboard renders a
- * placeholder — we never claim an image we can't serve.
+ * Build the image-URL deps for the generations API. Stored room/result objects are served as
+ * **short-lived signed R2 GET URLs** (D50): the bucket stays private (HARD RULE #9 — room photos are
+ * people's homes) and no public CDN domain is required. URLs are `null` when storage is unconfigured or
+ * there is no result yet, so the dashboard renders a placeholder — we never claim an image we can't serve.
  */
-export function generationImageDeps(width = 640): GenerationDeps {
-  const r2 = createR2FromEnv(process.env);
-  return { imageUrl: (key) => (key && r2 ? r2.resizeUrl(key, { width }) : null) };
+export function generationImageDeps(
+  storage: SignedReadStorage | null = createR2FromEnv(process.env),
+): GenerationDeps {
+  return { imageUrl: async (key) => (key && storage ? storage.presignDownload(key) : null) };
 }

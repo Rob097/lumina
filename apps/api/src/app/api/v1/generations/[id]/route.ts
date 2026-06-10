@@ -13,7 +13,7 @@ export async function GET(_request: Request, ctx: { params: Promise<{ id: string
     return guard.response;
   }
   const { id } = await ctx.params;
-  const detail = await getGeneration(guard.db, guard.merchantId, id, generationImageDeps(1280));
+  const detail = await getGeneration(guard.db, guard.merchantId, id, generationImageDeps());
   if (!detail) {
     return errorResponse('not_found', 'Generation not found');
   }

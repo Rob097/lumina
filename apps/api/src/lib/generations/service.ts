@@ -14,11 +14,11 @@ import type {
  * unit-testable without storage; they are `null` when storage is unconfigured or there is no result.
  */
 export interface GenerationDeps {
-  /** Map an R2 object key to a public/resized URL, or `null` when unavailable. */
-  imageUrl(key: string | null): string | null;
+  /** Map an R2 object key to a short-lived signed URL, or `null` when unavailable. */
+  imageUrl(key: string | null): Promise<string | null>;
 }
 
-const NO_IMAGES: GenerationDeps = { imageUrl: () => null };
+const NO_IMAGES: GenerationDeps = { imageUrl: async () => null };
 
 type GenerationRow = typeof generations.$inferSelect;
 
@@ -38,7 +38,11 @@ function decodeCursor(cursor: string): { t: string; id: string } | null {
   return null;
 }
 
-function toSummary(row: GenerationRow, deps: GenerationDeps): GenerationSummary {
+async function toSummary(row: GenerationRow, deps: GenerationDeps): Promise<GenerationSummary> {
+  const [resultUrl, roomUrl] = await Promise.all([
+    deps.imageUrl(row.resultKey),
+    deps.imageUrl(row.roomKey),
+  ]);
   return {
     id: row.id,
     status: row.status,
@@ -52,8 +56,8 @@ function toSummary(row: GenerationRow, deps: GenerationDeps): GenerationSummary 
     latencyMs: row.latencyMs,
     errorCode: row.errorCode,
     pageUrl: row.pageUrl,
-    resultUrl: deps.imageUrl(row.resultKey),
-    roomUrl: deps.imageUrl(row.roomKey),
+    resultUrl,
+    roomUrl,
   };
 }
 
@@ -96,7 +100,7 @@ export async function listGenerations(
     .limit(limit + 1);
 
   const hasMore = rows.length > limit;
-  const items = rows.slice(0, limit).map((r) => toSummary(r, deps));
+  const items = await Promise.all(rows.slice(0, limit).map((r) => toSummary(r, deps)));
   const last = items[items.length - 1];
   return { items, nextCursor: hasMore && last ? encodeCursor(last) : null };
 }
@@ -116,7 +120,7 @@ export async function getGeneration(
     return null;
   }
   return {
-    ...toSummary(row, deps),
+    ...(await toSummary(row, deps)),
     anonId: row.anonId,
     costCents: row.costCents,
     placementHint: row.placementHint,

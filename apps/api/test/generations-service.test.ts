@@ -7,7 +7,7 @@ import { getGeneration, listGenerations } from '../src/lib/generations/service.j
 
 let ctx: TestDb;
 
-const deps = { imageUrl: (key: string | null) => (key ? `https://cdn.test/${key}` : null) };
+const deps = { imageUrl: async (key: string | null) => (key ? `https://cdn.test/${key}` : null) };
 
 beforeAll(async () => {
   ctx = await setupTestDb();

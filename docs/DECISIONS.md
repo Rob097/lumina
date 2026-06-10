@@ -294,3 +294,15 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   **`VERCEL_OIDC_TOKEN`** on Vercel (no key to manage); models/costs are env-configured
   (`GATEWAY_MODEL_*`, `GATEWAY_COST_*`). The network call is an **injectable runner** so the provider's
   input-ordering + output-extraction logic is unit-tested without hitting the gateway.
+
+- **D50 — Dashboard serves stored images as signed R2 GET URLs, not resize-CDN URLs (defers D16).**
+  The generations dashboard built image URLs as `${R2_PUBLIC_BASE}/cdn-cgi/image/.../<key>`, but we never
+  provisioned a Cloudflare-fronted **public** bucket domain with Image Resizing, and `R2_PUBLIC_BASE` is
+  unset in production — so every result/room image resolved to a dead, root-relative path (404). The widget
+  path already served these objects via **short-lived signed GET URLs** (`presignDownload`); the dashboard
+  now does the same — `generationImageDeps` takes an injectable storage and its `imageUrl` is **async**,
+  returning a signed URL or `null` when storage is unconfigured / there is no result yet. This keeps the
+  bucket **private** (HARD RULE #9 — room photos are people's homes) and needs zero DNS/CDN setup. The
+  resize-CDN optimization (D16) can return once a real CF-fronted domain exists; until then we never emit a
+  `/cdn-cgi/image/` URL. An `<img>` GET of a presigned URL is not CORS-gated, and the bucket CORS already
+  allows GET. (Vitest in `apps/api` gained a `@/* → src/*` alias so lib files using the alias are testable.)
