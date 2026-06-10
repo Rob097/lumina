@@ -23,7 +23,7 @@ export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: s
   const siteKey = key?.siteKey ?? (key ? `${key.prefix}…` : `pk_${env}_…`);
 
   const script = buildInstallSnippet({ cdnUrl, siteKey });
-  const trigger = buildTriggerSnippet({ buttonText: 'Try in your room', productId: 'YOUR_PRODUCT_ID' });
+  const trigger = buildTriggerSnippet({ productId: 'YOUR_PRODUCT_ID' });
 
   return (
     <div className="install-guide">
@@ -74,25 +74,28 @@ export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: s
         </div>
       </div>
 
-      {/* Step 2 — trigger */}
+      {/* Step 2 — launcher placeholder */}
       <div className="card">
         <div className="card-head">
           <h3>
-            <span className="step-no">2</span> Add a trigger button
+            <span className="step-no">2</span> Place the button
           </h3>
         </div>
         <div className="card-pad">
           <p className="t-secondary install-p">
-            Drop a button on each product page. Set <span className="code-inline">data-lumina-product</span>{' '}
-            to that product&apos;s ID — the widget opens scoped to it.
+            Drop this placeholder where you want the button on each product page — LUMINA renders its
+            styled button into it. Set <span className="code-inline">data-lumina-product</span> to that
+            product&apos;s ID so the widget opens scoped to it.
           </p>
           <div className="code-block">
             <CopyButton value={trigger} className="code-copy" />
             <code style={{ whiteSpace: 'pre' }}>{trigger}</code>
           </div>
           <p className="install-note">
-            Prefer code? Call <span className="code-inline">window.Lumina.open(&#123; productId &#125;)</span>{' '}
-            from your own handler instead.
+            Already have your own button? Add <span className="code-inline">data-lumina-trigger</span> to
+            it instead, or call{' '}
+            <span className="code-inline">window.Lumina.open(&#123; productId &#125;)</span> from your own
+            handler.
           </p>
         </div>
       </div>

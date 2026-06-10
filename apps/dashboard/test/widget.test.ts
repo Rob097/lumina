@@ -69,13 +69,13 @@ describe('buildInstallSnippet', () => {
 });
 
 describe('buildTriggerSnippet', () => {
-  it('wires a trigger button to a product id', () => {
-    expect(buildTriggerSnippet({ buttonText: 'Try in your room', productId: 'AURA-01' })).toBe(
-      '<button data-lumina-trigger data-lumina-product="AURA-01">\n  Try in your room\n</button>',
+  it('builds a placeholder the widget fills with the styled button, scoped to a product', () => {
+    expect(buildTriggerSnippet({ productId: 'AURA-01' })).toBe(
+      '<div data-lumina-button data-lumina-product="AURA-01"></div>',
     );
   });
 
   it('uses a placeholder product id when none is given', () => {
-    expect(buildTriggerSnippet({ buttonText: 'See it' })).toContain('data-lumina-product="YOUR_PRODUCT_ID"');
+    expect(buildTriggerSnippet({})).toContain('data-lumina-product="YOUR_PRODUCT_ID"');
   });
 });

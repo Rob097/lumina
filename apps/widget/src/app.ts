@@ -13,6 +13,7 @@ import { resolveLocale, mergeConfig, type EffectiveConfig } from './core/config.
 import { createReporter } from './core/report.js';
 import { LuminaController } from './core/controller.js';
 import { bindTriggers } from './core/binder.js';
+import { mountLaunchers } from './core/launcher.js';
 import { createLumina, installQueue, type LuminaSession } from './core/lumina.js';
 import { createShadowMount } from './ui/mount.js';
 import { themeVars } from './ui/theme.js';
@@ -48,6 +49,12 @@ async function boot(localConfig: LuminaConfig): Promise<LuminaSession> {
   rerender();
 
   bindTriggers({ doc: document, onOpen: (opts) => controller.open(opts), onPreload: () => {} });
+  mountLaunchers({
+    doc: document,
+    onOpen: (opts) => controller.open(opts),
+    label: effective.buttonText,
+    theme: themeVars(effective.theme),
+  });
   controller.trackImpression();
 
   return {

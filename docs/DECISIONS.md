@@ -306,3 +306,14 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   resize-CDN optimization (D16) can return once a real CF-fronted domain exists; until then we never emit a
   `/cdn-cgi/image/` URL. An `<img>` GET of a presigned URL is not CORS-gated, and the bucket CORS already
   allows GET. (Vitest in `apps/api` gained a `@/* → src/*` alias so lib files using the alias are testable.)
+
+- **D51 — The widget renders its own styled launcher button into a `[data-lumina-button]` placeholder.**
+  Previously the widget only bound a click onto a merchant's own element, so the storefront showed an
+  unstyled host button while the dashboard preview promised a branded one. Now a merchant drops an empty
+  `<div data-lumina-button data-lumina-product="SKU">` where they want the button and the widget paints
+  LUMINA's "Try in your room" button into it — inside **its own Shadow root** (HARD RULE #7, styles never
+  leak), themed from the effective config, label = `effective.buttonText`. `core/launcher.ts` is plain DOM
+  (no extra Preact roots → negligible bundle cost; size test still green), idempotent (a `WeakSet` guards
+  re-mount), and a `MutationObserver` mounts placeholders added later (SPA grids). Declarative
+  `[data-lumina-trigger]` elements keep the old enhance-the-merchant's-element behavior, so both models
+  coexist. The install snippet (`buildTriggerSnippet`) now emits the placeholder, not a `<button>`.

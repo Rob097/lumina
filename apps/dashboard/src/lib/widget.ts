@@ -37,8 +37,12 @@ export function buildInstallSnippet(opts: { cdnUrl: string; siteKey: string }): 
   return `<script async src="${base}/widget.js" data-site-key="${opts.siteKey}"></script>`;
 }
 
-/** A declarative trigger button (§3.5) — the merchant drops it on each product page. */
-export function buildTriggerSnippet(opts: { buttonText: string; productId?: string }): string {
+/**
+ * A launcher placeholder (§3.3) — the merchant drops it on each product page where they want the
+ * button, and the widget renders LUMINA's styled "Try in your room" button into it, scoped to the
+ * product. (Merchants who prefer their own element can still use `data-lumina-trigger` instead.)
+ */
+export function buildTriggerSnippet(opts: { productId?: string }): string {
   const productId = opts.productId ?? 'YOUR_PRODUCT_ID';
-  return `<button data-lumina-trigger data-lumina-product="${productId}">\n  ${opts.buttonText}\n</button>`;
+  return `<div data-lumina-button data-lumina-product="${productId}"></div>`;
 }
