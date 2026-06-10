@@ -47,6 +47,7 @@ export function buildComposePrompt(input: ComposeInput): string {
     'HARD RULES:',
     "- Preserve the product's exact geometry, materials, colors, proportions, and branding. Do NOT redesign, restyle, or invent a different product.",
     "- Do NOT alter the room's architecture, walls, windows, existing furniture, or camera angle.",
+    "- Keep the ROOM's exact framing and aspect ratio: return the full original room photo at its native proportions. Do NOT crop, zoom, pan, or re-frame — the output must overlay the input pixel-for-pixel.",
     `- ${placement}`,
     `- ${scaleLine}`,
     `- ${lightingLine}`,

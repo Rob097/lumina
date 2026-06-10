@@ -18,6 +18,12 @@ describe('buildComposePrompt', () => {
     expect(p).toMatch(/contact shadow/i);
   });
 
+  it('pins the room framing/aspect ratio so the result lines up with the original (no zoom)', () => {
+    const p = buildComposePrompt(base);
+    expect(p).toMatch(/aspect ratio/i);
+    expect(p).toMatch(/do not .*(crop|zoom|re-?frame)/i);
+  });
+
   it('uses the placement hint when provided, else a natural-location instruction', () => {
     expect(buildComposePrompt({ ...base, placementHint: 'on the wall above the sofa' })).toContain(
       'on the wall above the sofa',
