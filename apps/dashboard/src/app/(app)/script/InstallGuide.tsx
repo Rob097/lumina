@@ -7,19 +7,22 @@ import { CopyButton } from '@/components/ui/CopyButton';
 export interface PubKey {
   env: 'live' | 'test';
   prefix: string;
+  /** The full publishable key (it's public); null for legacy keys created before we stored it. */
+  siteKey: string | null;
 }
 
 /**
  * Install walkthrough: the loader `<script>` + a trigger button, scoped to the active Test/Live env.
- * The publishable key is reveal-once (D11) so we show its prefix and let the merchant paste the full
- * value from creation — we never fabricate or expose a working key here.
+ * A publishable key is the public `site_key`, so when we have its full value we bake it straight into
+ * the snippet — the merchant copies and pastes with nothing to fill in. Legacy keys (no stored value)
+ * fall back to the prefix placeholder with a note to roll a fresh key.
  */
 export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: string }) {
   const { env } = useEnv();
   const key = pubKeys.find((k) => k.env === env);
-  const siteKeyPlaceholder = key ? `${key.prefix}…` : `pk_${env}_…`;
+  const siteKey = key?.siteKey ?? (key ? `${key.prefix}…` : `pk_${env}_…`);
 
-  const script = buildInstallSnippet({ cdnUrl, siteKey: siteKeyPlaceholder });
+  const script = buildInstallSnippet({ cdnUrl, siteKey });
   const trigger = buildTriggerSnippet({ buttonText: 'Try in your room', productId: 'YOUR_PRODUCT_ID' });
 
   return (
@@ -51,7 +54,12 @@ export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: s
             <CopyButton value={script} className="code-copy" />
             <code>{script}</code>
           </div>
-          {key ? (
+          {key?.siteKey ? (
+            <p className="install-note">
+              This snippet already includes your {env} publishable key — copy it and paste as-is. It&apos;s a
+              public key (the widget exposes it by design); manage it in <a href="/settings">Settings</a>.
+            </p>
+          ) : key ? (
             <p className="install-note">
               Your {env} publishable key starts with{' '}
               <span className="code-inline">{key.prefix}</span>. Paste the full value you copied when you

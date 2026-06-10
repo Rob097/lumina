@@ -16,6 +16,7 @@ describe('api key schemas', () => {
       kind: 'publishable',
       env: 'live',
       prefix: 'pk_live_8f3a1b2c',
+      siteKey: 'pk_live_8f3a1b2c_full_value',
       lastUsedAt: null,
       revokedAt: null,
     });

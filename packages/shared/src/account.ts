@@ -20,6 +20,8 @@ export const ApiKeySummarySchema = z.object({
   kind: KeyKindSchema,
   env: KeyEnvSchema,
   prefix: z.string(),
+  /** Full public site_key — present only for publishable keys (they ship in the storefront). */
+  siteKey: z.string().nullable(),
   lastUsedAt: z.string().nullable(),
   revokedAt: z.string().nullable(),
 });

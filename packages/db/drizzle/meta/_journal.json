@@ -36,6 +36,13 @@
       "when": 1780664392079,
       "tag": "0004_lockdown_server_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1781097743160,
+      "tag": "0005_last_redwing",
+      "breakpoints": true
     }
   ]
 }

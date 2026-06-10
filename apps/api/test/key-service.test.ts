@@ -72,4 +72,19 @@ describe('key-service', () => {
     const summaries = await listKeys(ctx.db, merchantId);
     expect(firstOrThrow(summaries).revokedAt).not.toBeNull();
   });
+
+  it('exposes the raw value as the public site_key for publishable keys only', async () => {
+    const merchantId = await newMerchant();
+    const pub = await createKey(ctx.db, { merchantId, kind: 'publishable', env: 'live' });
+    const sec = await createKey(ctx.db, { merchantId, kind: 'secret', env: 'live' });
+
+    const summaries = await listKeys(ctx.db, merchantId);
+    const pubSummary = summaries.find((s) => s.id === pub.id);
+    const secSummary = summaries.find((s) => s.id === sec.id);
+
+    // A publishable key IS the public site_key — returned in full so the install snippet self-fills.
+    expect(pubSummary?.siteKey).toBe(pub.key);
+    // A secret key is never exposed.
+    expect(secSummary?.siteKey ?? null).toBeNull();
+  });
 });

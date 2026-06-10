@@ -89,6 +89,9 @@ export const apiKeys = pgTable(
     env: keyEnv('env').notNull(),
     prefix: text('prefix').notNull(),
     keyHash: text('key_hash').notNull(),
+    // The raw value of a **publishable** key — it is the public `site_key` that ships in the storefront
+    // <script>, so we keep it readable for the install snippet. Always null for secret keys.
+    siteKey: text('site_key'),
     lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
     revokedAt: timestamp('revoked_at', { withTimezone: true }),
     createdAt: createdAt(),

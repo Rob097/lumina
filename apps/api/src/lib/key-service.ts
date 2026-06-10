@@ -23,6 +23,8 @@ export async function createKey(
       env: input.env,
       prefix: generated.prefix,
       keyHash: generated.keyHash,
+      // A publishable key is public — keep its raw value as the site_key. Secret keys stay hash-only.
+      siteKey: input.kind === 'publishable' ? generated.raw : null,
     })
     .returning({ id: apiKeys.id });
   const row = rows[0];
@@ -44,6 +46,7 @@ export async function listKeys(db: Database, merchantId: string): Promise<ApiKey
     kind: r.kind,
     env: r.env,
     prefix: r.prefix,
+    siteKey: r.siteKey ?? null,
     lastUsedAt: r.lastUsedAt ? r.lastUsedAt.toISOString() : null,
     revokedAt: r.revokedAt ? r.revokedAt.toISOString() : null,
   }));
