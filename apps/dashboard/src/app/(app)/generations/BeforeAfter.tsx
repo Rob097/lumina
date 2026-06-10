@@ -50,16 +50,17 @@ export function BeforeAfter({
         ) : (
           <span className="ba2-fallback ba2-fallback-after" />
         )}
-        <span className="ba2-cap">AFTER</span>
       </div>
-      <div className="ba2-layer ba2-before" style={{ width: `${pos}%` }}>
+      {/* Full-box layer revealed by a clip-path wipe so the image stays pixel-aligned with `after`. */}
+      <div className="ba2-layer ba2-before" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         {beforeUrl ? (
           <img src={beforeUrl} alt="Original room" draggable={false} />
         ) : (
           <span className="ba2-fallback ba2-fallback-before" />
         )}
-        <span className="ba2-cap">BEFORE</span>
       </div>
+      <span className="ba2-cap ba2-cap-after">AFTER</span>
+      <span className="ba2-cap ba2-cap-before">BEFORE</span>
       <div className="ba2-handle" style={{ left: `${pos}%` }}>
         <span className="ba2-grip">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">

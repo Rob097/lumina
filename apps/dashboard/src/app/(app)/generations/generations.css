@@ -174,9 +174,7 @@
   height: 100%;
   object-fit: cover;
 }
-.ba2-before {
-  border-right: 2.5px solid #fff;
-}
+/* `.ba2-before` is the full-box clipped layer; the wipe edge is drawn by `.ba2-handle`. */
 .ba2-fallback {
   position: absolute;
   inset: 0;
@@ -199,7 +197,7 @@
   padding: 4px 8px;
   border-radius: var(--r-sm);
 }
-.ba2-before .ba2-cap {
+.ba2-cap-before {
   left: auto;
   right: 12px;
 }

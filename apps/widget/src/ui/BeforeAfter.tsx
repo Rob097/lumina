@@ -36,10 +36,10 @@ export function BeforeAfter({ beforeUrl, resultUrl, beforeLabel, afterLabel }: B
   return (
     <div class="lumina-ba" ref={ref} onPointerDown={onPointer} onPointerMove={onPointer}>
       <img class="lumina-ba-img" src={resultUrl} alt={afterLabel} draggable={false} />
-      <div class="lumina-ba-clip" style={{ width: `${pos}%` }}>
+      <div class="lumina-ba-clip" style={{ clipPath: `inset(0 ${100 - pos}% 0 0)` }}>
         <img class="lumina-ba-img" src={beforeUrl} alt={beforeLabel} draggable={false} />
-        <span class="lumina-ba-tag lumina-ba-tag-before">{beforeLabel}</span>
       </div>
+      <span class="lumina-ba-tag lumina-ba-tag-before">{beforeLabel}</span>
       <span class="lumina-ba-tag lumina-ba-tag-after">{afterLabel}</span>
       <div
         class="lumina-ba-handle"
