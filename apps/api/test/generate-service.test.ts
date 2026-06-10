@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   createGeneration,
   InsufficientCreditsError,
+  ProductNotFoundError,
   type GenerateDeps,
 } from '../src/lib/generate/service.js';
 
@@ -111,17 +112,23 @@ describe('createGeneration', () => {
     expect(rows).toHaveLength(0);
   });
 
-  it('resolves a registered product by id (snapshot from the catalog)', async () => {
+  it('resolves a registered product by its external SKU and stores the internal id', async () => {
     const merchantId = await newMerchant(5);
     const productRows = await ctx.db
       .insert(products)
-      .values({ merchantId, name: 'Nube', category: 'furniture', imageUrl: 'https://shop.test/nube.png' })
+      .values({
+        merchantId,
+        externalId: 'SKU-1234',
+        name: 'Nube',
+        category: 'furniture',
+        imageUrl: 'https://shop.test/nube.png',
+      })
       .returning();
-    const productId = firstOrThrow(productRows).id;
+    const internalId = firstOrThrow(productRows).id;
 
     const result = await createGeneration(ctx.db, deps(), {
       merchantId,
-      productId,
+      productId: 'SKU-1234', // the merchant's SKU, exactly as the widget sends it
       roomKey: `rooms/${merchantId}/e.jpg`,
     });
     const row = firstOrThrow(
@@ -130,7 +137,18 @@ describe('createGeneration', () => {
         .from(generations)
         .where(and(eq(generations.id, result.generationId), eq(generations.merchantId, merchantId))),
     );
-    expect(row.productId).toBe(productId);
+    expect(row.productId).toBe(internalId); // stored as the internal uuid FK, not the SKU
     expect(row.productSnapshot.name).toBe('Nube');
+  });
+
+  it('throws ProductNotFoundError for an unknown SKU (not a uuid-cast 500)', async () => {
+    const merchantId = await newMerchant(5);
+    await expect(
+      createGeneration(ctx.db, deps(), {
+        merchantId,
+        productId: 'P-DOES-NOT-EXIST',
+        roomKey: `rooms/${merchantId}/f.jpg`,
+      }),
+    ).rejects.toBeInstanceOf(ProductNotFoundError);
   });
 });

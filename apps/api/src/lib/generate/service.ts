@@ -62,12 +62,19 @@ function isUniqueViolation(err: unknown): boolean {
 async function resolveProduct(
   db: Database,
   input: CreateGenerationInput,
-): Promise<{ productRef: string; snapshot: ProductSnapshot }> {
+): Promise<{ productRef: string; snapshot: ProductSnapshot; productId?: string }> {
   if (input.productId) {
+    // The public `productId` is the merchant's own SKU (`external_id`), not LUMINA's internal uuid —
+    // the widget references `data-lumina-product="<SKU>"`. Resolve it to the internal id for the FK.
     const rows = await db
-      .select({ name: products.name, category: products.category, imageUrl: products.imageUrl })
+      .select({
+        id: products.id,
+        name: products.name,
+        category: products.category,
+        imageUrl: products.imageUrl,
+      })
       .from(products)
-      .where(and(eq(products.id, input.productId), eq(products.merchantId, input.merchantId)))
+      .where(and(eq(products.externalId, input.productId), eq(products.merchantId, input.merchantId)))
       .limit(1);
     const product = rows[0];
     if (!product) {
@@ -75,6 +82,7 @@ async function resolveProduct(
     }
     return {
       productRef: input.productId,
+      productId: product.id,
       snapshot: { name: product.name, category: product.category, imageUrl: product.imageUrl },
     };
   }
@@ -122,7 +130,7 @@ export async function createGeneration(
   deps: GenerateDeps,
   input: CreateGenerationInput,
 ): Promise<CreateGenerationResult> {
-  const { productRef, snapshot } = await resolveProduct(db, input);
+  const { productRef, snapshot, productId } = await resolveProduct(db, input);
   const idempotencyKey = computeIdempotencyKey({
     merchantId: input.merchantId,
     productRef,
@@ -142,7 +150,7 @@ export async function createGeneration(
         .insert(generations)
         .values({
           merchantId: input.merchantId,
-          productId: input.productId,
+          productId,
           roomKey: input.roomKey,
           productSnapshot: snapshot,
           placementHint: input.placementHint,
