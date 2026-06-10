@@ -62,4 +62,22 @@ describe('flow reducer', () => {
     const up = reduce(initialState, { type: 'OPEN', opts });
     expect(reduce(up, { type: 'GEN_PROGRESS', stage: 'compose' })).toEqual(up);
   });
+
+  it('GEN_SUBMIT enters the loader immediately, before a generationId exists', () => {
+    let s = reduce(initialState, { type: 'OPEN', opts });
+    s = reduce(s, { type: 'ROOM_SELECTED', previewUrl: 'blob:room' });
+    s = reduce(s, { type: 'GEN_SUBMIT' });
+    expect(s.step).toBe('generating');
+    expect(s.generationId).toBeUndefined();
+
+    // The later GEN_START records the id without leaving the loader.
+    s = reduce(s, { type: 'GEN_START', generationId: 'g1' });
+    expect(s.step).toBe('generating');
+    expect(s.generationId).toBe('g1');
+  });
+
+  it('ignores GEN_SUBMIT outside the confirm step', () => {
+    const up = reduce(initialState, { type: 'OPEN', opts });
+    expect(reduce(up, { type: 'GEN_SUBMIT' })).toEqual(up);
+  });
 });

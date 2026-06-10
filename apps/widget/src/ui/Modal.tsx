@@ -11,10 +11,12 @@ export interface ModalProps {
   watermark: boolean;
   poweredByLabel: string;
   closeLabel: string;
+  /** Widen the modal — used for the result step so the before/after isn't cramped. */
+  wide?: boolean;
   children: ComponentChildren;
 }
 
-export function Modal({ onClose, watermark, poweredByLabel, closeLabel, children }: ModalProps) {
+export function Modal({ onClose, watermark, poweredByLabel, closeLabel, wide, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -32,7 +34,13 @@ export function Modal({ onClose, watermark, poweredByLabel, closeLabel, children
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div class="lumina-modal" role="dialog" aria-modal="true" tabIndex={-1} ref={dialogRef}>
+      <div
+        class={`lumina-modal${wide ? ' lumina-modal-wide' : ''}`}
+        role="dialog"
+        aria-modal="true"
+        tabIndex={-1}
+        ref={dialogRef}
+      >
         <button class="lumina-close" type="button" aria-label={closeLabel} onClick={onClose}>
           ×
         </button>

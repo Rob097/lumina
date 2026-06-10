@@ -22,6 +22,7 @@ export type FlowAction =
   | { type: 'OPEN'; opts: OpenOptions }
   | { type: 'ROOM_SELECTED'; previewUrl?: string }
   | { type: 'SET_HINT'; hint: string }
+  | { type: 'GEN_SUBMIT' }
   | { type: 'GEN_START'; generationId: string }
   | { type: 'GEN_PROGRESS'; stage: GenerationStage }
   | { type: 'GEN_SUCCESS'; resultUrl: string; beforeUrl: string; generationId?: string }
@@ -44,9 +45,17 @@ export function reduce(state: FlowState, action: FlowAction): FlowState {
       if (state.step !== 'confirm') return state;
       return { ...state, placementHint: action.hint };
 
-    case 'GEN_START':
+    // Enter the loader the instant the shopper hits Generate — before the upload/POST round-trips —
+    // so there's no window where the Generate button is still live (double-submit) or the confirm
+    // step can be closed mid-flight.
+    case 'GEN_SUBMIT':
       if (state.step !== 'confirm') return state;
-      return { ...state, step: 'generating', generationId: action.generationId, stage: undefined, error: undefined };
+      return { ...state, step: 'generating', stage: undefined, error: undefined };
+
+    case 'GEN_START':
+      // Reachable from confirm (direct) or generating (after GEN_SUBMIT) — just records the id.
+      if (state.step !== 'confirm' && state.step !== 'generating') return state;
+      return { ...state, step: 'generating', generationId: action.generationId, error: undefined };
 
     case 'GEN_PROGRESS':
       if (state.step !== 'generating') return state;

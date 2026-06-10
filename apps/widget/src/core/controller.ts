@@ -137,6 +137,10 @@ export class LuminaController {
 
   async startGeneration(): Promise<void> {
     if (!this.room) return;
+    // Ignore re-entry (rapid double-clicks): once we're submitting we're already in the loader.
+    if (this.state.step === 'generating') return;
+    // Show the loader immediately, before the sign-upload/PUT/POST round-trips (~5s).
+    this.dispatch({ type: 'GEN_SUBMIT' });
     try {
       const upload: SignUploadResponse = await this.api.signUpload(this.room.contentType);
       await this.api.putRoom(upload.uploadUrl, this.room.blob, this.room.contentType);

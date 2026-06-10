@@ -43,6 +43,7 @@ export function App({ controller, config, t }: AppProps) {
       watermark={config.watermark}
       poweredByLabel={t('poweredBy')}
       closeLabel={t('close')}
+      wide={state.step === 'result'}
     >
       {renderStep()}
     </Modal>
@@ -70,7 +71,7 @@ export function App({ controller, config, t }: AppProps) {
           />
         );
       case 'generating':
-        return <GeneratingStep t={t} stage={state.stage} />;
+        return <GeneratingStep t={t} stage={state.stage} roomPreviewUrl={state.roomPreviewUrl} />;
       case 'result':
         return (
           <ResultStep
