@@ -22,12 +22,15 @@ const LOCALE_LABELS: Record<Locale, string> = {
   es: 'Español',
 };
 
-/** Widget string keys a merchant may safely override — each maps to a real widget label (§3.7). */
-const OVERRIDE_KEYS: { key: string; label: string }[] = [
-  { key: 'upload.title', label: 'Upload title' },
-  { key: 'upload.hint', label: 'Upload hint' },
-  { key: 'confirm.generate', label: 'Generate button' },
-  { key: 'result.title', label: 'Result title' },
+/**
+ * Widget string keys a merchant may safely override — each maps to a real widget label (§3.7). The
+ * `placeholder` is the shipped default copy, shown so the merchant sees what they'd be replacing.
+ */
+const OVERRIDE_KEYS: { key: string; label: string; placeholder: string }[] = [
+  { key: 'upload.title', label: 'Upload title', placeholder: 'Add a photo of your room' },
+  { key: 'upload.hint', label: 'Upload hint', placeholder: 'JPG, PNG or WebP · up to {max}' },
+  { key: 'confirm.generate', label: 'Generate button', placeholder: 'Generate preview' },
+  { key: 'result.title', label: 'Result title', placeholder: "Here's your room" },
 ];
 
 export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
@@ -265,12 +268,13 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
                 </div>
                 <div className="set-control">
                   <div className="locale-override">
-                    {OVERRIDE_KEYS.map(({ key, label }) => (
+                    {OVERRIDE_KEYS.map(({ key, label, placeholder }) => (
                       <div className="ovr" key={key}>
-                        <span className="k">{key}</span>
+                        <span className="k">{label}</span>
                         <input
                           className="input"
                           aria-label={label}
+                          placeholder={placeholder}
                           value={s.i18n[key] ?? ''}
                           onChange={(e) => setOverride(key, e.target.value)}
                         />

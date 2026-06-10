@@ -121,9 +121,9 @@
   gap: 4px;
 }
 .locale-override .ovr .k {
-  font-size: var(--fs-micro);
-  color: var(--text-muted);
-  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
 }
 
 /* ---------- LIVE PREVIEW ---------- */
