@@ -7,6 +7,7 @@ import {
   fetchGenerations,
 } from '@/lib/api';
 import { rangeLabel } from '@/lib/format';
+import { RANGE_DAYS, parseRange } from '@/lib/overview';
 import { Banner } from '@/components/overview/Banner';
 import { KpiRow } from '@/components/overview/KpiRow';
 import { FunnelCard } from '@/components/overview/FunnelCard';
@@ -15,12 +16,18 @@ import { TopProducts } from '@/components/overview/TopProducts';
 import { RecentStrip } from '@/components/overview/RecentStrip';
 import { EmptyState } from '@/components/ui/EmptyState';
 
-const PERIOD_MS = 30 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
 
-export default async function OverviewPage() {
+export default async function OverviewPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string }>;
+}) {
+  const range = parseRange((await searchParams).range);
+  const periodMs = RANGE_DAYS[range] * DAY_MS;
   const now = new Date();
-  const curFrom = new Date(now.getTime() - PERIOD_MS);
-  const prevFrom = new Date(now.getTime() - 2 * PERIOD_MS);
+  const curFrom = new Date(now.getTime() - periodMs);
+  const prevFrom = new Date(now.getTime() - 2 * periodMs);
 
   const [summary, prev, series, credits, domains, recent] = await Promise.all([
     fetchAnalyticsSummary({ from: curFrom.toISOString(), to: now.toISOString() }),
@@ -45,7 +52,7 @@ export default async function OverviewPage() {
 
   return (
     <div className="col">
-      <Banner domainCount={domains.length} rangeLabel={rangeLabel(curFrom, now)} />
+      <Banner domainCount={domains.length} rangeLabel={rangeLabel(curFrom, now)} range={range} />
 
       <KpiRow
         summary={summary}

@@ -2,6 +2,21 @@ import { FUNNEL_STEPS, type FunnelStepKey } from '@lumina/shared';
 
 /** Funnel + sparkline shaping for the Overview (pure, tested). */
 
+/** Selectable reporting windows for the Overview (driven by the `?range=` search param). */
+export const RANGE_DAYS = { '7d': 7, '30d': 30, '90d': 90 } as const;
+export type RangeKey = keyof typeof RANGE_DAYS;
+export const RANGE_ORDER: RangeKey[] = ['7d', '30d', '90d'];
+export const RANGE_LABEL: Record<RangeKey, string> = {
+  '7d': 'Last 7 days',
+  '30d': 'Last 30 days',
+  '90d': 'Last 90 days',
+};
+
+/** Coerce an untrusted `?range=` value to a known window, defaulting to 30 days. */
+export function parseRange(value: string | undefined): RangeKey {
+  return value && value in RANGE_DAYS ? (value as RangeKey) : '30d';
+}
+
 const FUNNEL_LABELS: Record<FunnelStepKey, string> = {
   impressions: 'Impressions',
   opens: 'Modal opens',

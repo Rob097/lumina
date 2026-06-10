@@ -101,3 +101,116 @@
   font-size: var(--fs-caption);
   color: var(--danger);
 }
+
+/* ---- dropdown menus (topbar notifications/account, sidebar workspace) ---- */
+.menu-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.menu-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  min-width: 220px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  box-shadow: var(--e-4);
+  padding: 6px;
+  z-index: var(--z-modal, 1000);
+  animation: modal-in var(--dur-fast) var(--ease-out);
+}
+.menu-right {
+  right: 0;
+}
+.menu-left {
+  left: 0;
+}
+.menu-pop-wide {
+  min-width: 248px;
+}
+.menu-head {
+  padding: 6px 10px;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.menu-empty {
+  padding: 14px 10px;
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  text-align: center;
+}
+.menu-note {
+  padding: 8px 10px 4px;
+  font-size: var(--fs-micro);
+  color: var(--text-muted);
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: none;
+  background: none;
+  border-radius: var(--r-md);
+  font: inherit;
+  font-size: var(--fs-body-sm, 14px);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.menu-item:hover {
+  background: var(--surface-2);
+}
+.menu-item.is-current {
+  cursor: default;
+  font-weight: 600;
+}
+.menu-item.is-current:hover {
+  background: none;
+}
+.menu-item .grow {
+  flex: 1;
+}
+.menu-item-danger {
+  color: var(--danger);
+}
+.menu-sep {
+  height: 1px;
+  margin: 6px 2px;
+  background: var(--hairline);
+}
+.merchant-logo.sm {
+  width: 22px;
+  height: 22px;
+  font-size: 11px;
+}
+
+/* disabled topbar search (search not implemented yet) */
+.top-search.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.top-search.is-disabled .input {
+  cursor: not-allowed;
+}
+
+/* locked Test environment pill */
+.env-toggle .is-locked {
+  opacity: 0.6;
+  cursor: pointer;
+}
+.env-modal {
+  width: 460px;
+}
+
+/* the account avatar is now a menu trigger — keep it a clean circular button */
+button.avatar {
+  border: none;
+  padding: 0;
+  font: inherit;
+  cursor: pointer;
+}

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { NAV_GROUPS, NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
+import { Menu } from '@/components/ui/Menu';
 import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
 
@@ -23,15 +24,36 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
   return (
     <aside className="side">
       <div className="side-top">
-        <button className="merchant-switch">
-          <span className="merchant-logo">{merchant.initials}</span>
-          <span>
-            <span className="nm">{merchant.name}</span>
-            <br />
-            <span className="pl">{merchant.plan} plan</span>
-          </span>
-          <Icon name="chevron-updown" className="chev" size={16} strokeWidth={2} />
-        </button>
+        <Menu
+          triggerClassName="merchant-switch"
+          ariaLabel="Workspace menu"
+          align="left"
+          panelClassName="menu-pop-wide"
+          trigger={
+            <>
+              <span className="merchant-logo">{merchant.initials}</span>
+              <span>
+                <span className="nm">{merchant.name}</span>
+                <br />
+                <span className="pl">{merchant.plan} plan</span>
+              </span>
+              <Icon name="chevron-updown" className="chev" size={16} strokeWidth={2} />
+            </>
+          }
+        >
+          <div className="menu-head">Workspace</div>
+          <div className="menu-item is-current">
+            <span className="merchant-logo sm">{merchant.initials}</span>
+            <span className="grow">{merchant.name}</span>
+            <Icon name="arrow-up-right" size={14} strokeWidth={2} />
+          </div>
+          <div className="menu-sep" />
+          <Link className="menu-item" href="/settings" role="menuitem">
+            <Icon name="settings" size={15} strokeWidth={1.8} />
+            Workspace settings
+          </Link>
+          <div className="menu-note">Multiple stores on one account — coming soon.</div>
+        </Menu>
       </div>
 
       <nav className="side-nav">
@@ -57,7 +79,7 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
       </nav>
 
       <div className="side-foot">
-        <div className="credit-pill">
+        <Link className="credit-pill" href="/billing" aria-label="Credits and billing">
           <div className="row1">
             <span className="lab">Credits remaining</span>
             <span className={`badge ${BADGE[credits.level]}`} style={{ height: 18, padding: '0 6px' }}>
@@ -68,15 +90,15 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
           <div className="meter">
             <div className={`meter-fill${FILL[credits.level]}`} style={{ width: `${credits.usedPct}%` }} />
           </div>
-        </div>
-        <div className="account-row">
+        </Link>
+        <Link className="account-row" href="/settings" aria-label="Account settings">
           <span className="avatar">{account.initials}</span>
           <span>
             <span className="nm">{account.name}</span>
             <br />
             <span className="em">{account.email}</span>
           </span>
-        </div>
+        </Link>
       </div>
     </aside>
   );
