@@ -1,6 +1,7 @@
 import './script.css';
 import { fetchKeys } from '@/lib/api';
-import { InstallGuide, type PubKey } from './InstallGuide';
+import type { PubKey } from './InstallGuide';
+import { ScriptInstallView } from './ScriptInstallView';
 
 export default async function ScriptPage() {
   const keys = await fetchKeys();
@@ -9,5 +10,5 @@ export default async function ScriptPage() {
     .map((k) => ({ env: k.env, prefix: k.prefix, siteKey: k.siteKey }));
 
   const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL ?? 'https://cdn.lumina.app';
-  return <InstallGuide pubKeys={pubKeys} cdnUrl={cdnUrl} />;
+  return <ScriptInstallView pubKeys={pubKeys} cdnUrl={cdnUrl} />;
 }

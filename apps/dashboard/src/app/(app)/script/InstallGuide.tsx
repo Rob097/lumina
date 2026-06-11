@@ -17,7 +17,15 @@ export interface PubKey {
  * the snippet — the merchant copies and pastes with nothing to fill in. Legacy keys (no stored value)
  * fall back to the prefix placeholder with a note to roll a fresh key.
  */
-export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: string }) {
+export function InstallGuide({
+  pubKeys,
+  cdnUrl,
+  onBack,
+}: {
+  pubKeys: PubKey[];
+  cdnUrl: string;
+  onBack?: () => void;
+}) {
   const { env } = useEnv();
   const key = pubKeys.find((k) => k.env === env);
   const siteKey = key?.siteKey ?? (key ? `${key.prefix}…` : `pk_${env}_…`);
@@ -27,6 +35,11 @@ export function InstallGuide({ pubKeys, cdnUrl }: { pubKeys: PubKey[]; cdnUrl: s
 
   return (
     <div className="install-guide">
+      {onBack && (
+        <button type="button" className="install-back" onClick={onBack}>
+          ← All platforms
+        </button>
+      )}
       <div className="install-head">
         <p className="t-secondary">
           Add LUMINA to your storefront in two snippets. You're viewing the{' '}

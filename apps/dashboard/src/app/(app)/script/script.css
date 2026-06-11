@@ -60,3 +60,74 @@
 .code-block code {
   white-space: inherit;
 }
+
+/* Platform picker (landing view) */
+.platform-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.platform-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  text-align: left;
+  width: 100%;
+}
+.platform-card .platform-meta {
+  flex: 1;
+  min-width: 0;
+}
+.platform-card .platform-meta h3 {
+  margin: 0 0 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-body);
+}
+.platform-card .platform-meta p {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.platform-soon {
+  font-weight: 600;
+}
+.platform-card.is-clickable {
+  cursor: pointer;
+  background: var(--surface);
+  transition: border-color 0.15s ease, transform 0.05s ease;
+}
+.platform-card.is-clickable:hover {
+  border-color: var(--accent);
+}
+.platform-card.is-clickable:active {
+  transform: translateY(1px);
+}
+.platform-go {
+  color: var(--accent);
+  font-size: 18px;
+}
+.platform-card.is-soon {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+.install-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  margin-bottom: 2px;
+  color: var(--text-secondary);
+  font-size: var(--fs-caption);
+  cursor: pointer;
+}
+.install-back:hover {
+  color: var(--accent);
+}
+@media (max-width: 560px) {
+  .platform-grid {
+    grid-template-columns: 1fr;
+  }
+}
