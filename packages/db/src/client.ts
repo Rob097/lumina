@@ -13,9 +13,20 @@ export interface DbHandle {
 /**
  * Create a Drizzle client over a postgres.js connection. Callers own the lifecycle and should
  * `client.end()` when done (e.g. scripts/tests). The dashboard/API use the pooled `DATABASE_URL`.
+ *
+ * Serverless callers (the API/workflow, behind Supabase's connection pooler) should pass a tiny
+ * `max` and `prepare: false`: the transaction pooler shares a small Postgres pool across many
+ * short-lived clients and can't keep server-side prepared statements, so a large `max` exhausts it.
  */
-export function createDb(connectionString: string, options: { max?: number } = {}): DbHandle {
-  const client = postgres(connectionString, { max: options.max ?? 10 });
+export function createDb(
+  connectionString: string,
+  options: { max?: number; prepare?: boolean; idleTimeout?: number } = {},
+): DbHandle {
+  const client = postgres(connectionString, {
+    max: options.max ?? 10,
+    ...(options.prepare !== undefined ? { prepare: options.prepare } : {}),
+    ...(options.idleTimeout !== undefined ? { idle_timeout: options.idleTimeout } : {}),
+  });
   const db = drizzle(client, { schema });
   return { db, client };
 }

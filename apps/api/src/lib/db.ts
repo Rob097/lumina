@@ -13,7 +13,10 @@ export function getDb(): Database {
     if (!url) {
       throw new Error('DATABASE_URL is not set');
     }
-    cached = createDb(url).db;
+    // Serverless behind Supabase's transaction pooler: one connection per warm instance, no
+    // server-side prepared statements, release idle connections quickly. A larger pool exhausts the
+    // shared pooler (EMAXCONNSESSION) once the route + Inngest workflow run concurrently.
+    cached = createDb(url, { max: 1, prepare: false, idleTimeout: 20 }).db;
   }
   return cached;
 }
