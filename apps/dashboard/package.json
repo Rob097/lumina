@@ -14,6 +14,7 @@
   "dependencies": {
     "@lumina/shared": "workspace:*",
     "@lumina/ui": "workspace:*",
+    "@lumina/widget": "workspace:*",
     "@supabase/ssr": "^0.5.2",
     "@supabase/supabase-js": "^2.47.10",
     "next": "^15.1.3",

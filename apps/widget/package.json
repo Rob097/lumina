@@ -3,9 +3,17 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "exports": {
+    "./preview": {
+      "types": "./preview.d.ts",
+      "import": "./dist-preview/index.js"
+    }
+  },
   "scripts": {
     "dev": "vite",
-    "build": "node build.mjs",
+    "build": "tsup --config tsup.preview.config.ts",
+    "build:preview": "tsup --config tsup.preview.config.ts",
+    "build:bundle": "node build.mjs",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
@@ -20,8 +28,10 @@
     "@preact/preset-vite": "^2.9.3",
     "@playwright/test": "^1.49.1",
     "@types/node": "^20.17.10",
+    "esbuild": "^0.24.2",
     "happy-dom": "^15.11.7",
     "terser": "^5.37.0",
+    "tsup": "^8.3.5",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "vite": "^5.4.11",

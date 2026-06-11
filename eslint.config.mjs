@@ -7,6 +7,8 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/dist-preview/**',
+      '**/*.timestamp-*.mjs',
       '**/.next/**',
       '**/next-env.d.ts',
       '**/.turbo/**',

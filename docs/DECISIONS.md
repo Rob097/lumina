@@ -317,3 +317,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   re-mount), and a `MutationObserver` mounts placeholders added later (SPA grids). Declarative
   `[data-lumina-trigger]` elements keep the old enhance-the-merchant's-element behavior, so both models
   coexist. The install snippet (`buildTriggerSnippet`) now emits the placeholder, not a `<button>`.
+
+- **D52 — The dashboard live preview renders the REAL widget UI, not a mock.** The preview was a
+  hand-built React mock (`WidgetPreview`) that drifted from the shipped widget (e.g. it invented an
+  "Upload" button the real upload step never had). The widget now publishes a self-contained
+  `@lumina/widget/preview` library (built by `tsup.preview.config.ts`): it bundles **its own preact**
+  and inlines `styles.css` as a string (a tiny plugin strips Vite's `?inline` query; tsup's
+  `loader: { '.css': 'text' }` keeps it a string instead of a stylesheet), and exports
+  `mountWidgetPreview(container, { view, settings })`. The dashboard's `RealWidgetPreview` (React) mounts
+  it into a **Shadow root** from a `useEffect`, themed by the merchant's *unsaved* form settings — so the
+  preview IS the widget and can't drift. Bundling preact sidesteps the React↔preact JSX-runtime clash and
+  any dedupe worry. Turbo wiring: `@lumina/widget` `build` now also emits `dist-preview/**` (added to the
+  build `outputs`), so `turbo build:next` on Vercel produces it before the dashboard compiles. The old
+  mock markup is gone; `lib/widget` preview helpers (`previewVars`/`isDarkPreview`) are now unused but
+  kept (still unit-tested).

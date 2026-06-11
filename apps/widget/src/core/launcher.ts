@@ -20,8 +20,8 @@ export interface LauncherDeps {
 
 const SELECTOR = '[data-lumina-button]';
 
-const STYLES = `:host{all:initial}
-.lumina-launcher{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;
+/** Launcher button rules (no `:host`), shared with the dashboard live preview so they can't drift. */
+export const LAUNCHER_BUTTON_CSS = `.lumina-launcher{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;
   font-family:var(--lumina-font,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);
   font-size:15px;font-weight:600;line-height:1;padding:12px 18px;border:0;cursor:pointer;
   border-radius:var(--lumina-radius,16px);background:var(--lumina-accent,#0F62FE);color:#fff;
@@ -32,7 +32,10 @@ const STYLES = `:host{all:initial}
 .lumina-launcher:focus-visible{outline:2px solid var(--lumina-accent,#0F62FE);outline-offset:2px}
 .lumina-launcher svg{width:18px;height:18px;flex:none}`;
 
-const ICON =
+const STYLES = `:host{all:initial}\n${LAUNCHER_BUTTON_CSS}`;
+
+/** The launcher's room/house glyph (raw SVG markup). */
+export const LAUNCHER_ICON =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 21V9l9-6 9 6v12"/><path d="M9 21v-6h6v6"/></svg>';
 
 const mounted = new WeakSet<Element>();
@@ -53,7 +56,7 @@ function renderInto(el: HTMLElement, deps: LauncherDeps): void {
   button.className = 'lumina-launcher';
   button.setAttribute('aria-label', deps.label);
   for (const [key, value] of Object.entries(deps.theme)) button.style.setProperty(key, value);
-  button.innerHTML = ICON;
+  button.innerHTML = LAUNCHER_ICON;
   const span = deps.doc.createElement('span');
   span.textContent = deps.label;
   button.appendChild(span);
