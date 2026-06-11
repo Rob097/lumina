@@ -11,6 +11,11 @@
       "dependsOn": ["^build"],
       "outputs": [".next/**", "!.next/cache/**"]
     },
+    "build:bundle": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**"],
+      "env": ["PUBLIC_CDN_URL", "PUBLIC_API_URL", "PUBLIC_SENTRY_DSN"]
+    },
     "dev": {
       "cache": false,
       "persistent": true
