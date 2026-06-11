@@ -184,6 +184,7 @@ export async function processGeneration(
       product: { url: snapshot.imageUrl },
       category,
       placementHint: gen.placementHint ?? undefined,
+      customInstructions: gen.customInstructions ?? undefined,
       policy: planToPolicy(plan),
       watermark: plan === 'free',
     });

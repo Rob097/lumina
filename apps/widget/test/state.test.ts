@@ -80,4 +80,16 @@ describe('flow reducer', () => {
     const up = reduce(initialState, { type: 'OPEN', opts });
     expect(reduce(up, { type: 'GEN_SUBMIT' })).toEqual(up);
   });
+
+  it('records custom instructions while on the confirm step', () => {
+    let s = reduce(initialState, { type: 'OPEN', opts });
+    s = reduce(s, { type: 'ROOM_SELECTED', previewUrl: 'blob:room' });
+    s = reduce(s, { type: 'SET_INSTRUCTIONS', text: 'near the window' });
+    expect(s.customInstructions).toBe('near the window');
+  });
+
+  it('ignores SET_INSTRUCTIONS outside the confirm step', () => {
+    const up = reduce(initialState, { type: 'OPEN', opts });
+    expect(reduce(up, { type: 'SET_INSTRUCTIONS', text: 'nope' })).toEqual(up);
+  });
 });

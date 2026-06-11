@@ -26,6 +26,8 @@ export interface ComposeInput {
   product: ImageRef;
   category: ProductCategory;
   placementHint?: string;
+  /** Free-text shopper guidance, rendered as a soft preference that can't override the hard rules. */
+  customInstructions?: string;
   dimensions?: Dimensions;
   scene?: SceneAnalysis;
   policy: RoutingPolicy;

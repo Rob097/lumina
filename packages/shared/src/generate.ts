@@ -24,6 +24,8 @@ export const GenerateRequestSchema = z
     product: InlineProductSchema.optional(),
     roomKey: z.string().min(1),
     placementHint: z.string().optional(),
+    /** Optional free-text shopper guidance, fed to the prompt as a soft preference (§7.5). */
+    customInstructions: z.string().max(280).optional(),
     anonId: z.string().min(1),
     pageUrl: z.string().url().optional(),
     metadata: z.record(z.string(), z.string()).optional(),

@@ -165,6 +165,44 @@
   color: var(--lumina-accent);
 }
 
+.lumina-instructions {
+  width: 100%;
+  text-align: left;
+}
+.lumina-instructions > summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--lumina-muted);
+  list-style: none;
+  user-select: none;
+}
+.lumina-instructions > summary::-webkit-details-marker {
+  display: none;
+}
+.lumina-instructions > summary::before {
+  content: '+ ';
+}
+.lumina-instructions[open] > summary::before {
+  content: '– ';
+}
+.lumina-instructions-input {
+  margin-top: 8px;
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid color-mix(in srgb, var(--lumina-muted) 40%, transparent);
+  border-radius: calc(var(--lumina-radius) * 0.5);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  padding: 8px 10px;
+}
+.lumina-instructions-input:focus {
+  outline: none;
+  border-color: var(--lumina-accent);
+}
+
 .lumina-preview,
 .lumina-camera-video {
   width: 100%;

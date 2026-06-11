@@ -117,6 +117,10 @@ export class LuminaController {
     this.dispatch({ type: 'SET_HINT', hint });
   }
 
+  setInstructions(text: string): void {
+    this.dispatch({ type: 'SET_INSTRUCTIONS', text });
+  }
+
   async selectRoom(file: Blob, source: 'file' | 'camera'): Promise<void> {
     this.emitter.emit('upload:start', { source });
     try {
@@ -211,6 +215,9 @@ export class LuminaController {
       ...(opts.product ? { product: opts.product } : {}),
       roomKey,
       ...(this.state.placementHint ? { placementHint: this.state.placementHint } : {}),
+      ...(this.state.customInstructions?.trim()
+        ? { customInstructions: this.state.customInstructions.trim() }
+        : {}),
       anonId: this.anonId,
       ...(this.pageUrl ? { pageUrl: this.pageUrl } : {}),
       ...(opts.metadata ? { metadata: opts.metadata } : {}),

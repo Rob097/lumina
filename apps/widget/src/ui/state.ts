@@ -11,6 +11,7 @@ export interface FlowState {
   opts?: OpenOptions;
   roomPreviewUrl?: string;
   placementHint?: string;
+  customInstructions?: string;
   generationId?: string;
   stage?: GenerationStage;
   resultUrl?: string;
@@ -22,6 +23,7 @@ export type FlowAction =
   | { type: 'OPEN'; opts: OpenOptions }
   | { type: 'ROOM_SELECTED'; previewUrl?: string }
   | { type: 'SET_HINT'; hint: string }
+  | { type: 'SET_INSTRUCTIONS'; text: string }
   | { type: 'GEN_SUBMIT' }
   | { type: 'GEN_START'; generationId: string }
   | { type: 'GEN_PROGRESS'; stage: GenerationStage }
@@ -44,6 +46,10 @@ export function reduce(state: FlowState, action: FlowAction): FlowState {
     case 'SET_HINT':
       if (state.step !== 'confirm') return state;
       return { ...state, placementHint: action.hint };
+
+    case 'SET_INSTRUCTIONS':
+      if (state.step !== 'confirm') return state;
+      return { ...state, customInstructions: action.text };
 
     // Enter the loader the instant the shopper hits Generate — before the upload/POST round-trips —
     // so there's no window where the Generate button is still live (double-submit) or the confirm

@@ -32,6 +32,21 @@ describe('generate request', () => {
     expect(GenerateRequestSchema.parse({ ...base, productId: 'SKU-1' }).productId).toBe('SKU-1');
   });
 
+  it('accepts optional free-text custom instructions', () => {
+    const req = GenerateRequestSchema.parse({
+      ...base,
+      productId: 'SKU-1',
+      customInstructions: 'Place it next to the window, facing the room.',
+    });
+    expect(req.customInstructions).toBe('Place it next to the window, facing the room.');
+  });
+
+  it('caps custom instructions at 280 characters', () => {
+    expect(() =>
+      GenerateRequestSchema.parse({ ...base, productId: 'SKU-1', customInstructions: 'x'.repeat(281) }),
+    ).toThrow();
+  });
+
   it('rejects a missing roomKey', () => {
     expect(() => GenerateRequestSchema.parse({ anonId: 'v_1', productId: 'SKU-1' })).toThrow();
   });

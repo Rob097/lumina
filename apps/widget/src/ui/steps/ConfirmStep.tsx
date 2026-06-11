@@ -18,6 +18,8 @@ export interface ConfirmStepProps {
   roomPreviewUrl?: string;
   activeHint?: string;
   onSetHint: (hint: string) => void;
+  customInstructions?: string;
+  onSetInstructions: (text: string) => void;
   onGenerate: () => void;
 }
 
@@ -27,6 +29,8 @@ export function ConfirmStep({
   roomPreviewUrl,
   activeHint,
   onSetHint,
+  customInstructions,
+  onSetInstructions,
   onGenerate,
 }: ConfirmStepProps) {
   return (
@@ -46,6 +50,17 @@ export function ConfirmStep({
           </button>
         ))}
       </div>
+      <details class="lumina-instructions">
+        <summary>{t('confirm.instructions')}</summary>
+        <textarea
+          class="lumina-instructions-input"
+          rows={2}
+          maxLength={280}
+          placeholder={t('confirm.instructionsPlaceholder')}
+          value={customInstructions ?? ''}
+          onInput={(e) => onSetInstructions((e.target as HTMLTextAreaElement).value)}
+        />
+      </details>
       <button class="lumina-btn lumina-btn-primary" type="button" onClick={onGenerate}>
         {t('confirm.generate')}
       </button>

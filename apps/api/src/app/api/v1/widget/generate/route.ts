@@ -54,6 +54,7 @@ export async function POST(request: Request): Promise<Response> {
       inlineProduct: req.product,
       roomKey: req.roomKey,
       placementHint: req.placementHint,
+      customInstructions: req.customInstructions,
       anonId: req.anonId,
       pageUrl: req.pageUrl,
       metadata: req.metadata,

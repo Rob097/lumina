@@ -53,4 +53,17 @@ describe('buildComposePrompt', () => {
   it('appends a negative guard', () => {
     expect(buildComposePrompt(base)).toMatch(/avoid:.*cartoonish/i);
   });
+
+  it('includes shopper custom instructions as a soft preference, after the hard rules', () => {
+    const p = buildComposePrompt({ ...base, customInstructions: 'near the reading nook by the window' });
+    expect(p).toContain('near the reading nook by the window');
+    // It must be framed as not overriding the protected rules…
+    expect(p).toMatch(/must not override|without (breaking|violating)/i);
+    // …and must appear after the HARD RULES block, never before it.
+    expect(p.indexOf('near the reading nook by the window')).toBeGreaterThan(p.indexOf('HARD RULES'));
+  });
+
+  it('omits the custom-instruction block when none is given', () => {
+    expect(buildComposePrompt(base)).not.toMatch(/ADDITIONAL USER PREFERENCE/i);
+  });
 });

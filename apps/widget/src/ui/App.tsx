@@ -16,6 +16,7 @@ export interface AppController {
   close(reason?: string): void;
   selectRoom(file: Blob, source: 'file' | 'camera'): unknown;
   setHint(hint: string): void;
+  setInstructions(text: string): void;
   startGeneration(): unknown;
   regenerate(): unknown;
   save(): unknown;
@@ -67,6 +68,8 @@ export function App({ controller, config, t }: AppProps) {
             roomPreviewUrl={state.roomPreviewUrl}
             activeHint={state.placementHint}
             onSetHint={(hint) => controller.setHint(hint)}
+            customInstructions={state.customInstructions}
+            onSetInstructions={(text) => controller.setInstructions(text)}
             onGenerate={() => controller.startGeneration()}
           />
         );

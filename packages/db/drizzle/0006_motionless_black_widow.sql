@@ -1,0 +1,1 @@
+ALTER TABLE "generations" ADD COLUMN "custom_instructions" text;

@@ -18,8 +18,17 @@ export function computeIdempotencyKey(parts: {
   productRef: string;
   roomKey: string;
   placementHint?: string;
+  customInstructions?: string;
 }): string {
   return createHash('sha256')
-    .update([parts.merchantId, parts.productRef, parts.roomKey, parts.placementHint ?? ''].join('|'))
+    .update(
+      [
+        parts.merchantId,
+        parts.productRef,
+        parts.roomKey,
+        parts.placementHint ?? '',
+        parts.customInstructions ?? '',
+      ].join('|'),
+    )
     .digest('hex');
 }

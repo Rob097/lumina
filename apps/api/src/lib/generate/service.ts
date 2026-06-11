@@ -34,6 +34,7 @@ export interface CreateGenerationInput {
   inlineProduct?: InlineProduct;
   roomKey: string;
   placementHint?: string;
+  customInstructions?: string;
   anonId?: string;
   pageUrl?: string;
   metadata?: Record<string, unknown>;
@@ -136,6 +137,7 @@ export async function createGeneration(
     productRef,
     roomKey: input.roomKey,
     placementHint: input.placementHint,
+    customInstructions: input.customInstructions,
   });
 
   const existing = await findExisting(db, input.merchantId, idempotencyKey);
@@ -154,6 +156,7 @@ export async function createGeneration(
           roomKey: input.roomKey,
           productSnapshot: snapshot,
           placementHint: input.placementHint,
+          customInstructions: input.customInstructions,
           idempotencyKey,
           anonId: input.anonId,
           pageUrl: input.pageUrl,

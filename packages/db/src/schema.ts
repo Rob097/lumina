@@ -172,6 +172,7 @@ export const generations = pgTable(
     roomKey: text('room_key').notNull(),
     productSnapshot: jsonb('product_snapshot').$type<ProductSnapshot>().notNull(),
     placementHint: text('placement_hint'),
+    customInstructions: text('custom_instructions'),
     idempotencyKey: text('idempotency_key').notNull(),
     // outputs
     resultKey: text('result_key'),
