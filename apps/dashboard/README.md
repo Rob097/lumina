@@ -22,16 +22,16 @@ pnpm -F @lumina/dashboard test  # vitest — pure logic (format, funnel, shell h
   schemas. No DB access or secrets in the dashboard.
 - **Shell:** the `(app)` route group gates the session, provisions the merchant on first login, and renders
   `Sidebar` (merchant switcher, grouped nav, credit pill, account) + `Topbar` (route-derived title,
-  Test/Live env toggle, theme toggle, search). Theme (light/dark via `:root[data-theme]`) + env live in a
-  thin client provider (D31).
+  Test/Live env toggle, theme toggle, notifications, account). Theme (light/dark via `:root[data-theme]`)
+  + env live in a thin client provider (D31).
 
 ## Screens
 
 | Status | Screen | Notes |
 |---|---|---|
 | ✅ M4·A | **Overview** | ROI dashboard — KPIs (+ deltas, sparklines), conversion funnel, generations/CTA timeseries, top products, recent strip. |
-| ✅ M4·B | **Widget Settings** | Theme/copy/CTA/branding form with a self-contained live preview (button · modal · result), saved to `/v1/widget-config`. |
-| ✅ M4·B | **Script & Install** | Env-aware loader `<script>` + trigger-button snippets with copy + verify checklist. |
+| ✅ M4·B | **Widget Settings** | Theme/copy/CTA/branding form with a self-contained live preview (button · modal · result), saved to `/v1/widget-config`. Result-CTA fields autopopulate from platform presets (Shopify/WooCommerce/Wix/generic, `lib/platforms.ts`). |
+| ✅ M4·B | **Script & Install** | Platform picker landing (generic script live; WordPress/Shopify/WooCommerce/Wix/Squarespace "coming soon") → env-aware loader `<script>` + trigger-button snippets with copy + verify checklist. |
 | ✅ M4·B | **Onboarding** | 5-step guided checklist; completion derived from live signals (config, products, install, generations). |
 | ✅ M4·C | **Products** | Catalog table with search/category filter, add/edit drawer, CSV import (client-parsed, per-row errors); soft-delete archive. |
 | ✅ M4·C | **Generations** | Status-filtered card gallery, cursor "Load more", before/after wipe detail with run metadata. |

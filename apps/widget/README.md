@@ -72,6 +72,11 @@ the in-bundle transport; a Supabase Realtime transport can be lazy-loaded later 
 bundle). Room photos are downscaled (≤ 2048px), EXIF-oriented, and re-encoded client-side (WebP→JPEG),
 which also strips EXIF/GPS (HARD RULE #9; the server strips again).
 
+On the **confirm** step the shopper picks a placement chip (auto/floor/wall/table/corner → `placementHint`)
+and may expand an optional **custom-instructions** field (`customInstructions`, ≤ 280 chars). Both ride the
+`generate` request and reach `AIOrchestrator.compose`; the prompt renders the free text as a *soft
+preference* below the HARD RULES so it can't override product identity, room integrity, scale, or framing.
+
 ## Architecture
 
 Framework-agnostic, injectable core in `src/core` (config, API client, `LuminaController` state machine,

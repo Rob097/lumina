@@ -331,3 +331,25 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   build `outputs`), so `turbo build:next` on Vercel produces it before the dashboard compiles. The old
   mock markup is gone; `lib/widget` preview helpers (`previewVars`/`isDarkPreview`) are now unused but
   kept (still unit-tested).
+
+## Post-go-live wave A — Quick UI wins (2026-06-11)
+
+- **D53 — One `lib/platforms.ts` drives both the install picker and the Result-CTA presets; brand marks
+  are colour tiles, not vendor logos.** The Script & install page opens on a platform picker — only the
+  generic `script` card is live (it works anywhere); WordPress/Shopify/WooCommerce/Wix/Squarespace are
+  `status: 'coming-soon'`. The same module exports CTA presets (Shopify `/cart/add?id={productId}`,
+  WooCommerce `/?add-to-cart={productId}`, Wix product page, a generic `{productUrl}`) so the Widget
+  Settings "quick fill" buttons stay in sync with the installer list. `BrandIcon` renders a brand-coloured
+  rounded tile + short white monogram rather than copying each vendor's trademarked SVG path — recognisable
+  by colour+mark, no forged/low-fi logo art, scales at any size, and the data layer is unit-tested in a
+  Node env (no component-render harness exists in the dashboard, so the JSX is verified by typecheck+lint).
+
+- **D54 — Shopper custom instructions are a *soft preference* under the HARD RULES, and join the
+  idempotency key.** The widget confirm step gained an optional free-text field (`customInstructions`,
+  ≤ 280 chars, a `<details>` disclosure so it's zero-JS and costs ~0.7 KB gz). It rides the existing
+  `generate` request → new nullable `generations.custom_instructions` (migration 0006) → `compose`. In the
+  prompt it's quoted (quotes collapsed) and labelled "ADDITIONAL USER PREFERENCE … must not override
+  product identity, room integrity, scale, or framing", rendered **after** the HARD-RULES block — untrusted
+  text can refine placement/style but never relax the protected rules (it also passes the existing input
+  moderation step). It's added to `computeIdempotencyKey` so two different instructions are two distinct
+  paid generations rather than colliding on a cached result.
