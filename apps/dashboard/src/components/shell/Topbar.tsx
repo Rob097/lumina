@@ -19,11 +19,6 @@ export function Topbar({ accountInitials }: { accountInitials: string }) {
         <h1>{title}</h1>
       </div>
       <EnvToggle />
-      {/* Search is not implemented yet — disabled so it doesn't read as broken. */}
-      <div className="top-search is-disabled" title="Search is coming soon">
-        <Icon name="search" size={16} strokeWidth={2} />
-        <input className="input" placeholder="Search…" aria-label="Search" disabled />
-      </div>
       <ThemeToggle />
 
       <Menu

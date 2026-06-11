@@ -53,12 +53,6 @@ const ICONS: Record<string, ReactElement> = {
   ),
   'chevron-updown': <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />,
   'chevron-down': <path d="M6 9l6 6 6-6" />,
-  search: (
-    <>
-      <circle cx="11" cy="11" r="7" />
-      <path d="M21 21l-4-4" />
-    </>
-  ),
   bell: (
     <>
       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />

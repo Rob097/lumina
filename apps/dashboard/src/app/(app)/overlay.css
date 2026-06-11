@@ -189,15 +189,6 @@
   font-size: 11px;
 }
 
-/* disabled topbar search (search not implemented yet) */
-.top-search.is-disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-.top-search.is-disabled .input {
-  cursor: not-allowed;
-}
-
 /* locked Test environment pill */
 .env-toggle .is-locked {
   opacity: 0.6;
