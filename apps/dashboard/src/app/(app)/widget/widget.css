@@ -485,6 +485,39 @@
   letter-spacing: -0.02em;
 }
 
+/* Result-CTA platform presets */
+.cta-presets {
+  margin-bottom: 12px;
+}
+.cta-presets-label {
+  display: block;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  margin-bottom: 7px;
+}
+.cta-presets-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.cta-preset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px 5px 6px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+.cta-preset:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 @media (max-width: 1200px) {
   .settings-layout {
     grid-template-columns: 1fr;

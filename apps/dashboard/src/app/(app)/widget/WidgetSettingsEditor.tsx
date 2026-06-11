@@ -3,6 +3,8 @@
 import { useMemo, useState, useTransition } from 'react';
 import { LOCALES, type Locale, type WidgetSettings } from '@lumina/shared';
 import { useEnv } from '@/lib/providers';
+import { CTA_PLATFORMS, type CtaPreset } from '@/lib/platforms';
+import { BrandIcon } from '@/components/ui/BrandIcon';
 import { WidgetPreview } from './WidgetPreview';
 import { saveWidgetSettingsAction } from './actions';
 
@@ -63,6 +65,11 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
       const empty = !next.label.trim() && !next.urlTemplate.trim();
       return { ...prev, resultCta: empty ? null : next };
     });
+  }
+
+  /** Quick-fill both CTA fields with a platform's typical values; the merchant can still edit them. */
+  function applyCtaPreset(cta: CtaPreset) {
+    setS((prev) => ({ ...prev, resultCta: { ...cta } }));
   }
 
   function save() {
@@ -292,6 +299,23 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
               <h3>Result CTA</h3>
             </div>
             <div className="card-pad" style={{ paddingTop: '6px' }}>
+              <div className="cta-presets">
+                <span className="cta-presets-label">Quick fill for…</span>
+                <div className="cta-presets-row">
+                  {CTA_PLATFORMS.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className="cta-preset"
+                      title={`Use ${p.name} defaults`}
+                      onClick={() => applyCtaPreset(p.cta)}
+                    >
+                      <BrandIcon name={p.brandIcon} size={18} />
+                      <span>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
               <div className="set-row">
                 <div className="set-label">
                   CTA label
