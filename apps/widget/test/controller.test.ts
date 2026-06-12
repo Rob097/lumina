@@ -158,4 +158,40 @@ describe('LuminaController', () => {
     // open + generate + success + feedback + cta beacons all POST /widget/event
     expect(api.event).toHaveBeenCalled();
   });
+
+  it('cta click navigates to the merchant CTA url, resolving {productId} against the page', () => {
+    const navigate = vi.fn();
+    const cfg: EffectiveConfig = {
+      ...config(),
+      resultCta: { label: 'Add to cart', urlTemplate: '/?add-to-cart={productId}' },
+    };
+    const { controller } = harness({
+      extra: { config: cfg, navigate, pageUrl: 'https://shop.test/product/widget' },
+    });
+    controller.open({ productId: '242293' });
+    controller.ctaClick();
+    expect(navigate).toHaveBeenCalledWith('https://shop.test/?add-to-cart=242293');
+  });
+
+  it('interpolates {productUrl} and keeps absolute CTA templates intact', () => {
+    const navigate = vi.fn();
+    const cfg: EffectiveConfig = {
+      ...config(),
+      resultCta: { label: 'View product', urlTemplate: '{productUrl}' },
+    };
+    const { controller } = harness({
+      extra: { config: cfg, navigate, pageUrl: 'https://shop.test/p/9' },
+    });
+    controller.open({ productId: 'X' });
+    controller.ctaClick();
+    expect(navigate).toHaveBeenCalledWith('https://shop.test/p/9');
+  });
+
+  it('does not navigate when no result CTA is configured', () => {
+    const navigate = vi.fn();
+    const { controller } = harness({ extra: { navigate } });
+    controller.open({ productId: 'SKU' });
+    controller.ctaClick();
+    expect(navigate).not.toHaveBeenCalled();
+  });
 });

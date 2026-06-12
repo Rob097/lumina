@@ -21,7 +21,7 @@ const CONFIG = {
   i18n: {},
   watermark: true,
   limits: { anonDailyCap: 5, maxUploadBytes: 10_485_760, maxImageEdgePx: 2048 },
-  resultCta: { label: 'Add to cart', urlTemplate: 'https://shop.example.com/cart/{id}' },
+  resultCta: { label: 'Add to cart', urlTemplate: '/cart?add={productId}' },
 };
 
 const CORS = {

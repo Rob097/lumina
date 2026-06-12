@@ -64,6 +64,9 @@ analytics can listen on the DOM:
 `generate:success` · `generate:error` · `result:save` · `result:share` · `feedback` · `cta:click`.
 
 `cta:click`, `generate:success` and `feedback` are the conversion/ROI signals merchants wire to analytics.
+A configured **result CTA** also navigates: `cta:click` fires, then the widget interpolates
+`{productId}`/`{productUrl}` into the `urlTemplate`, resolves it against the page URL, and opens it in a
+new tab (so the shopper keeps their result). Merchants doing custom add-to-cart just listen to the event.
 
 ## Flow
 
@@ -73,9 +76,13 @@ bundle). Room photos are downscaled (≤ 2048px), EXIF-oriented, and re-encoded 
 which also strips EXIF/GPS (HARD RULE #9; the server strips again).
 
 On the **confirm** step the shopper picks a placement chip (auto/floor/wall/table/corner → `placementHint`)
-and may expand an optional **custom-instructions** field (`customInstructions`, ≤ 280 chars). Both ride the
-`generate` request and reach `AIOrchestrator.compose`; the prompt renders the free text as a *soft
+and can fill an always-visible **custom-instructions** field (`customInstructions`, ≤ 280 chars). Both ride
+the `generate` request and reach `AIOrchestrator.compose`; the prompt renders the free text as a *soft
 preference* below the HARD RULES so it can't override product identity, room integrity, scale, or framing.
+
+**Locale precedence** (`mergeConfig`): an explicit `data-lumina-locale`/`init` locale wins; otherwise the
+merchant's dashboard locale is authoritative; the host page's `<html lang>` is only a last-ditch fallback
+— so an Italian storefront never silently overrides a merchant who configured English.
 
 ## Architecture
 

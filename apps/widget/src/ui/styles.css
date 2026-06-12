@@ -166,24 +166,14 @@
 }
 
 .lumina-instructions {
+  display: block;
   width: 100%;
   text-align: left;
 }
-.lumina-instructions > summary {
-  cursor: pointer;
+.lumina-instructions-label {
+  display: block;
   font-size: 13px;
   color: var(--lumina-muted);
-  list-style: none;
-  user-select: none;
-}
-.lumina-instructions > summary::-webkit-details-marker {
-  display: none;
-}
-.lumina-instructions > summary::before {
-  content: '+ ';
-}
-.lumina-instructions[open] > summary::before {
-  content: '– ';
 }
 .lumina-instructions-input {
   margin-top: 8px;
@@ -244,6 +234,11 @@
 .lumina-generating-bg ~ .lumina-generating-fg .lumina-muted {
   color: #fff;
 }
+.lumina-generating-sub {
+  margin-top: -4px;
+  font-size: 12px;
+  opacity: 0.8;
+}
 
 .lumina-spinner {
   width: 42px;
@@ -265,6 +260,13 @@
   display: flex;
   gap: 8px;
   justify-content: center;
+  align-items: center;
+  min-height: 36px;
+}
+.lumina-feedback-thanks {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lumina-accent);
 }
 
 /* Before/after comparison slider */

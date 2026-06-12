@@ -63,10 +63,10 @@ test.describe('LUMINA widget — acceptance', () => {
     await page.locator('#declarative').click();
     await expect(page.locator('.lumina-overlay')).toBeVisible();
 
-    // Upload → confirm step (placement chips + the optional custom-instructions disclosure).
+    // Upload → confirm step. The custom-instructions field is expanded by default (no disclosure).
     await page.locator('input[type=file]').setInputFiles(roomFile);
-    const summary = page.getByText('Add specific instructions');
-    await expect(summary).toBeVisible();
+    const instructions = page.locator('.lumina-instructions-input');
+    await expect(instructions).toBeVisible();
 
     // The bottom-sheet modal must not overflow the 360px viewport.
     const box = await page.locator('.lumina-modal').boundingBox();
@@ -74,10 +74,12 @@ test.describe('LUMINA widget — acceptance', () => {
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(361);
 
-    // The field opens and accepts text.
-    await summary.click();
-    await page.locator('.lumina-instructions-input').fill('near the window');
-    await expect(page.locator('.lumina-instructions-input')).toHaveValue('near the window');
+    // Typing character-by-character must not lose focus between keystrokes (the modal used to
+    // re-grab focus on every render). pressSequentially fires a real keydown/input per character.
+    await instructions.click();
+    await instructions.pressSequentially('near the window');
+    await expect(instructions).toHaveValue('near the window');
+    await expect(instructions).toBeFocused();
   });
 
   test('camera capture (fake device) reaches the confirm step', async ({ page }) => {

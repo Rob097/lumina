@@ -47,6 +47,8 @@ export interface ControllerDeps {
   saveImage?: (url: string, filename: string) => void | Promise<void>;
   shareFn?: (data: { url: string; title?: string }) => Promise<string>;
   reportError?: (error: unknown, context?: Record<string, unknown>) => void;
+  /** How a result-CTA click opens its resolved URL (defaults to a new tab). */
+  navigate?: (url: string) => void;
 }
 
 type Listener = (state: FlowState) => void;
@@ -71,6 +73,7 @@ export class LuminaController {
   private readonly saveImage: (url: string, filename: string) => void | Promise<void>;
   private readonly shareFn: (data: { url: string; title?: string }) => Promise<string>;
   private readonly reportError: (error: unknown, context?: Record<string, unknown>) => void;
+  private readonly navigate: (url: string) => void;
 
   constructor(deps: ControllerDeps) {
     this.config = deps.config;
@@ -86,6 +89,7 @@ export class LuminaController {
     this.saveImage = deps.saveImage ?? defaultSaveImage;
     this.shareFn = deps.shareFn ?? defaultShare;
     this.reportError = deps.reportError ?? (() => {});
+    this.navigate = deps.navigate ?? defaultNavigate;
   }
 
   /** Subscribe to flow-state changes (the UI). Fires immediately with the current state. */
@@ -195,6 +199,24 @@ export class LuminaController {
     const opts = this.state.opts ?? {};
     this.emitter.emit('cta:click', { productId: opts.productId, metadata: opts.metadata });
     this.beacon('cta', { productId: opts.productId, generationId: this.state.generationId });
+    // Actually open the merchant's configured CTA (e.g. add-to-cart). Merchants who prefer to handle
+    // it themselves listen to `cta:click`; a configured `urlTemplate` is the default action.
+    const template = this.config.resultCta?.urlTemplate;
+    if (template) this.navigate(this.resolveCtaUrl(template));
+  }
+
+  /** Fill the CTA template's `{productId}`/`{productUrl}` tokens and resolve it against the page URL. */
+  private resolveCtaUrl(template: string): string {
+    const productId = this.state.opts?.productId ?? '';
+    const productUrl = this.pageUrl ?? '';
+    const filled = template
+      .replace(/\{productId\}/g, encodeURIComponent(productId))
+      .replace(/\{productUrl\}/g, productUrl);
+    try {
+      return new URL(filled, this.pageUrl || undefined).href;
+    } catch {
+      return filled;
+    }
   }
 
   trackImpression(): void {
@@ -283,6 +305,12 @@ export class LuminaController {
       }
     }
   }
+}
+
+function defaultNavigate(url: string): void {
+  if (typeof window === 'undefined') return;
+  // Open in a new tab so the shopper keeps their generated room/result while the cart updates.
+  window.open(url, '_blank', 'noopener');
 }
 
 function defaultSaveImage(url: string, filename: string): void {

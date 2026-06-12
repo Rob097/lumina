@@ -18,14 +18,18 @@ export interface ModalProps {
 
 export function Modal({ onClose, watermark, poweredByLabel, closeLabel, wide, children }: ModalProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  // The parent hands a fresh `onClose` on every re-render (it re-renders on each keystroke). Read the
+  // latest via a ref so the focus-trap effect can run exactly once and never re-grab focus mid-typing.
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     const el = dialogRef.current;
     if (!el) return;
-    const dispose = trapFocus(el, { onEscape: onClose });
+    const dispose = trapFocus(el, { onEscape: () => onCloseRef.current() });
     el.focus();
     return dispose;
-  }, [onClose]);
+  }, []);
 
   return (
     <div

@@ -84,4 +84,16 @@ describe('mergeConfig', () => {
     const eff = mergeConfig({ siteKey: 'pk', watermark: false }, remote({ watermark: true }));
     expect(eff.watermark).toBe(true);
   });
+
+  // The merchant's dashboard locale is authoritative: a host page's <html lang> (passed as the
+  // page-locale fallback) must NOT override it — only an explicit data-attr/init locale may.
+  it('prefers the merchant (remote) locale over the page <html lang> fallback', () => {
+    const eff = mergeConfig({ siteKey: 'pk' }, remote({ locale: 'en' }), 'it');
+    expect(eff.locale).toBe('en');
+  });
+
+  it('lets an explicit local locale override both the remote and the page fallback', () => {
+    const eff = mergeConfig({ siteKey: 'pk', locale: 'fr' }, remote({ locale: 'en' }), 'it');
+    expect(eff.locale).toBe('fr');
+  });
 });

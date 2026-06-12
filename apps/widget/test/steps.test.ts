@@ -4,8 +4,12 @@ import { h } from 'preact';
 import type { WidgetLimits } from '@lumina/shared';
 import { createTranslator } from '../src/core/i18n.js';
 import { validateUpload, UploadStep } from '../src/ui/steps/UploadStep.js';
+import { ConfirmStep } from '../src/ui/steps/ConfirmStep.js';
+import { GeneratingStep } from '../src/ui/steps/GeneratingStep.js';
 import { ResultStep } from '../src/ui/steps/ResultStep.js';
 import { ErrorState, errorKey } from '../src/ui/steps/ErrorState.js';
+
+const tick = () => new Promise((r) => setTimeout(r, 0));
 
 const t = createTranslator('en');
 const limits: WidgetLimits = { anonDailyCap: 5, maxUploadBytes: 1_000_000, maxImageEdgePx: 2048 };
@@ -42,8 +46,6 @@ describe('validateUpload', () => {
 });
 
 describe('UploadStep', () => {
-  const tick = () => new Promise((r) => setTimeout(r, 0));
-
   it('rejects an over-cap file (shows bad-image copy) and accepts a valid one', async () => {
     const onSelectRoom = vi.fn();
     const el = mount(h(UploadStep, { t, limits, onSelectRoom }));
@@ -60,6 +62,35 @@ describe('UploadStep', () => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
     await tick();
     expect(onSelectRoom).toHaveBeenCalledWith(ok, 'file');
+  });
+});
+
+describe('ConfirmStep', () => {
+  it('shows the custom-instructions textarea expanded (no collapse) and reports typing', () => {
+    const onSetInstructions = vi.fn();
+    const el = mount(
+      h(ConfirmStep, {
+        t,
+        productName: 'Aura Lamp',
+        onSetHint: vi.fn(),
+        onSetInstructions,
+        onGenerate: vi.fn(),
+      }),
+    );
+    // The field must be visible immediately, not hidden behind a <details> disclosure.
+    expect(el.querySelector('details')).toBeNull();
+    const ta = el.querySelector('textarea.lumina-instructions-input') as HTMLTextAreaElement;
+    expect(ta).toBeTruthy();
+    ta.value = 'near the window';
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+    expect(onSetInstructions).toHaveBeenCalledWith('near the window');
+  });
+});
+
+describe('GeneratingStep', () => {
+  it('sets the 1–2 minute expectation while composing', () => {
+    const el = mount(h(GeneratingStep, { t }));
+    expect(el.textContent).toContain(t('generating.subtitle'));
   });
 });
 
@@ -87,6 +118,30 @@ describe('ResultStep', () => {
     const up = el.querySelector('button[aria-label="Looks great"]') as HTMLButtonElement;
     up.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     expect(onFeedback).toHaveBeenCalledWith('up');
+  });
+
+  it('confirms a vote: hides the thumbs and thanks the shopper', async () => {
+    const onFeedback = vi.fn();
+    const el = mount(
+      h(ResultStep, {
+        t,
+        beforeUrl: 'b',
+        resultUrl: 'r',
+        resultCta: null,
+        onSave: vi.fn(),
+        onShare: vi.fn(),
+        onRegenerate: vi.fn(),
+        onFeedback,
+        onCta: vi.fn(),
+      }),
+    );
+    const down = el.querySelector('button[aria-label="Not quite"]') as HTMLButtonElement;
+    down.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    await tick(); // flush Preact's batched re-render
+    expect(onFeedback).toHaveBeenCalledWith('down');
+    expect(el.querySelector('button[aria-label="Not quite"]')).toBeNull();
+    expect(el.querySelector('button[aria-label="Looks great"]')).toBeNull();
+    expect(el.textContent).toContain(t('feedback.thanks'));
   });
 });
 

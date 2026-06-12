@@ -393,3 +393,29 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   client Realtime in the app yet and the widget already chose polling (D21); the publication makes a push
   transport a later drop-in. Dashboard→API stays server-mediated: the bell refreshes + marks-read via
   server actions, the settings panel saves via a server action (no browser→API cross-origin auth).
+
+## Post-go-live wave C follow-up — Widget UX fixes (2026-06-12)
+
+- **D57 — Widget locale: the merchant's dashboard locale is authoritative; the host page's `<html lang>`
+  is only a fallback. The result CTA actually navigates (new tab).** Two staging bugs drove this. (1) An
+  Italian storefront (`<html lang="it">`) rendered the widget in Italian even though the merchant's
+  configured locale was English: `app.ts` had folded the page `lang` into the *local* config, which by
+  design wins over the remote (merchant) config. Fixed by passing `<html lang>` as a **third
+  `pageLocale` fallback** to `mergeConfig`, so precedence is now explicit `data-lumina-locale`/`init` →
+  **merchant (remote)** → page `lang` → `en`. A merchant can still force a per-install locale via the
+  data-attr; nobody's storefront language silently overrides their dashboard choice. The e2e store page
+  is now `lang="it"` on purpose to lock this in. (2) The **result CTA emitted `cta:click` but never
+  opened the configured `urlTemplate`** — clicking "Add to cart" did nothing. `ctaClick()` now
+  interpolates `{productId}`/`{productUrl}`, resolves the template against the page URL, and opens it via
+  an injectable `navigate` (default `window.open(url, '_blank')`) — **new tab**, so the shopper keeps
+  their generated room/result while the cart updates server-side. Merchants wanting custom (AJAX)
+  handling still listen to `cta:click`.
+- **D58 — Confirm-step custom instructions are expanded by default; the modal sets up its focus trap
+  once.** The instructions field was a collapsed `<details>` (low discoverability) and, worse, every
+  keystroke re-rendered the App with a fresh `onClose` arrow, which re-ran `Modal`'s focus effect and
+  bounced focus back to the dialog — so each typed character dropped focus. Fix: the field is now an
+  always-visible labelled `<textarea>`, and `Modal` reads the latest `onClose` from a ref so its
+  focus-trap/`el.focus()` effect runs **once on mount** (`[]` deps) instead of on every render. The
+  generating step now also sets the "this usually takes 1–2 minutes" expectation, and a feedback vote
+  swaps the 👍/👎 for a "Thanks for the feedback!" confirmation. Focus-retention is verified in the real
+  browser (Playwright `pressSequentially` + `toBeFocused`), not jsdom, since Preact defers `useEffect`.

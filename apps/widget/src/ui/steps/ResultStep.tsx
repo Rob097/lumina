@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import type { FeedbackRating, ResultCta } from '@lumina/shared';
 import type { Translate } from '../../core/i18n.js';
 import { BeforeAfter } from '../BeforeAfter.js';
@@ -29,6 +30,13 @@ export function ResultStep({
   onFeedback,
   onCta,
 }: ResultStepProps) {
+  const [voted, setVoted] = useState(false);
+
+  function vote(rating: FeedbackRating): void {
+    onFeedback(rating);
+    setVoted(true);
+  }
+
   return (
     <div class="lumina-state lumina-result">
       <BeforeAfter
@@ -38,12 +46,18 @@ export function ResultStep({
         afterLabel={t('result.after')}
       />
       <div class="lumina-feedback">
-        <button class="lumina-chip" type="button" aria-label={t('feedback.up')} onClick={() => onFeedback('up')}>
-          👍
-        </button>
-        <button class="lumina-chip" type="button" aria-label={t('feedback.down')} onClick={() => onFeedback('down')}>
-          👎
-        </button>
+        {voted ? (
+          <span class="lumina-feedback-thanks">{t('feedback.thanks')}</span>
+        ) : (
+          <>
+            <button class="lumina-chip" type="button" aria-label={t('feedback.up')} onClick={() => vote('up')}>
+              👍
+            </button>
+            <button class="lumina-chip" type="button" aria-label={t('feedback.down')} onClick={() => vote('down')}>
+              👎
+            </button>
+          </>
+        )}
       </div>
       <div class="lumina-actions">
         <button class="lumina-btn" type="button" onClick={onSave}>

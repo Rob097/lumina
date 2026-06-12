@@ -50,8 +50,8 @@ export function ConfirmStep({
           </button>
         ))}
       </div>
-      <details class="lumina-instructions">
-        <summary>{t('confirm.instructions')}</summary>
+      <label class="lumina-instructions">
+        <span class="lumina-instructions-label">{t('confirm.instructions')}</span>
         <textarea
           class="lumina-instructions-input"
           rows={2}
@@ -60,7 +60,7 @@ export function ConfirmStep({
           value={customInstructions ?? ''}
           onInput={(e) => onSetInstructions((e.target as HTMLTextAreaElement).value)}
         />
-      </details>
+      </label>
       <button class="lumina-btn lumina-btn-primary" type="button" onClick={onGenerate}>
         {t('confirm.generate')}
       </button>

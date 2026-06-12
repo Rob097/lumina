@@ -21,6 +21,7 @@ export function GeneratingStep({ t, stage, roomPreviewUrl }: GeneratingStepProps
         <p class="lumina-muted" aria-live="polite">
           {t(stage ? stageStringKey(stage) : 'stage.validate')}
         </p>
+        <p class="lumina-muted lumina-generating-sub">{t('generating.subtitle')}</p>
       </div>
     </div>
   );

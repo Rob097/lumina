@@ -41,7 +41,8 @@ export interface EffectiveConfig {
   defaultProductSelector?: string;
 }
 
-function normalizeLocale(value?: string | null): Locale | undefined {
+/** Normalize a raw locale string (`it-IT` → `it`, `EN` → `en`); returns undefined if unsupported. */
+export function normalizeLocale(value?: string | null): Locale | undefined {
   if (!value) return undefined;
   const two = value.trim().toLowerCase().slice(0, 2);
   return (LOCALES as readonly string[]).includes(two) ? (two as Locale) : undefined;
@@ -66,8 +67,19 @@ export function readScriptDataset(el: Element): ScriptDataset {
   return { config, mode };
 }
 
-/** Combine the local (`init`/`data-*`) config with the remote config into the effective config. */
-export function mergeConfig(local: LuminaConfig, server: WidgetConfigResponse): EffectiveConfig {
+/**
+ * Combine the local (`init`/`data-*`) config with the remote config into the effective config.
+ *
+ * Locale precedence (§3.4): an explicit local locale (`data-lumina-locale`/`init`) wins; otherwise the
+ * merchant's dashboard-configured (`server`) locale is authoritative; the host page's `<html lang>`
+ * (`pageLocale`) is only a last-ditch fallback so an Italian storefront can't silently override a
+ * merchant who set English.
+ */
+export function mergeConfig(
+  local: LuminaConfig,
+  server: WidgetConfigResponse,
+  pageLocale?: Locale,
+): EffectiveConfig {
   const theme: EffectiveConfig['theme'] = {
     ...server.theme,
     ...local.theme,
@@ -77,7 +89,7 @@ export function mergeConfig(local: LuminaConfig, server: WidgetConfigResponse): 
   return {
     siteKey: local.siteKey,
     enabled: server.enabled,
-    locale: local.locale ?? server.locale,
+    locale: local.locale ?? server.locale ?? pageLocale ?? DEFAULT_LOCALE,
     buttonText: local.buttonText ?? server.buttonText,
     theme,
     // The server forces the watermark on for the free plan; a merchant may also opt in locally.

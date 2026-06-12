@@ -9,7 +9,7 @@ import type { LuminaConfig } from '@lumina/shared';
 import { Emitter } from './core/emitter.js';
 import { ApiClient } from './core/api.js';
 import { getAnonId } from './core/anon.js';
-import { resolveLocale, mergeConfig, type EffectiveConfig } from './core/config.js';
+import { normalizeLocale, mergeConfig, type EffectiveConfig } from './core/config.js';
 import { createReporter } from './core/report.js';
 import { LuminaController } from './core/controller.js';
 import { bindTriggers } from './core/binder.js';
@@ -31,8 +31,9 @@ async function boot(localConfig: LuminaConfig): Promise<LuminaSession> {
   });
   const api = new ApiClient({ baseUrl: __API_URL__, siteKey: localConfig.siteKey });
   const remote = await api.getConfig();
-  const locale = resolveLocale(localConfig.locale, document.documentElement.getAttribute('lang'));
-  let effective: EffectiveConfig = mergeConfig({ ...localConfig, locale }, remote);
+  // Pass the page's <html lang> only as a fallback — the merchant's configured locale wins over it.
+  const pageLocale = normalizeLocale(document.documentElement.getAttribute('lang'));
+  let effective: EffectiveConfig = mergeConfig(localConfig, remote, pageLocale);
 
   const controller = new LuminaController({
     config: effective,
