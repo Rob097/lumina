@@ -2,7 +2,7 @@ import './overlay.css';
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { PLAN_CATALOG } from '@lumina/shared';
-import { bootstrapMerchant, fetchCredits, fetchMe } from '@/lib/api';
+import { bootstrapMerchant, fetchCredits, fetchMe, fetchNotifications } from '@/lib/api';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { Topbar } from '@/components/shell/Topbar';
@@ -20,7 +20,11 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   }
 
   await bootstrapMerchant();
-  const [me, credits] = await Promise.all([fetchMe(), fetchCredits()]);
+  const [me, credits, notifications] = await Promise.all([
+    fetchMe(),
+    fetchCredits(),
+    fetchNotifications(),
+  ]);
   const merchant = me?.merchants[0];
 
   const balance = credits?.balance ?? merchant?.creditsBalance ?? 0;
@@ -42,7 +46,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         account={{ name: accountName, email, initials: initials(accountName) }}
       />
       <div className="main">
-        <Topbar accountInitials={initials(accountName)} />
+        <Topbar accountInitials={initials(accountName)} notifications={notifications} />
         <main className="content">{children}</main>
       </div>
     </div>

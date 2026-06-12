@@ -2,15 +2,23 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { NotificationListResponse } from '@lumina/shared';
 import { NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
 import { useNav } from '@/lib/providers';
 import { EnvToggle } from './EnvToggle';
+import { NotificationsBell } from './NotificationsBell';
 import { ThemeToggle } from './ThemeToggle';
 
 /** Sticky topbar — title derived from the active route, env + theme toggles, notifications, account. */
-export function Topbar({ accountInitials }: { accountInitials: string }) {
+export function Topbar({
+  accountInitials,
+  notifications,
+}: {
+  accountInitials: string;
+  notifications: NotificationListResponse;
+}) {
   const key = activeNavKey(usePathname());
   const title = NAV_ITEMS.find((i) => i.key === key)?.label ?? 'LUMINA';
   const { setOpen } = useNav();
@@ -31,14 +39,7 @@ export function Topbar({ accountInitials }: { accountInitials: string }) {
       <EnvToggle />
       <ThemeToggle />
 
-      <Menu
-        triggerClassName="icon-btn"
-        ariaLabel="Notifications"
-        trigger={<Icon name="bell" size={17} strokeWidth={1.8} />}
-      >
-        <div className="menu-head">Notifications</div>
-        <div className="menu-empty">You&apos;re all caught up — no notifications yet.</div>
-      </Menu>
+      <NotificationsBell initial={notifications} />
 
       <Menu triggerClassName="avatar" ariaLabel="Account menu" trigger={accountInitials}>
         <Link className="menu-item" href="/settings" role="menuitem">

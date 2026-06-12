@@ -2,10 +2,17 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { PLAN_CATALOG, type ApiKeySummary, type PlanTier, type TeamMember } from '@lumina/shared';
+import {
+  PLAN_CATALOG,
+  type ApiKeySummary,
+  type NotificationPrefs,
+  type PlanTier,
+  type TeamMember,
+} from '@lumina/shared';
 import { shortDate } from '@/lib/format';
 import { KeysSection } from './KeysSection';
 import { DomainsSection } from './DomainsSection';
+import { NotificationPrefsSection } from './NotificationPrefsSection';
 import { deleteAccountAction, renameMerchantAction } from './actions';
 
 function AccountSection({
@@ -203,6 +210,7 @@ export function SettingsView({
   keys,
   domains,
   team,
+  notificationPrefs,
 }: {
   merchantName: string;
   slug: string;
@@ -211,12 +219,14 @@ export function SettingsView({
   keys: ApiKeySummary[];
   domains: string[];
   team: TeamMember[];
+  notificationPrefs: NotificationPrefs;
 }) {
   return (
     <div className="settings">
       <AccountSection name={merchantName} slug={slug} email={email} plan={plan} />
       <KeysSection initial={keys} />
       <DomainsSection initial={domains} />
+      <NotificationPrefsSection initial={notificationPrefs} />
       <TeamSection members={team} />
       <DangerZone merchantName={merchantName} />
     </div>

@@ -10,6 +10,8 @@ import {
   GenerationDetailSchema,
   GenerationsListResponseSchema,
   MeResponseSchema,
+  NotificationListResponseSchema,
+  NotificationPrefsResponseSchema,
   ProductSchema,
   ProductsListResponseSchema,
   TeamResponseSchema,
@@ -29,6 +31,8 @@ import {
   type ProductUpdate,
   type ProductsListResponse,
   type MeResponse,
+  type NotificationListResponse,
+  type NotificationPrefs,
   type TeamMember,
   type TimeseriesResponse,
   type WidgetSettings,
@@ -279,4 +283,34 @@ export async function fetchGenerations(
 export async function fetchGeneration(id: string): Promise<GenerationDetail | null> {
   const res = await apiFetch(`/generations/${id}`);
   return res.ok ? GenerationDetailSchema.parse(await res.json()) : null;
+}
+
+export async function fetchNotifications(): Promise<NotificationListResponse> {
+  const res = await apiFetch('/notifications');
+  if (!res.ok) {
+    return { notifications: [], unread: 0 };
+  }
+  return NotificationListResponseSchema.parse(await res.json());
+}
+
+export async function markNotificationsRead(body: { ids?: string[]; all?: boolean }): Promise<void> {
+  await apiFetch('/notifications/read', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+}
+
+export async function fetchNotificationPrefs(): Promise<NotificationPrefs | null> {
+  const res = await apiFetch('/notification-prefs');
+  return res.ok ? NotificationPrefsResponseSchema.parse(await res.json()).prefs : null;
+}
+
+export async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<NotificationPrefs | null> {
+  const res = await apiFetch('/notification-prefs', {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ prefs }),
+  });
+  return res.ok ? NotificationPrefsResponseSchema.parse(await res.json()).prefs : null;
 }
