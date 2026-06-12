@@ -9,6 +9,8 @@ export default tseslint.config(
       '**/dist/**',
       '**/dist-preview/**',
       '**/*.timestamp-*.mjs',
+      // tsup bundles its config to a transient `*.bundled_*.mjs` during build; ESLint can race it (ENOENT).
+      '**/*.bundled_*.mjs',
       '**/.next/**',
       '**/next-env.d.ts',
       '**/.turbo/**',
