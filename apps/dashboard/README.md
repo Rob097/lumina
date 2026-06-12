@@ -25,6 +25,17 @@ pnpm -F @lumina/dashboard test  # vitest — pure logic (format, funnel, shell h
   Test/Live env toggle, theme toggle, notifications, account). Theme (light/dark via `:root[data-theme]`)
   + env live in a thin client provider (D31).
 
+### Responsive (D55)
+
+| Breakpoint | Shell | Content |
+|---|---|---|
+| **> 1024px** (desktop) | Sidebar is a fixed column; full topbar | KPI grid 4-up; editors two-column |
+| **≤ 1024px** (tablet) | Sidebar collapses to an off-canvas **drawer** opened by the topbar hamburger (scrim to dismiss, closes on navigation); tighter padding | KPI grid 2-up; Widget Settings stacks; wide tables scroll (`.table-scroll`) |
+| **≤ 560px** (phone) | as tablet | KPI grid 1-up; product dimensions row 2-up |
+
+The widget is mobile-first independently (bottom-sheet < 640px, centred ≥ 640px), covered by a 360px
+Playwright viewport test.
+
 ## Screens
 
 | Status | Screen | Notes |

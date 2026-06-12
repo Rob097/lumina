@@ -353,3 +353,21 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   text can refine placement/style but never relax the protected rules (it also passes the existing input
   moderation step). It's added to `computeIdempotencyKey` so two different instructions are two distinct
   paid generations rather than colliding on a cached result.
+
+## Post-go-live wave B — Responsive (2026-06-12)
+
+- **D55 — The dashboard sidebar becomes an off-canvas drawer on ≤1024px instead of vanishing.** The shell
+  grid previously did `@media (max-width:1024px){ .side{display:none} }` — below a tablet the nav simply
+  disappeared, leaving no way to navigate. Now a hamburger (`Icon name="menu"`) in the `Topbar` toggles a
+  `NavContext` (added to the existing client `providers.tsx`); the `Sidebar` reads it, slides in as a
+  `position:fixed` drawer (`transform: translateX`) over a click-to-dismiss `.side-scrim`, above the modal
+  z-layer. The context auto-closes on `usePathname` change (following a nav link closes it) and toggles
+  `body.nav-locked` to stop background scroll. Desktop (>1024px) is unchanged: the drawer/scrim/toggle
+  rules live *inside* the breakpoint, the toggle is `display:none`. Supporting reflow: wide `<table>`s are
+  wrapped in `.table-scroll` (overflow-x, `min-width:520px`) so they scroll instead of breaking the page
+  (Products, API keys, credit ledger); the overview KPI grid drops 4→2→1 columns and the product
+  dimensions row 4→2 on phones; topbar/content padding tightens on mobile. The **widget was already
+  mobile-first** (bottom-sheet < 640px, centred ≥ 640px, `max-height:92vh`+scroll) so it only needed the
+  close target bumped to 40px and a Playwright 360px-viewport test (modal fits, custom-instructions field
+  reachable). Dashboard responsive is verified by typecheck/lint/build + the documented matrix in its
+  README; live device checks happen on staging (the authed shell can't run headless in CI without the DB).
