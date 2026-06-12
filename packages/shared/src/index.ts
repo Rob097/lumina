@@ -16,3 +16,4 @@ export * from './plans.js';
 export * from './account.js';
 export * from './analytics.js';
 export * from './credits.js';
+export * from './notifications.js';

@@ -62,6 +62,16 @@ export const PLAN_TIERS = ['free', 'starter', 'growth', 'scale', 'enterprise'] a
 export const PlanTierSchema = z.enum(PLAN_TIERS);
 export type PlanTier = z.infer<typeof PlanTierSchema>;
 
+/** Dashboard notification types — actionable events only (failures + low credits), never per-success. */
+export const NOTIFICATION_TYPES = ['generation_failed', 'low_credits', 'payment_failed'] as const;
+export const NotificationTypeSchema = z.enum(NOTIFICATION_TYPES);
+export type NotificationType = z.infer<typeof NotificationTypeSchema>;
+
+/** Delivery channels a merchant can toggle per notification type. */
+export const NOTIFICATION_CHANNELS = ['in_app', 'email'] as const;
+export const NotificationChannelSchema = z.enum(NOTIFICATION_CHANNELS);
+export type NotificationChannel = z.infer<typeof NotificationChannelSchema>;
+
 /** Supported widget locales (§3.4). `auto` resolution happens client-side, falling back to `en`. */
 export const LOCALES = ['it', 'en', 'de', 'fr', 'es'] as const;
 export const LocaleSchema = z.enum(LOCALES);

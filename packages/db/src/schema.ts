@@ -6,6 +6,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   unique,
@@ -21,6 +22,7 @@ import {
   PLAN_TIERS,
   PRODUCT_CATEGORIES,
   type Dimensions,
+  type NotificationPrefs,
   type ResultCta,
 } from '@lumina/shared';
 
@@ -287,6 +289,44 @@ export const auditLog = pgTable(
   (t) => [index('audit_merchant_idx').on(t.merchantId, t.createdAt.desc())],
 );
 
+// ───────────────────────────── notifications ─────────────────────────────
+/**
+ * Dashboard notifications — one row per merchant member (fan-out), so read-state is per-user.
+ * `user_id` references `auth.users` (FK added in the hand-authored RLS migration, like `memberships`).
+ * Server-written (service role); a user-scoped RLS read policy keeps it safe + Realtime-ready.
+ */
+export const notifications = pgTable(
+  'notifications',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull(),
+    type: text('type').notNull(),
+    title: text('title').notNull(),
+    body: text('body'),
+    data: jsonb('data').$type<Record<string, unknown>>().notNull().default({}),
+    readAt: timestamp('read_at', { withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('notifications_user_idx').on(t.userId, t.createdAt.desc())],
+);
+
+/** Per-member notification preferences (type → channel toggles). One row per (merchant, user). */
+export const notificationPrefs = pgTable(
+  'notification_prefs',
+  {
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').notNull(),
+    prefs: jsonb('prefs').$type<NotificationPrefs>().notNull().default({}),
+    updatedAt: updatedAt(),
+  },
+  (t) => [primaryKey({ columns: [t.merchantId, t.userId] })],
+);
+
 export const schema = {
   merchants,
   memberships,
@@ -300,4 +340,6 @@ export const schema = {
   subscriptions,
   webhooksInbox,
   auditLog,
+  notifications,
+  notificationPrefs,
 };
