@@ -45,9 +45,6 @@
 .env-toggle button.on[data-env="live"] { background: var(--surface); color: var(--success); box-shadow: var(--e-1); }
 .env-toggle button.on[data-env="test"] { background: var(--surface); color: var(--warning); box-shadow: var(--e-1); }
 
-.top-search { position: relative; width: 220px; }
-.top-search input { height: 34px; padding-left: 32px; background: var(--surface-2); border-color: var(--border); }
-.top-search svg { position: absolute; left: 9px; top: 9px; width: 16px; height: 16px; color: var(--text-muted); }
 .icon-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-md); color: var(--text-secondary); cursor: pointer; transition: all var(--dur-fast); }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
 .icon-btn svg { width: 17px; height: 17px; }
@@ -55,4 +52,23 @@
 .content { padding: 28px; max-width: var(--content-max); width: 100%; margin: 0 auto; }
 .page-actions { display: flex; align-items: center; gap: 10px; }
 
-@media (max-width: 1024px){ .app { grid-template-columns: 1fr; } .side { display: none; } }
+/* Mobile nav: a hamburger in the topbar opens the sidebar as an off-canvas drawer. Both the toggle
+   and the scrim are desktop-hidden; the drawer rules only take effect inside the breakpoint. */
+.nav-toggle { display: none; }
+.side-scrim { display: none; }
+
+@media (max-width: 1024px){
+  .app { grid-template-columns: 1fr; }
+  .nav-toggle { display: inline-flex; }
+  .side {
+    position: fixed; left: 0; top: 0; bottom: 0; height: 100dvh; width: var(--sidebar-w);
+    transform: translateX(-100%); transition: transform var(--dur-base) var(--ease-out);
+    z-index: calc(var(--z-modal) + 1); box-shadow: var(--e-4); will-change: transform;
+  }
+  .side.is-open { transform: translateX(0); }
+  .side-scrim { display: block; position: fixed; inset: 0; z-index: var(--z-modal);
+    background: rgba(8, 10, 13, 0.46); backdrop-filter: blur(2px); }
+  .topbar { padding: 0 16px; gap: 10px; }
+  .content { padding: 18px 16px; }
+  body.nav-locked { overflow: hidden; }
+}

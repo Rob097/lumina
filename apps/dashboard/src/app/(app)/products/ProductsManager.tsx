@@ -96,6 +96,7 @@ export function ProductsManager({ initial }: { initial: Product[] }) {
         />
       ) : (
         <div className="card products-card">
+          <div className="table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -138,6 +139,7 @@ export function ProductsManager({ initial }: { initial: Product[] }) {
               ))}
             </tbody>
           </table>
+          </div>
           {filtered.length === 0 && <p className="products-noresults">No products match your filters.</p>}
         </div>
       )}

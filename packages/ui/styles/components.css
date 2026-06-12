@@ -144,7 +144,10 @@
 .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: -1px; height: 2px; background: var(--accent); border-radius: 2px 2px 0 0; }
 
 /* ---- Table --------------------------------------------------------------- */
+/* Wrap wide tables so they scroll horizontally instead of overflowing on narrow screens. */
+.table-scroll { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
 .table { width: 100%; border-collapse: collapse; font-size: var(--fs-body); }
+.table-scroll .table { min-width: 520px; }
 .table thead th { text-align: left; font-size: var(--fs-caption); font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .04em; padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--surface-2); white-space: nowrap; }
 .table tbody td { padding: 13px 16px; border-bottom: 1px solid var(--hairline); vertical-align: middle; }
 .table tbody tr { transition: background var(--dur-fast); }

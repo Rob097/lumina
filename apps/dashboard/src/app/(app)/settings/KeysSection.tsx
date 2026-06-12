@@ -69,6 +69,7 @@ export function KeysSection({ initial }: { initial: ApiKeySummary[] }) {
         {error && <p className="field-error">{error}</p>}
 
         {active.length > 0 ? (
+          <div className="table-scroll">
           <table className="table key-table">
             <thead>
               <tr>
@@ -104,6 +105,7 @@ export function KeysSection({ initial }: { initial: ApiKeySummary[] }) {
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <p className="t-muted settings-empty">No active keys yet.</p>
         )}

@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
+import { useNav } from '@/lib/providers';
 import { EnvToggle } from './EnvToggle';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -12,9 +13,18 @@ import { ThemeToggle } from './ThemeToggle';
 export function Topbar({ accountInitials }: { accountInitials: string }) {
   const key = activeNavKey(usePathname());
   const title = NAV_ITEMS.find((i) => i.key === key)?.label ?? 'LUMINA';
+  const { setOpen } = useNav();
 
   return (
     <header className="topbar">
+      <button
+        className="icon-btn nav-toggle"
+        type="button"
+        aria-label="Open navigation"
+        onClick={() => setOpen(true)}
+      >
+        <Icon name="menu" size={18} strokeWidth={2} />
+      </button>
       <div className="grow">
         <h1>{title}</h1>
       </div>

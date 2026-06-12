@@ -53,6 +53,7 @@ const ICONS: Record<string, ReactElement> = {
   ),
   'chevron-updown': <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />,
   'chevron-down': <path d="M6 9l6 6 6-6" />,
+  menu: <path d="M3 6h18M3 12h18M3 18h18" />,
   bell: (
     <>
       <path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />

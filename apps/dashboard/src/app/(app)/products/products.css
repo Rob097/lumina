@@ -126,3 +126,9 @@
   margin-top: 10px;
   white-space: pre-wrap;
 }
+
+@media (max-width: 560px) {
+  .dims-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}

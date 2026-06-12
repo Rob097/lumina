@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { NAV_GROUPS, NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
+import { useNav } from '@/lib/providers';
 import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
 
@@ -20,9 +21,12 @@ const FILL = { ok: '', warn: ' warn', danger: ' danger' } as const;
 
 export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
   const active = activeNavKey(usePathname());
+  const { open, setOpen } = useNav();
 
   return (
-    <aside className="side">
+    <>
+      {open && <div className="side-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
+      <aside className={`side${open ? ' is-open' : ''}`}>
       <div className="side-top">
         <Menu
           triggerClassName="merchant-switch"
@@ -100,6 +104,7 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
           </span>
         </Link>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }

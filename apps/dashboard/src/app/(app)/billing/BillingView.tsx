@@ -149,6 +149,7 @@ export function BillingView({
           <h3>Credit ledger</h3>
         </div>
         {credits && credits.ledger.length > 0 ? (
+          <div className="table-scroll">
           <table className="table">
             <thead>
               <tr>
@@ -173,6 +174,7 @@ export function BillingView({
               ))}
             </tbody>
           </table>
+          </div>
         ) : (
           <div className="card-pad t-muted">No credit activity yet.</div>
         )}
