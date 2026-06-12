@@ -1,7 +1,11 @@
 import { and, eq, sql } from 'drizzle-orm';
 import { generations, products, type Database, type ProductSnapshot } from '@lumina/db';
 import type { GenerationStatus, InlineProduct } from '@lumina/shared';
+import type { NotifyInput } from '../notifications/service.js';
 import { computeIdempotencyKey, inlineProductRef } from './idempotency.js';
+
+/** Notify the merchant once when their balance crosses below this (emitted from the debiting path). */
+const LOW_CREDITS_THRESHOLD = 20;
 
 export class InsufficientCreditsError extends Error {
   constructor() {
@@ -26,6 +30,8 @@ export interface GenerateDeps {
   enqueue(event: GenerationEvent): Promise<void>;
   /** Sign a stored result key into a readable URL (for cache hits). */
   signResult(resultKey: string): Promise<string>;
+  /** Emit a dashboard notification (e.g. low credits). Optional — skipped when unset. */
+  notify?: (input: NotifyInput) => Promise<void>;
 }
 
 export interface CreateGenerationInput {
@@ -146,6 +152,7 @@ export async function createGeneration(
   }
 
   let generationId: string;
+  let balanceAfter: number | null = null;
   try {
     generationId = await db.transaction(async (tx) => {
       const rows = await tx
@@ -168,8 +175,11 @@ export async function createGeneration(
       if (!row) {
         throw new Error('failed to insert generation');
       }
-      // Atomic debit of 1 credit, referencing the new generation row.
-      await tx.execute(sql`select debit_credits(${input.merchantId}::uuid, 1, ${row.id}::uuid)`);
+      // Atomic debit of 1 credit, referencing the new generation row; capture the resulting balance.
+      const debited = await tx.execute(
+        sql`select debit_credits(${input.merchantId}::uuid, 1, ${row.id}::uuid) as balance`,
+      );
+      balanceAfter = Number((debited[0] as { balance?: number } | undefined)?.balance ?? Number.NaN);
       return row.id;
     });
   } catch (err) {
@@ -189,5 +199,26 @@ export async function createGeneration(
     name: 'generation.requested',
     data: { generationId, merchantId: input.merchantId },
   });
+
+  // Low-credits notice, emitted exactly once as the balance crosses the threshold downward (so a busy
+  // store isn't pinged on every generation below it). Best-effort — never blocks the response.
+  if (deps.notify && balanceAfter !== null && Number.isFinite(balanceAfter)) {
+    const justCrossed =
+      balanceAfter <= LOW_CREDITS_THRESHOLD && balanceAfter + 1 > LOW_CREDITS_THRESHOLD;
+    if (justCrossed) {
+      await deps
+        .notify({
+          merchantId: input.merchantId,
+          type: 'low_credits',
+          title: 'You’re low on credits',
+          body: `Your balance is down to ${balanceAfter} credit${balanceAfter === 1 ? '' : 's'}. Top up to keep generating previews.`,
+          data: { balance: balanceAfter },
+        })
+        .catch(() => {
+          /* notification/email problems never affect the generation response */
+        });
+    }
+  }
+
   return { generationId, status: 'queued', cached: false };
 }

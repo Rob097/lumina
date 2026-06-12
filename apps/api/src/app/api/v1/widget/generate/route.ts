@@ -9,6 +9,8 @@ import { errorResponse, jsonResponse } from '@/lib/http';
 import { inngest } from '@/lib/inngest/client';
 import { createRateLimiter } from '@/lib/ratelimit';
 import { createR2FromEnv } from '@/lib/storage/r2';
+import { emailSenderFromEnv } from '@/lib/email';
+import { notifyMerchant } from '@/lib/notifications/service';
 import { requireWidgetAuth, widgetPreflight } from '@/lib/widget-guard';
 
 export const runtime = 'nodejs';
@@ -40,11 +42,13 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   const storage = createR2FromEnv(process.env);
+  const email = emailSenderFromEnv(process.env);
   const deps: GenerateDeps = {
     enqueue: async (event) => {
       await inngest.send(event);
     },
     signResult: async (key) => (storage ? storage.presignDownload(key) : `/${key}`),
+    notify: (input) => notifyMerchant(db, { email }, input),
   };
 
   try {

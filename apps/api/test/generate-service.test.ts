@@ -152,3 +152,38 @@ describe('createGeneration', () => {
     ).rejects.toBeInstanceOf(ProductNotFoundError);
   });
 });
+
+describe('low-credits notification', () => {
+  function depsWithNotify(): GenerateDeps & { notified: { type: string; data?: unknown }[] } {
+    const notified: { type: string; data?: unknown }[] = [];
+    return {
+      enqueue: vi.fn(async () => {}),
+      signResult: vi.fn(async (k: string) => `https://signed/${k}`),
+      notify: vi.fn(async (input) => {
+        notified.push({ type: input.type, data: input.data });
+      }),
+      notified,
+    };
+  }
+
+  it('fires exactly once as the balance crosses the threshold (21 → 20)', async () => {
+    const merchantId = await newMerchant(21);
+    const d = depsWithNotify();
+    await createGeneration(ctx.db, d, { merchantId, inlineProduct, roomKey: `rooms/${merchantId}/lc1.jpg` });
+    expect(d.notified).toEqual([{ type: 'low_credits', data: { balance: 20 } }]);
+  });
+
+  it('stays quiet above the threshold (30 → 29)', async () => {
+    const merchantId = await newMerchant(30);
+    const d = depsWithNotify();
+    await createGeneration(ctx.db, d, { merchantId, inlineProduct, roomKey: `rooms/${merchantId}/lc2.jpg` });
+    expect(d.notified).toHaveLength(0);
+  });
+
+  it('does not re-fire when already below the threshold (15 → 14)', async () => {
+    const merchantId = await newMerchant(15);
+    const d = depsWithNotify();
+    await createGeneration(ctx.db, d, { merchantId, inlineProduct, roomKey: `rooms/${merchantId}/lc3.jpg` });
+    expect(d.notified).toHaveLength(0);
+  });
+});

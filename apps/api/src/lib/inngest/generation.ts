@@ -2,6 +2,8 @@ import { createOrchestratorFromEnv } from '@lumina/ai';
 import { getDb } from '@/lib/db';
 import { createR2FromEnv } from '@/lib/storage/r2';
 import { createEventSink, reportError } from '@/lib/observability';
+import { emailSenderFromEnv } from '@/lib/email';
+import { notifyMerchant } from '@/lib/notifications/service';
 import { inngest } from './client.js';
 import { processGeneration } from './workflow.js';
 
@@ -27,8 +29,17 @@ export const generationRequested = inngest.createFunction(
         throw new Error('R2 is not configured');
       }
       const orchestrator = createOrchestratorFromEnv(process.env);
+      const db = getDb();
+      const email = emailSenderFromEnv(process.env);
       return processGeneration(
-        { db: getDb(), orchestrator, storage, events: createEventSink(process.env), reportError },
+        {
+          db,
+          orchestrator,
+          storage,
+          events: createEventSink(process.env),
+          reportError,
+          notify: (input) => notifyMerchant(db, { email }, input),
+        },
         event.data.generationId,
       );
     });

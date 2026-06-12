@@ -17,6 +17,7 @@ import type { ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
 import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
 import { generationEvent, type EventSink } from '../observability.js';
+import type { NotifyInput } from '../notifications/service.js';
 
 /** Minimal storage surface the workflow needs (satisfied by `R2Storage`). */
 export interface StoragePort {
@@ -34,9 +35,38 @@ export interface WorkflowDeps {
   /** Ops/cost event sink (Axiom). Optional — no-op when unset. */
   events?: EventSink;
   reportError?: (err: unknown, context: Record<string, unknown>) => void;
+  /** Emit a dashboard notification (e.g. on terminal failure). Optional — skipped when unset. */
+  notify?: (input: NotifyInput) => Promise<void>;
 }
 
 export type ProcessOutcome = 'succeeded' | 'failed' | 'skipped';
+
+type GenerationRow = typeof generations.$inferSelect;
+
+/**
+ * Tell the merchant a preview failed (and the credit was refunded). Best-effort: notification/email
+ * problems must never change the workflow outcome, so failures here are swallowed (reported, not thrown).
+ */
+async function notifyGenerationFailed(
+  deps: WorkflowDeps,
+  gen: GenerationRow,
+  errorCode: string,
+): Promise<void> {
+  if (!deps.notify) {
+    return;
+  }
+  try {
+    await deps.notify({
+      merchantId: gen.merchantId,
+      type: 'generation_failed',
+      title: 'A preview couldn’t be generated',
+      body: `We couldn’t create the preview for “${gen.productSnapshot.name}” and refunded the credit.`,
+      data: { generationId: gen.id, errorCode },
+    });
+  } catch (err) {
+    deps.reportError?.(err, { generationId: gen.id, merchantId: gen.merchantId });
+  }
+}
 
 /** Map a moderation reason to a terminal generation error code. */
 function moderationErrorCode(reason: ModerationReason): string {
@@ -173,6 +203,7 @@ export async function processGeneration(
         creditsSpent: gen.creditsSpent,
         errorCode,
       });
+      await notifyGenerationFailed(deps, gen, errorCode);
       deps.events?.track(
         generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode }),
       );
@@ -201,6 +232,7 @@ export async function processGeneration(
         creditsSpent: gen.creditsSpent,
         errorCode: 'unsafe_output',
       });
+      await notifyGenerationFailed(deps, gen, 'unsafe_output');
       deps.events?.track(
         generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode: 'unsafe_output' }),
       );
@@ -240,6 +272,7 @@ export async function processGeneration(
       creditsSpent: gen.creditsSpent,
       errorCode,
     });
+    await notifyGenerationFailed(deps, gen, errorCode);
     deps.events?.track(
       generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode }),
     );
