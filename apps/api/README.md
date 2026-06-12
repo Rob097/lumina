@@ -30,9 +30,12 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 | GET / POST | `/api/v1/keys` | session | list / create (reveal-once) |
 | DELETE | `/api/v1/keys/:id` | session | revoke (tenant-scoped) |
 | GET / PUT | `/api/v1/domains` | session | allowed-domains list |
+| GET | `/api/v1/notifications` | session | member's notifications + unread count |
+| POST | `/api/v1/notifications/read` | session | mark `{ ids }` or `{ all: true }` read |
+| GET / PUT | `/api/v1/notification-prefs` | session | per-member channel toggles |
 | POST | `/api/v1/billing/checkout` | session | Stripe Checkout URL `{ plan }` |
 | POST | `/api/v1/billing/portal` | session | Stripe Customer Portal URL |
-| POST | `/api/v1/webhooks/stripe` | signature | idempotent plan + credit grant |
+| POST | `/api/v1/webhooks/stripe` | signature | plan + credit grant; `invoice.payment_failed` → notify |
 
 ### Public widget API (M2, PUBLISHABLE key + Origin/CORS)
 

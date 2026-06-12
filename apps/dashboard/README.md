@@ -48,7 +48,8 @@ Playwright viewport test.
 | ✅ M4·C | **Generations** | Status-filtered card gallery, cursor "Load more", before/after wipe detail with run metadata. |
 | ✅ M4·C | **Analytics** | Range selector (7/30/90d) over the Phase-A analytics API — KPIs, funnel, timeseries, top products. |
 | ✅ M4·D | **Credits & Billing** | Credit meter, plan cards (upgrade → Stripe Checkout, manage → portal), credit ledger. |
-| ✅ M4·D | **Settings** | Account rename, reveal-once API keys, allowed domains, team list, honest danger zone. |
+| ✅ M4·D | **Settings** | Account rename, reveal-once API keys, allowed domains, notification preferences (type × in-app/email), team list, honest danger zone. |
+| ✅ Wave C | **Notifications** | Topbar bell (polls every 60s, seeded server-side) for actionable alerts — failed previews, low credits, payment problems — fanned out per member, in-app + email (Resend). |
 | ✅ M4·D | **Auth + 404** | Reskinned login (email/password + Google) and a branded not-found page. |
 
 ## Status

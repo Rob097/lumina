@@ -371,3 +371,25 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   close target bumped to 40px and a Playwright 360px-viewport test (modal fits, custom-instructions field
   reachable). Dashboard responsive is verified by typecheck/lint/build + the documented matrix in its
   README; live device checks happen on staging (the authed shell can't run headless in CI without the DB).
+
+## Post-go-live wave C — Notifications (2026-06-12)
+
+- **D56 — Notifications are actionable-only, fanned out per member, in-app + email, polled (not pushed
+  yet).** Three types only — `generation_failed`, `low_credits`, `payment_failed` — never a per-success
+  ping (that would be noise on a busy store). Each event **fans out one row per merchant member**
+  (`notifications.user_id`, FK `auth.users`) so read-state is per-person; `notification_prefs` holds each
+  member's `type → {inApp,email}` toggles (defaults: both on). Both tables are server-written (service
+  role) with a user-scoped RLS read policy (`user_id = auth.uid()`) and `notifications` is in the Realtime
+  publication — so they're defense-in-depth safe *and* Realtime-ready (migration 0007 generated the tables;
+  the FK/RLS/grants/publication are hand-appended to that file, like 0001). **Email** goes through a small
+  `EmailSender` port (`apps/api/src/lib/email`): a Resend REST adapter (no SDK dep) when `RESEND_API_KEY`
+  is set, else a no-op — so in-app always works and email turns on once the key + verified `RESEND_FROM`
+  exist. `notifyMerchant` is **best-effort**: email failures are swallowed (`Promise.allSettled`) so a
+  producer like a failed generation still refunds cleanly. Producers: `generation_failed` from the three
+  workflow failure exits (via an optional `notify` dep), `low_credits` emitted **once as the balance
+  crosses the threshold downward** (20) from the debiting path, `payment_failed` from a new
+  `invoice.payment_failed` branch in the Stripe webhook (merchant resolved via `subscriptions`). The
+  **bell polls** the API every 60s (seeded server-side, no flash) rather than subscribing — there is no
+  client Realtime in the app yet and the widget already chose polling (D21); the publication makes a push
+  transport a later drop-in. Dashboard→API stays server-mediated: the bell refreshes + marks-read via
+  server actions, the settings panel saves via a server action (no browser→API cross-origin auth).
