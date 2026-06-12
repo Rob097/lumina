@@ -32,6 +32,12 @@
   gap: 16px;
   margin-top: 16px;
 }
+/* Let grid children (responsive chart, horizontally-scrolling strip) shrink below their content's
+   intrinsic width instead of forcing the page to scroll sideways. */
+.grid-2 > *,
+.grid-2b > * {
+  min-width: 0;
+}
 
 /* funnel */
 .funnel {
@@ -239,6 +245,22 @@
   .grid-2,
   .grid-2b {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  /* Stack the banner so the install message + range selector don't fight for one cramped line. */
+  .banner {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+  .banner > .row {
+    flex-basis: 100%;
+    justify-content: flex-end;
+  }
+  .funnel-step {
+    grid-template-columns: 110px 1fr 64px;
+    gap: 8px;
   }
 }
 

@@ -68,7 +68,9 @@
   .side.is-open { transform: translateX(0); }
   .side-scrim { display: block; position: fixed; inset: 0; z-index: var(--z-modal);
     background: rgba(8, 10, 13, 0.46); backdrop-filter: blur(2px); }
-  .topbar { padding: 0 16px; gap: 10px; }
+  .topbar { padding: 0 12px; gap: 8px; }
+  /* The route title duplicates the nav; drop it on mobile so the toggles/bell/avatar have room. */
+  .topbar h1 { display: none; }
   .content { padding: 18px 16px; }
   body.nav-locked { overflow: hidden; }
 }

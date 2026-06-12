@@ -127,6 +127,20 @@
   white-space: pre-wrap;
 }
 
+@media (max-width: 640px) {
+  /* Toolbar wraps: search takes its own full-width row, the category + actions flow on the next. */
+  .products-toolbar {
+    flex-wrap: wrap;
+  }
+  .products-toolbar .search-field {
+    min-width: 0;
+    flex: 1 1 100%;
+  }
+  .products-toolbar .grow {
+    display: none;
+  }
+}
+
 @media (max-width: 560px) {
   .dims-row {
     grid-template-columns: 1fr 1fr;

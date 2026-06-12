@@ -526,3 +526,23 @@
     position: static;
   }
 }
+
+@media (max-width: 720px) {
+  /* Stack each setting (label over control) so wide controls (font select, link template, swatches)
+     get the full card width instead of overflowing the fixed 200px label column. */
+  .set-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .set-control select,
+  .set-control input,
+  .set-control textarea {
+    max-width: 100%;
+  }
+  .set-control select {
+    width: 100%;
+  }
+  .locale-override {
+    grid-template-columns: 1fr;
+  }
+}
