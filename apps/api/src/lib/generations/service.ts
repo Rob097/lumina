@@ -1,4 +1,4 @@
-import { and, eq, lt, or, sql } from 'drizzle-orm';
+import { and, eq, isNotNull, lt, or, sql } from 'drizzle-orm';
 import { generations, type Database } from '@lumina/db';
 import type {
   GenerationDetail,
@@ -58,12 +58,17 @@ async function toSummary(row: GenerationRow, deps: GenerationDeps): Promise<Gene
     pageUrl: row.pageUrl,
     resultUrl,
     roomUrl,
+    clientId: row.clientId,
   };
 }
 
 export interface ListGenerationsOptions {
   status?: GenerationStatus;
   productId?: string;
+  /** Studio (#8): only renders linked to this client. */
+  clientId?: string;
+  /** Studio (#8): `studio` = dashboard-originated renders; `widget` = embeddable widget traffic. */
+  source?: 'studio' | 'widget';
   limit?: number;
   cursor?: string;
 }
@@ -79,6 +84,9 @@ export async function listGenerations(
   const filters = [eq(generations.merchantId, merchantId)];
   if (opts.status) filters.push(eq(generations.status, opts.status));
   if (opts.productId) filters.push(eq(generations.productId, opts.productId));
+  if (opts.clientId) filters.push(eq(generations.clientId, opts.clientId));
+  if (opts.source === 'studio') filters.push(sql`${generations.metadata} ->> 'source' = 'studio'`);
+  if (opts.source === 'widget') filters.push(isNotNull(generations.anonId));
 
   const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
   if (cursor) {

@@ -9,6 +9,7 @@ import {
   CreditsResponseSchema,
   ClientSchema,
   ClientsListResponseSchema,
+  ClientsWithStatsListResponseSchema,
   GenerateResponseSchema,
   GenerationDetailSchema,
   GenerationsListResponseSchema,
@@ -30,6 +31,7 @@ import {
   type Client,
   type ClientInput,
   type ClientUpdate,
+  type ClientWithStats,
   type CreditsResponse,
   type GenerationDetail,
   type GenerationsListResponse,
@@ -280,7 +282,14 @@ export async function bulkUpsertProducts(products: ProductInput[]): Promise<Bulk
 // ───────────────────────────── generations ─────────────────────────────
 
 export async function fetchGenerations(
-  params?: { status?: string; productId?: string; cursor?: string; limit?: string },
+  params?: {
+    status?: string;
+    productId?: string;
+    clientId?: string;
+    source?: 'studio' | 'widget';
+    cursor?: string;
+    limit?: string;
+  },
 ): Promise<GenerationsListResponse> {
   const res = await apiFetch(`/generations${queryString({ ...params })}`);
   if (!res.ok) {
@@ -302,6 +311,20 @@ export async function fetchClients(): Promise<Client[]> {
     return [];
   }
   return ClientsListResponseSchema.parse(await res.json()).clients;
+}
+
+/** Clients augmented with render count + last activity, for the Studio rubric + overview. */
+export async function fetchClientsWithStats(): Promise<ClientWithStats[]> {
+  const res = await apiFetch('/clients?withStats=true');
+  if (!res.ok) {
+    return [];
+  }
+  return ClientsWithStatsListResponseSchema.parse(await res.json()).clients;
+}
+
+export async function fetchClient(id: string): Promise<Client | null> {
+  const res = await apiFetch(`/clients/${id}`);
+  return res.ok ? ClientSchema.parse(await res.json()) : null;
 }
 
 export async function createClient(input: ClientInput): Promise<Client | null> {

@@ -27,6 +27,8 @@ export async function GET(request: Request): Promise<Response> {
   const url = new URL(request.url);
   const statusParam = url.searchParams.get('status');
   const status = statusParam ? GenerationStatusSchema.safeParse(statusParam) : null;
+  const sourceParam = url.searchParams.get('source');
+  const source = sourceParam === 'studio' || sourceParam === 'widget' ? sourceParam : undefined;
 
   const result = await listGenerations(
     guard.db,
@@ -34,6 +36,8 @@ export async function GET(request: Request): Promise<Response> {
     {
       status: status?.success ? status.data : undefined,
       productId: url.searchParams.get('productId') ?? undefined,
+      clientId: url.searchParams.get('clientId') ?? undefined,
+      source,
       cursor: url.searchParams.get('cursor') ?? undefined,
       limit: url.searchParams.has('limit') ? Number(url.searchParams.get('limit')) : undefined,
     },

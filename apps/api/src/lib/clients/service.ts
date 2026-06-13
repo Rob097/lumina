@@ -1,6 +1,6 @@
-import { and, desc, eq } from 'drizzle-orm';
-import { clients, type Database } from '@lumina/db';
-import type { Client, ClientInput, ClientUpdate } from '@lumina/shared';
+import { and, desc, eq, sql } from 'drizzle-orm';
+import { clients, generations, type Database } from '@lumina/db';
+import type { Client, ClientInput, ClientUpdate, ClientWithStats } from '@lumina/shared';
 
 /**
  * Studio clients (#8). Every query is scoped by `merchant_id` (HARD RULE #1) — RLS on the table is a
@@ -28,6 +28,40 @@ export async function listClients(db: Database, merchantId: string): Promise<Cli
     .where(eq(clients.merchantId, merchantId))
     .orderBy(desc(clients.createdAt));
   return rows.map(toClient);
+}
+
+/**
+ * Clients augmented with render activity, for the Studio rubric + overview. A LEFT JOIN keeps clients
+ * with zero renders (count 0, `lastGenerationAt` null); ordered by most recent activity first so the
+ * rubric surfaces active clients. Merchant-scoped (HARD RULE #1).
+ */
+export async function listClientsWithStats(
+  db: Database,
+  merchantId: string,
+): Promise<ClientWithStats[]> {
+  const rows = await db
+    .select({
+      id: clients.id,
+      merchantId: clients.merchantId,
+      name: clients.name,
+      email: clients.email,
+      phone: clients.phone,
+      notes: clients.notes,
+      createdAt: clients.createdAt,
+      generationCount: sql<number>`count(${generations.id})`,
+      lastGenerationAt: sql<Date | null>`max(${generations.createdAt})`,
+    })
+    .from(clients)
+    .leftJoin(generations, eq(generations.clientId, clients.id))
+    .where(eq(clients.merchantId, merchantId))
+    .groupBy(clients.id)
+    .orderBy(sql`max(${generations.createdAt}) desc nulls last`, desc(clients.createdAt));
+
+  return rows.map((row) => ({
+    ...toClient(row),
+    generationCount: Number(row.generationCount),
+    lastGenerationAt: row.lastGenerationAt ? new Date(row.lastGenerationAt).toISOString() : null,
+  }));
 }
 
 export async function createClient(

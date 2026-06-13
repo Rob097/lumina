@@ -1,19 +1,32 @@
-import { ClientInputSchema, type ClientsListResponse } from '@lumina/shared';
+import {
+  ClientInputSchema,
+  type ClientsListResponse,
+  type ClientsWithStatsListResponse,
+} from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse } from '@/lib/http';
-import { createClient, listClients } from '@/lib/clients/service';
+import { createClient, listClients, listClientsWithStats } from '@/lib/clients/service';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** GET /v1/clients — the merchant's Studio client list (#8), newest-first. */
-export async function GET(): Promise<Response> {
+/**
+ * GET /v1/clients — the merchant's Studio client list (#8). With `?withStats=true`, each client carries
+ * its render count + last activity (for the rubric + overview); otherwise the plain newest-first list.
+ */
+export async function GET(request: Request): Promise<Response> {
   const guard = await requireMerchant();
   if (!guard.ok) {
     return guard.response;
   }
-  const clients = await listClients(guard.db, guard.merchantId);
-  const body: ClientsListResponse = { clients };
+  const withStats = new URL(request.url).searchParams.get('withStats') === 'true';
+  if (withStats) {
+    const body: ClientsWithStatsListResponse = {
+      clients: await listClientsWithStats(guard.db, guard.merchantId),
+    };
+    return jsonResponse(body);
+  }
+  const body: ClientsListResponse = { clients: await listClients(guard.db, guard.merchantId) };
   return jsonResponse(body);
 }
 

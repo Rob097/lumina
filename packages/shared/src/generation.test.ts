@@ -20,6 +20,7 @@ const SUMMARY = {
   pageUrl: 'https://shop.it/p/aura',
   resultUrl: 'https://cdn.lumina.app/cdn-cgi/image/width=480/results/m1/g1.jpg',
   roomUrl: null,
+  clientId: null,
 };
 
 describe('GenerationSummarySchema', () => {
@@ -47,6 +48,15 @@ describe('GenerationSummarySchema', () => {
 
   it('rejects an unknown status', () => {
     expect(() => GenerationSummarySchema.parse({ ...SUMMARY, status: 'cancelled' })).toThrow();
+  });
+
+  it('carries an optional client link (Studio renders) and allows null', () => {
+    expect(GenerationSummarySchema.parse(SUMMARY).clientId).toBeNull();
+    const linked = GenerationSummarySchema.parse({
+      ...SUMMARY,
+      clientId: '33333333-3333-3333-3333-333333333333',
+    });
+    expect(linked.clientId).toBe('33333333-3333-3333-3333-333333333333');
   });
 });
 

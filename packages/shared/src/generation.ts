@@ -22,6 +22,8 @@ export const GenerationSummarySchema = z.object({
   pageUrl: z.string().nullable(),
   resultUrl: z.string().nullable(),
   roomUrl: z.string().nullable(),
+  /** Studio (#8): the linked walk-in client, or `null` for widget/unlinked renders. */
+  clientId: z.string().uuid().nullable(),
 });
 export type GenerationSummary = z.infer<typeof GenerationSummarySchema>;
 

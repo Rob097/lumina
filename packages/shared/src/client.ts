@@ -36,6 +36,23 @@ export const ClientsListResponseSchema = z.object({
 export type ClientsListResponse = z.infer<typeof ClientsListResponseSchema>;
 
 /**
+ * A client augmented with render activity, for the Studio rubric + overview (`GET /v1/clients?withStats=true`).
+ * `generationCount` counts the client's linked generations; `lastGenerationAt` is the most recent, or
+ * `null` when they have none yet.
+ */
+export const ClientWithStatsSchema = ClientSchema.extend({
+  generationCount: z.number().int().nonnegative(),
+  lastGenerationAt: z.string().nullable(),
+});
+export type ClientWithStats = z.infer<typeof ClientWithStatsSchema>;
+
+/** Response of `GET /v1/clients?withStats=true`. */
+export const ClientsWithStatsListResponseSchema = z.object({
+  clients: z.array(ClientWithStatsSchema),
+});
+export type ClientsWithStatsListResponse = z.infer<typeof ClientsWithStatsListResponseSchema>;
+
+/**
  * `POST /v1/generations` (§6.3) — the authenticated, dashboard-side (Studio) generate entrypoint.
  * References a product by its internal uuid (works for catalog items without an external SKU) and may
  * link the render to a client. Debits one credit through the same pipeline as the widget.

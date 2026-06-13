@@ -1,9 +1,38 @@
-/* Studio (#8) — in-dashboard "try in your room" generation + lightweight client linking. The before/after
-   slider reuses the generations `.ba2` component (its CSS is imported by the page). */
+/* Studio (#8) — the in-dashboard "try in your room" workspace: section tabs, an overview dashboard,
+   a client rubric, client detail, and the new-visualization wizard. The render-card grid + before/after
+   slider are reused from generations.css (imported by the section layout). */
 
 .studio {
-  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
+
+/* ---- section tabs ---- */
+.studio-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--hairline);
+}
+.studio-tab {
+  position: relative;
+  padding: 10px 14px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color var(--dur-fast);
+}
+.studio-tab:hover {
+  color: var(--text);
+}
+.studio-tab.is-on {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- shared bits ---- */
 .studio-head {
   margin-bottom: 4px;
 }
@@ -12,27 +41,243 @@
   font-size: var(--fs-title);
   font-weight: 600;
 }
-.studio-head .sub {
+.studio-head .sub,
+.studio-hero-copy .sub {
   color: var(--text-muted);
   font-size: var(--fs-sm);
-}
-
-.studio-compose,
-.studio-result {
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-.studio-field {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
 }
 .studio-label {
   font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--text-secondary);
+}
+.studio-link {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--accent);
+}
+.studio-hint {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.studio-error {
+  font-size: var(--fs-body);
+  color: var(--danger);
+}
+
+/* ---- overview ---- */
+.studio-overview {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.studio-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px var(--space-5);
+}
+.studio-hero-copy h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+
+.studio-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.studio-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-xl);
+  background: var(--surface);
+}
+.studio-stat-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--fs-caption);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.studio-stat-value {
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.studio-cols {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+.studio-panel {
+  overflow: hidden;
+}
+
+/* ---- recent clients mini-list ---- */
+.client-mini {
+  display: flex;
+  flex-direction: column;
+}
+.client-mini-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 4px;
+  border-radius: var(--r-md);
+  transition: background var(--dur-fast);
+}
+.client-mini-row:hover {
+  background: var(--surface-2);
+}
+.client-mini-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+.client-mini-name {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.client-mini-sub {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.client-mini-count {
+  font-size: var(--fs-caption);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* ---- clients rubric ---- */
+.studio-clients {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.studio-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.studio-search {
+  max-width: 320px;
+}
+.studio-noresults {
+  padding: 18px;
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+  text-align: center;
+}
+.client-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.client-cell:hover .table-cell-strong {
+  color: var(--accent);
+}
+
+/* ---- client detail ---- */
+.client-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.studio-back {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+  width: fit-content;
+}
+.studio-back:hover {
+  color: var(--text);
+}
+.avatar-lg {
+  width: 56px;
+  height: 56px;
+  font-size: var(--fs-body-lg);
+}
+.client-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px var(--space-5);
+}
+.client-header-main {
+  flex: 1;
+  min-width: 0;
+}
+.client-header-main h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+.client-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  margin-top: 4px;
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.client-contacts a {
+  color: var(--accent);
+}
+.client-header-actions {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+.client-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px var(--space-5);
+}
+.client-notes p {
+  font-size: var(--fs-body);
+  color: var(--text);
+  white-space: pre-wrap;
+}
+.client-renders {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.client-renders h3 {
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+
+/* ---- new-visualization wizard ---- */
+.studio-compose,
+.studio-result {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 640px;
+  padding: 22px var(--space-5);
+}
+.studio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .studio-client-row {
   display: flex;
@@ -53,7 +298,6 @@
 .studio-newclient .btn {
   grid-column: 1 / -1;
 }
-
 .studio-empty {
   font-size: var(--fs-body);
   color: var(--text-muted);
@@ -61,7 +305,6 @@
 .studio-empty a {
   color: var(--accent);
 }
-
 .studio-drop {
   display: flex;
   flex-direction: column;
@@ -84,7 +327,6 @@
   opacity: 0.6;
   cursor: default;
 }
-
 .studio-room {
   display: flex;
   align-items: center;
@@ -97,30 +339,41 @@
   border-radius: var(--r-md);
   border: 1px solid var(--border);
 }
-
 .studio-generate {
   align-self: flex-start;
 }
-.studio-hint {
-  font-size: var(--fs-caption);
-  color: var(--text-muted);
-}
-.studio-error {
-  font-size: var(--fs-body);
-  color: var(--danger);
-}
-
 .studio-actions {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
 
+/* ---- responsive (D55 conventions) ---- */
+@media (max-width: 900px) {
+  .studio-cols {
+    grid-template-columns: 1fr;
+  }
+}
 @media (max-width: 560px) {
+  .studio-stats {
+    grid-template-columns: 1fr;
+  }
+  .studio-hero,
+  .client-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .client-header-actions {
+    width: 100%;
+  }
   .studio-newclient {
     grid-template-columns: 1fr;
   }
   .studio-client-row {
     flex-wrap: wrap;
+  }
+  .studio-search {
+    max-width: none;
+    flex: 1;
   }
 }

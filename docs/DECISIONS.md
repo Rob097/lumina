@@ -464,3 +464,19 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   (optional) client → generate → poll → before/after (reusing the generations `BeforeAfter`) → email /
   download, all through `'use server'` actions in `lib/studio-actions.ts`. Workspaces/invites (#2/#3)
   remain deferred.
+
+- **D61 — Studio (#8) grows from a single wizard into a navigable section: Overview · New · Clients ·
+  client detail.** The one-shot `/studio` form was unusable for a real store, so Studio becomes a small
+  route group under one sidebar item (`activeNavKey` already highlights `/studio/*`): `/studio` (a
+  concise overview — stats + recent renders + recent clients), `/studio/new` (the wizard, now reading
+  `?client=<id>` to preselect), `/studio/clients` (a searchable **rubric** with render count + last
+  activity), and `/studio/clients/[id]` (editable contact/notes + that client's render history). No new
+  migration — the `clients` table and `generations.client_id` (0009) already exist. Two small,
+  backward-compatible data extensions power it: `GenerationSummary` gains a nullable `clientId`, and
+  `listGenerations` gains `clientId` + `source` filters (`source='studio'` ⇒ `metadata->>'source'`,
+  since Studio rows carry `metadata.source='studio'` and no `anonId` — widget rows always have one).
+  Client activity comes from `listClientsWithStats` (a LEFT JOIN giving count + `max(createdAt)`, served
+  by `GET /v1/clients?withStats=true`), and a new `GET /v1/clients/:id` backs the detail page — all
+  merchant-scoped (HARD RULE #1). The UI reuses the design system end-to-end (the generations
+  `gen-card` grid + `BeforeAfter` + `GenerationDetailModal`, `.table`/`.drawer`/`.avatar` primitives),
+  so the change is mostly composition, not new visual primitives.

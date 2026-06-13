@@ -8,8 +8,10 @@ import {
   deleteClient,
   getClient,
   listClients,
+  listClientsWithStats,
   updateClient,
 } from '../src/lib/clients/service';
+import { listGenerations } from '../src/lib/generations/service';
 import {
   createGeneration,
   type GenerateDeps,
@@ -133,6 +135,90 @@ describe('Studio generation (createGeneration via internal product uuid + client
       await ctx.db.select().from(generations).where(eq(generations.id, result.generationId)),
     );
     expect(gen.clientId).toBeNull(); // generation kept on file, link nulled
+  });
+});
+
+/** Insert a generation row directly, for full control over client/anon/source/time. */
+async function insertGen(opts: {
+  merchantId: string;
+  clientId?: string | null;
+  anonId?: string | null;
+  source?: string;
+  createdAt?: Date;
+}): Promise<string> {
+  return firstOrThrow(
+    await ctx.db
+      .insert(generations)
+      .values({
+        merchantId: opts.merchantId,
+        roomKey: `rooms/${opts.merchantId}/${randomUUID()}.jpg`,
+        productSnapshot: { name: 'Oak Console', category: 'furniture', imageUrl: 'https://x/p.png' },
+        idempotencyKey: randomUUID(),
+        status: 'succeeded',
+        resultKey: `results/${opts.merchantId}/${randomUUID()}.jpg`,
+        creditsSpent: 1,
+        clientId: opts.clientId ?? null,
+        anonId: opts.anonId ?? null,
+        metadata: opts.source ? { source: opts.source } : {},
+        ...(opts.createdAt ? { createdAt: opts.createdAt } : {}),
+      })
+      .returning(),
+  ).id;
+}
+
+describe('listClientsWithStats', () => {
+  it('augments each client with render count + last activity, merchant-scoped', async () => {
+    const merchantId = await newMerchant();
+    const active = await createClient(ctx.db, merchantId, { name: 'Active' });
+    const fresh = await createClient(ctx.db, merchantId, { name: 'Fresh' });
+
+    await insertGen({ merchantId, clientId: active.id, createdAt: new Date('2026-06-01T10:00:00Z') });
+    await insertGen({ merchantId, clientId: active.id, createdAt: new Date('2026-06-10T10:00:00Z') });
+
+    // Another tenant's render linked to its own client must not be counted here.
+    const other = await newMerchant();
+    const otherClient = await createClient(ctx.db, other, { name: 'Other' });
+    await insertGen({ merchantId: other, clientId: otherClient.id });
+
+    const stats = await listClientsWithStats(ctx.db, merchantId);
+    const byId = new Map(stats.map((c) => [c.id, c]));
+    expect(byId.get(active.id)?.generationCount).toBe(2);
+    expect(byId.get(active.id)?.lastGenerationAt).toBe(new Date('2026-06-10T10:00:00Z').toISOString());
+    expect(byId.get(fresh.id)?.generationCount).toBe(0);
+    expect(byId.get(fresh.id)?.lastGenerationAt).toBeNull();
+    expect(byId.has(otherClient.id)).toBe(false);
+
+    // Ordered by most recent activity first (Active before the never-rendered Fresh).
+    expect(stats.findIndex((c) => c.id === active.id)).toBeLessThan(
+      stats.findIndex((c) => c.id === fresh.id),
+    );
+  });
+});
+
+describe('listGenerations filters (client + source)', () => {
+  it('filters to a single client and never crosses tenants', async () => {
+    const merchantId = await newMerchant();
+    const a = await createClient(ctx.db, merchantId, { name: 'A' });
+    const b = await createClient(ctx.db, merchantId, { name: 'B' });
+    const genA = await insertGen({ merchantId, clientId: a.id, source: 'studio' });
+    await insertGen({ merchantId, clientId: b.id, source: 'studio' });
+
+    const forA = await listGenerations(ctx.db, merchantId, { clientId: a.id });
+    expect(forA.items.map((g) => g.id)).toEqual([genA]);
+    expect(forA.items[0]?.clientId).toBe(a.id);
+
+    // A different merchant sees nothing for A's client id.
+    const other = await newMerchant();
+    expect((await listGenerations(ctx.db, other, { clientId: a.id })).items).toHaveLength(0);
+  });
+
+  it('source=studio excludes widget renders (which carry an anonId)', async () => {
+    const merchantId = await newMerchant();
+    const studioGen = await insertGen({ merchantId, source: 'studio' });
+    await insertGen({ merchantId, anonId: 'anon_widget_1' });
+
+    const studio = await listGenerations(ctx.db, merchantId, { source: 'studio' });
+    expect(studio.items.map((g) => g.id)).toEqual([studioGen]);
   });
 });
 

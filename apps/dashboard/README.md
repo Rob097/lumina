@@ -50,7 +50,7 @@ Playwright viewport test.
 | ✅ M4·D | **Credits & Billing** | Credit meter, plan cards (upgrade → Stripe Checkout, manage → portal), credit ledger. |
 | ✅ M4·D | **Settings** | Account rename, reveal-once API keys, allowed domains, notification preferences (type × in-app/email), team list, honest danger zone. |
 | ✅ Wave C | **Notifications** | Topbar bell (polls every 60s, seeded server-side) for actionable alerts — failed previews, low credits, payment problems — fanned out per member, in-app + email (Resend). |
-| ✅ Wave E | **Studio** | In-dashboard "try in your room" for the physical store (#8): pick/create a client, upload a room photo, pick a product, generate (reuses the widget pipeline + 1 credit), then before/after with **email to client** (7-day signed link) or download. Server-mediated via `lib/studio-actions.ts`. |
+| ✅ Wave E | **Studio** | In-dashboard "try in your room" for the physical store (#8), as a navigable section (tabs: Overview · New · Clients). **Overview** = concise dashboard (stats + recent renders + recent clients); **New** = the wizard (upload room → product → optional client → generate → before/after → email 7-day signed link / download), preselects a client via `?client=`; **Clients** = searchable rubric (render count + last activity, add/edit drawer); **client detail** = editable contact/notes + that client's render history. Reuses the generations `BeforeAfter`/`gen-card` grid; server-mediated via `lib/studio-actions.ts`. |
 | ✅ M4·D | **Auth + 404** | Reskinned login (email/password + Google) and a branded not-found page. |
 
 ## Status
