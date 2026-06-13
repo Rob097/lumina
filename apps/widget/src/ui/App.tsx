@@ -17,6 +17,7 @@ export interface AppController {
   selectRoom(file: Blob, source: 'file' | 'camera'): unknown;
   setHint(hint: string): void;
   setInstructions(text: string): void;
+  setQuantity(quantity: number): void;
   startGeneration(): unknown;
   regenerate(): unknown;
   save(): unknown;
@@ -82,6 +83,10 @@ export function App({ controller, config, t }: AppProps) {
             beforeUrl={state.beforeUrl ?? ''}
             resultUrl={state.resultUrl ?? ''}
             resultCta={config.resultCta}
+            suggestedQuantity={state.suggestedQuantity}
+            quantityRationale={state.quantityRationale}
+            quantity={state.quantity}
+            onSetQuantity={(n) => controller.setQuantity(n)}
             onSave={() => controller.save()}
             onShare={() => controller.share()}
             onRegenerate={() => controller.regenerate()}

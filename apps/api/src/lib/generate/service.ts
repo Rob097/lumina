@@ -79,6 +79,7 @@ async function resolveProduct(
         name: products.name,
         category: products.category,
         imageUrl: products.imageUrl,
+        dimensions: products.dimensions,
       })
       .from(products)
       .where(and(eq(products.externalId, input.productId), eq(products.merchantId, input.merchantId)))
@@ -90,14 +91,24 @@ async function resolveProduct(
     return {
       productRef: input.productId,
       productId: product.id,
-      snapshot: { name: product.name, category: product.category, imageUrl: product.imageUrl },
+      snapshot: {
+        name: product.name,
+        category: product.category,
+        imageUrl: product.imageUrl,
+        ...(product.dimensions ? { dimensions: product.dimensions } : {}),
+      },
     };
   }
   if (input.inlineProduct) {
     const ip = input.inlineProduct;
     return {
       productRef: inlineProductRef(ip),
-      snapshot: { name: ip.name, category: ip.category ?? 'other', imageUrl: ip.imageUrl },
+      snapshot: {
+        name: ip.name,
+        category: ip.category ?? 'other',
+        imageUrl: ip.imageUrl,
+        ...(ip.dimensions ? { dimensions: ip.dimensions } : {}),
+      },
     };
   }
   throw new ProductNotFoundError();

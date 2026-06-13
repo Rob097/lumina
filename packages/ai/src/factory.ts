@@ -1,6 +1,7 @@
 import { AIOrchestrator } from './orchestrator.js';
 import { GatewayProvider } from './providers/gateway.js';
-import { MockProvider } from './providers/mock.js';
+import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
+import { MockProvider, MockQuantityProvider } from './providers/mock.js';
 import type { AIProvider, RoutingPolicy } from './types.js';
 
 /**
@@ -14,7 +15,10 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
   const hasCreds = Boolean(apiKey || env.VERCEL_OIDC_TOKEN);
   if (!hasCreds || env.AI_PROVIDER === 'mock') {
     const mock = new MockProvider({ name: 'mock', model: 'mock-compose', costCents: 0 });
-    return new AIOrchestrator({ chains: { quality: [mock], balanced: [mock], fast: [mock] } });
+    return new AIOrchestrator({
+      chains: { quality: [mock], balanced: [mock], fast: [mock] },
+      quantity: new MockQuantityProvider(),
+    });
   }
 
   const quality = new GatewayProvider({
@@ -35,5 +39,11 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     balanced: [quality, fast],
     fast: [fast, quality],
   };
-  return new AIOrchestrator({ chains });
+  // A cheap text+vision pass for coverage products (tiles/decor/renovation/outdoor); single-unit
+  // categories short-circuit to 1 in the orchestrator without ever calling it.
+  const quantity = new GatewayQuantityProvider({
+    model: env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
+    apiKey,
+  });
+  return new AIOrchestrator({ chains, quantity });
 }

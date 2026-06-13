@@ -71,6 +71,27 @@ describe('generate response + status', () => {
     });
     expect(s.status).toBe('succeeded');
   });
+
+  it('status response round-trips a coverage quantity estimate', () => {
+    const s = StatusResponseSchema.parse({
+      id: '0192f5',
+      status: 'succeeded',
+      resultUrl: 'https://cdn.lumina.app/r.jpg',
+      suggestedQuantity: 6,
+      quantityRationale: 'About 6 panels to cover the wall.',
+    });
+    expect(s.suggestedQuantity).toBe(6);
+    expect(s.quantityRationale).toContain('panels');
+  });
+
+  it('rejects a non-positive / non-integer suggested quantity', () => {
+    expect(() =>
+      StatusResponseSchema.parse({ id: 'x', status: 'succeeded', suggestedQuantity: 0 }),
+    ).toThrow();
+    expect(() =>
+      StatusResponseSchema.parse({ id: 'x', status: 'succeeded', suggestedQuantity: 2.5 }),
+    ).toThrow();
+  });
 });
 
 describe('feedback', () => {

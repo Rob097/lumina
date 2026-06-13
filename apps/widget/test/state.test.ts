@@ -29,6 +29,40 @@ describe('flow reducer', () => {
     expect(s.beforeUrl).toBe('b');
   });
 
+  it('seeds the quantity from a coverage estimate and lets SET_QUANTITY adjust it (clamped ≥ 1)', () => {
+    let s = reduce(initialState, { type: 'OPEN', opts });
+    s = reduce(s, { type: 'ROOM_SELECTED', previewUrl: 'blob:room' });
+    s = reduce(s, { type: 'GEN_START', generationId: 'g1' });
+    s = reduce(s, {
+      type: 'GEN_SUCCESS',
+      resultUrl: 'r',
+      beforeUrl: 'b',
+      suggestedQuantity: 6,
+      quantityRationale: 'About 6 panels.',
+    });
+    expect(s.suggestedQuantity).toBe(6);
+    expect(s.quantity).toBe(6); // seeded from the estimate
+
+    s = reduce(s, { type: 'SET_QUANTITY', quantity: 8 });
+    expect(s.quantity).toBe(8);
+
+    s = reduce(s, { type: 'SET_QUANTITY', quantity: 0 });
+    expect(s.quantity).toBe(1); // clamped
+
+    s = reduce(s, { type: 'REGENERATE' });
+    expect(s.quantity).toBeUndefined();
+    expect(s.suggestedQuantity).toBeUndefined();
+  });
+
+  it('defaults the quantity to 1 when there is no estimate (single-unit products)', () => {
+    let s = reduce(initialState, { type: 'OPEN', opts });
+    s = reduce(s, { type: 'ROOM_SELECTED', previewUrl: 'blob:room' });
+    s = reduce(s, { type: 'GEN_START', generationId: 'g1' });
+    s = reduce(s, { type: 'GEN_SUCCESS', resultUrl: 'r', beforeUrl: 'b' });
+    expect(s.suggestedQuantity).toBeUndefined();
+    expect(s.quantity).toBe(1);
+  });
+
   it('routes a generation error to the error step', () => {
     let s = reduce(initialState, { type: 'OPEN', opts });
     s = reduce(s, { type: 'ROOM_SELECTED', previewUrl: 'blob:room' });

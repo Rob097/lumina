@@ -61,6 +61,9 @@ export const StatusResponseSchema = z.object({
   stage: GenerationStageSchema.optional(),
   resultUrl: z.string().url().optional(),
   beforeUrl: z.string().url().optional(),
+  /** AI coverage estimate (#7): present only for coverage products (tiles/decor/renovation/outdoor). */
+  suggestedQuantity: z.number().int().positive().optional(),
+  quantityRationale: z.string().optional(),
   error: z
     .object({
       code: ErrorCodeSchema,

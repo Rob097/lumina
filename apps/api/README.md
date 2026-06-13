@@ -60,9 +60,11 @@ All responses use the standard envelope on error:
 
 The Inngest workflow (`generation.requested`, per-merchant + global concurrency caps) runs
 `processGeneration`: `processing` → `AIOrchestrator.compose()` (the single model entrypoint;
-policy-routed with retry + provider fallback) → store to R2 → finalize (`succeeded`, cost/latency/model +
-result asset + usage_event). **Terminal failure refunds the credit** (`grant_credits(...,'refund')`) — we
-never bill a failed generation.
+policy-routed with retry + provider fallback) → store to R2 → **coverage-quantity estimate** (#7,
+best-effort: `AIOrchestrator.estimateQuantity()` for coverage categories only; never fails the
+generation) → finalize (`succeeded`, cost/latency/model + result asset + usage_event +
+`suggested_quantity`/`quantity_rationale`). **Terminal failure refunds the credit**
+(`grant_credits(...,'refund')`) — we never bill a failed generation.
 
 ```bash
 pnpm -F @lumina/api e2e   # offline end-to-end (mock provider + Testcontainers DB): generate → workflow → cache

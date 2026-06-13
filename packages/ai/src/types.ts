@@ -66,3 +66,37 @@ export interface BgRemovalProvider {
 export interface SceneProvider {
   analyzeScene(image: ImageRef): Promise<SceneAnalysis>;
 }
+
+/** Input to the coverage-quantity estimator (§7 — "how many units to cover this surface"). */
+export interface QuantityInput {
+  room: ImageRef;
+  category: ProductCategory;
+  /** Real-world product size, used to reason about how many fit the target surface. */
+  dimensions?: Dimensions;
+  productName?: string;
+  placementHint?: string;
+}
+
+/**
+ * A coverage/quantity estimate. `isCoverage` is false for single-unit products (the estimate is a
+ * trivial 1, no model call). For coverage products the model returns N + a short rationale.
+ */
+export interface QuantityEstimate {
+  /** Integer ≥ 1. */
+  suggestedQuantity: number;
+  /** What's being counted, e.g. 'panels', 'tiles', 'boxes' (folded into the rationale for display). */
+  unit: string;
+  isCoverage: boolean;
+  rationale: string;
+  /** 0..1 — low-confidence coverage estimates are dropped by the caller, never shown. */
+  confidence: number;
+}
+
+/**
+ * Optional coverage-quantity estimator: a cheap text+vision pass behind the orchestrator. Swapping the
+ * gateway ↔ another vision model stays a one-file change (HARD RULE #8).
+ */
+export interface QuantityProvider {
+  readonly name: string;
+  estimateQuantity(input: QuantityInput, prompt: string): Promise<QuantityEstimate>;
+}

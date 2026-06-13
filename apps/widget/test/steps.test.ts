@@ -143,6 +143,50 @@ describe('ResultStep', () => {
     expect(el.querySelector('button[aria-label="Looks great"]')).toBeNull();
     expect(el.textContent).toContain(t('feedback.thanks'));
   });
+
+  it('shows the AI coverage estimate + a working stepper, routed to onSetQuantity (#7)', () => {
+    const onSetQuantity = vi.fn();
+    const el = mount(
+      h(ResultStep, {
+        t,
+        beforeUrl: 'b',
+        resultUrl: 'r',
+        resultCta: null,
+        suggestedQuantity: 6,
+        quantityRationale: 'About 6 panels.',
+        quantity: 6,
+        onSetQuantity,
+        onSave: vi.fn(),
+        onShare: vi.fn(),
+        onRegenerate: vi.fn(),
+        onFeedback: vi.fn(),
+        onCta: vi.fn(),
+      }),
+    );
+    expect(el.textContent).toContain('About 6 panels.');
+    expect(el.querySelector('.lumina-step-val')?.textContent).toBe('6');
+
+    const inc = el.querySelector('button[aria-label="Increase quantity"]') as HTMLButtonElement;
+    inc.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onSetQuantity).toHaveBeenCalledWith(7);
+  });
+
+  it('omits the estimate block for single-unit products (no suggestedQuantity)', () => {
+    const el = mount(
+      h(ResultStep, {
+        t,
+        beforeUrl: 'b',
+        resultUrl: 'r',
+        resultCta: null,
+        onSave: vi.fn(),
+        onShare: vi.fn(),
+        onRegenerate: vi.fn(),
+        onFeedback: vi.fn(),
+        onCta: vi.fn(),
+      }),
+    );
+    expect(el.querySelector('.lumina-estimate')).toBeNull();
+  });
 });
 
 describe('ErrorState', () => {

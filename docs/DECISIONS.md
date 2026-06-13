@@ -419,3 +419,23 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   generating step now also sets the "this usually takes 1–2 minutes" expectation, and a feedback vote
   swaps the 👍/👎 for a "Thanks for the feedback!" confirmation. Focus-retention is verified in the real
   browser (Playwright `pressSequentially` + `toBeFocused`), not jsdom, since Preact defers `useEffect`.
+
+## Post-go-live wave D — AI suggested quantity (2026-06-13)
+
+- **D59 — Coverage quantity (#7) is a separate, cheap text+vision pass behind the orchestrator, gated to
+  coverage categories, persisted only when confident, and never able to fail a generation.** A new
+  `AIOrchestrator.estimateQuantity()` sits beside `compose()` (HARD RULE #8 — one entrypoint, one-file
+  provider swap). Category gating lives in `packages/ai/quantity.ts`: only `tiles`, `decor`, `renovation`
+  and `outdoor` are **coverage** products (you buy N to cover a surface); every other category
+  short-circuits to quantity **1 with no model call** (the "shower/wardrobe = 1" rule — saves cost +
+  latency). Coverage products hit `GatewayQuantityProvider`, a `generateObject` (Zod-schema) call through
+  the Vercel AI Gateway on a cheap analysis model (`GATEWAY_MODEL_QUANTITY`, default
+  `google/gemini-2.5-flash`); the raw number is clamped to `[1, 999]`. The model needs the product's real
+  size, so `ProductSnapshot` gained an optional `dimensions` (populated from the product/inline product at
+  create time — a JSONB shape change, no migration). The workflow runs the estimate **after** the composite
+  is stored, wrapped best-effort: any error/low confidence (`< 0.5`) / single-unit just leaves the columns
+  null — a flaky vision call can never fail an otherwise-good (already-billed-or-refunded) generation.
+  Persisted as nullable `generations.suggested_quantity` + `quantity_rationale` (migration 0008) and
+  surfaced on `StatusResponse`. The widget shows the estimate + a quantity **stepper** (seeded from the
+  suggestion) only for coverage products; the chosen quantity interpolates into a new `{quantity}` CTA
+  token (e.g. `/?add-to-cart={productId}&quantity={quantity}`) alongside `{productId}`/`{productUrl}`.

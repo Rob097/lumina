@@ -16,6 +16,11 @@ export interface FlowState {
   stage?: GenerationStage;
   resultUrl?: string;
   beforeUrl?: string;
+  /** AI coverage estimate (#7): present only for coverage products. */
+  suggestedQuantity?: number;
+  quantityRationale?: string;
+  /** The shopper's chosen quantity (the stepper value), seeded from `suggestedQuantity`. */
+  quantity?: number;
   error?: { code: ErrorCode; message: string };
 }
 
@@ -27,8 +32,16 @@ export type FlowAction =
   | { type: 'GEN_SUBMIT' }
   | { type: 'GEN_START'; generationId: string }
   | { type: 'GEN_PROGRESS'; stage: GenerationStage }
-  | { type: 'GEN_SUCCESS'; resultUrl: string; beforeUrl: string; generationId?: string }
+  | {
+      type: 'GEN_SUCCESS';
+      resultUrl: string;
+      beforeUrl: string;
+      generationId?: string;
+      suggestedQuantity?: number;
+      quantityRationale?: string;
+    }
   | { type: 'GEN_ERROR'; code: ErrorCode; message: string; generationId?: string }
+  | { type: 'SET_QUANTITY'; quantity: number }
   | { type: 'REGENERATE' }
   | { type: 'CLOSE' };
 
@@ -75,7 +88,14 @@ export function reduce(state: FlowState, action: FlowAction): FlowState {
         resultUrl: action.resultUrl,
         beforeUrl: action.beforeUrl,
         generationId: action.generationId ?? state.generationId,
+        suggestedQuantity: action.suggestedQuantity,
+        quantityRationale: action.quantityRationale,
+        quantity: action.suggestedQuantity ?? 1,
       };
+
+    case 'SET_QUANTITY':
+      if (state.step !== 'result') return state;
+      return { ...state, quantity: Math.max(1, Math.round(action.quantity)) };
 
     case 'GEN_ERROR':
       if (state.step === 'idle') return state;
@@ -95,6 +115,9 @@ export function reduce(state: FlowState, action: FlowAction): FlowState {
         stage: undefined,
         error: undefined,
         generationId: undefined,
+        suggestedQuantity: undefined,
+        quantityRationale: undefined,
+        quantity: undefined,
       };
 
     case 'CLOSE':

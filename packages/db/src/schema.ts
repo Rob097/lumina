@@ -159,6 +159,8 @@ export interface ProductSnapshot {
   name: string;
   category: string;
   imageUrl: string;
+  /** Real-world size, captured at generation time so the coverage estimate (#7) can reason about it. */
+  dimensions?: { w?: number; h?: number; d?: number; unit?: 'cm' | 'in' };
 }
 
 export const generations = pgTable(
@@ -179,6 +181,9 @@ export const generations = pgTable(
     // outputs
     resultKey: text('result_key'),
     model: text('model'),
+    // AI coverage estimate (#7) — null for single-unit products
+    suggestedQuantity: integer('suggested_quantity'),
+    quantityRationale: text('quantity_rationale'),
     // accounting / ops
     creditsSpent: integer('credits_spent').notNull().default(1),
     costCents: integer('cost_cents'),

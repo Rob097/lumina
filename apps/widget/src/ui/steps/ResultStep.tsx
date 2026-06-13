@@ -12,6 +12,11 @@ export interface ResultStepProps {
   beforeUrl: string;
   resultUrl: string;
   resultCta: ResultCta | null;
+  /** AI coverage estimate (#7) — present only for coverage products; drives the quantity stepper. */
+  suggestedQuantity?: number;
+  quantityRationale?: string;
+  quantity?: number;
+  onSetQuantity?: (quantity: number) => void;
   onSave: () => void;
   onShare: () => void;
   onRegenerate: () => void;
@@ -24,6 +29,10 @@ export function ResultStep({
   beforeUrl,
   resultUrl,
   resultCta,
+  suggestedQuantity,
+  quantityRationale,
+  quantity,
+  onSetQuantity,
   onSave,
   onShare,
   onRegenerate,
@@ -31,6 +40,7 @@ export function ResultStep({
   onCta,
 }: ResultStepProps) {
   const [voted, setVoted] = useState(false);
+  const qty = quantity ?? suggestedQuantity ?? 1;
 
   function vote(rating: FeedbackRating): void {
     onFeedback(rating);
@@ -70,6 +80,38 @@ export function ResultStep({
           {t('result.regenerate')}
         </button>
       </div>
+      {suggestedQuantity != null ? (
+        <div class="lumina-estimate">
+          <div class="lumina-estimate-head">
+            <span class="lumina-estimate-label">
+              {t('result.estimate', { qty: String(suggestedQuantity) })}
+            </span>
+            <div class="lumina-stepper">
+              <button
+                class="lumina-step"
+                type="button"
+                aria-label={t('result.less')}
+                disabled={qty <= 1}
+                onClick={() => onSetQuantity?.(qty - 1)}
+              >
+                −
+              </button>
+              <span class="lumina-step-val" aria-live="polite">
+                {qty}
+              </span>
+              <button
+                class="lumina-step"
+                type="button"
+                aria-label={t('result.more')}
+                onClick={() => onSetQuantity?.(qty + 1)}
+              >
+                +
+              </button>
+            </div>
+          </div>
+          <p class="lumina-estimate-note">{quantityRationale ?? t('result.estimateNote')}</p>
+        </div>
+      ) : null}
       {resultCta ? (
         <button class="lumina-btn lumina-btn-primary lumina-cta" type="button" onClick={onCta}>
           {resultCta.label}

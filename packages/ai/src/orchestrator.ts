@@ -1,10 +1,14 @@
 import { buildComposePrompt } from './prompt.js';
+import { buildQuantityPrompt, isCoverageCategory, singleUnitEstimate } from './quantity.js';
 import type {
   AIProvider,
   BgRemovalProvider,
   ComposeInput,
   ComposeResult,
   ImageRef,
+  QuantityEstimate,
+  QuantityInput,
+  QuantityProvider,
   RoutingPolicy,
   SceneAnalysis,
   SceneProvider,
@@ -35,6 +39,8 @@ export interface OrchestratorConfig {
   backoffMs?: number;
   bgRemoval?: BgRemovalProvider;
   scene?: SceneProvider;
+  /** Optional coverage-quantity estimator (§7 #7). */
+  quantity?: QuantityProvider;
   /** Injectable sleep (tests pass a no-op). */
   sleep?: (ms: number) => Promise<void>;
 }
@@ -85,6 +91,22 @@ export class AIOrchestrator {
       return null;
     }
     return this.config.scene.analyzeScene(image);
+  }
+
+  /**
+   * Coverage-quantity estimate (§7 #7). Single-unit categories short-circuit to a trivial 1 with **no
+   * model call** (cost/latency win, matches "shower/wardrobe = 1"). Coverage categories hit the provider;
+   * returns null when none is configured. Provider errors propagate — the caller treats the estimate as
+   * best-effort and never fails the generation over it.
+   */
+  async estimateQuantity(input: QuantityInput): Promise<QuantityEstimate | null> {
+    if (!isCoverageCategory(input.category)) {
+      return singleUnitEstimate();
+    }
+    if (!this.config.quantity) {
+      return null;
+    }
+    return this.config.quantity.estimateQuantity(input, buildQuantityPrompt(input));
   }
 
   /** Optional product cutout (§7.4 step 2). Returns null when no provider is configured. */

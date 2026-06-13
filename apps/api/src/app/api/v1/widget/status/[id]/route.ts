@@ -43,6 +43,8 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     status: gen.status,
     ...(resultUrl ? { resultUrl } : {}),
     ...(beforeUrl ? { beforeUrl } : {}),
+    ...(gen.suggestedQuantity != null ? { suggestedQuantity: gen.suggestedQuantity } : {}),
+    ...(gen.quantityRationale ? { quantityRationale: gen.quantityRationale } : {}),
     ...(gen.status === 'failed'
       ? { error: { code: 'generation_failed', message: 'Generation failed' } }
       : {}),

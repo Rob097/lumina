@@ -125,6 +125,10 @@ export class LuminaController {
     this.dispatch({ type: 'SET_INSTRUCTIONS', text });
   }
 
+  setQuantity(quantity: number): void {
+    this.dispatch({ type: 'SET_QUANTITY', quantity });
+  }
+
   async selectRoom(file: Blob, source: 'file' | 'camera'): Promise<void> {
     this.emitter.emit('upload:start', { source });
     try {
@@ -205,13 +209,15 @@ export class LuminaController {
     if (template) this.navigate(this.resolveCtaUrl(template));
   }
 
-  /** Fill the CTA template's `{productId}`/`{productUrl}` tokens and resolve it against the page URL. */
+  /** Fill the CTA template's `{productId}`/`{productUrl}`/`{quantity}` tokens and resolve against the page. */
   private resolveCtaUrl(template: string): string {
     const productId = this.state.opts?.productId ?? '';
     const productUrl = this.pageUrl ?? '';
+    const quantity = String(this.state.quantity ?? this.state.suggestedQuantity ?? 1);
     const filled = template
       .replace(/\{productId\}/g, encodeURIComponent(productId))
-      .replace(/\{productUrl\}/g, productUrl);
+      .replace(/\{productUrl\}/g, productUrl)
+      .replace(/\{quantity\}/g, encodeURIComponent(quantity));
     try {
       return new URL(filled, this.pageUrl || undefined).href;
     } catch {
@@ -253,7 +259,14 @@ export class LuminaController {
 
   private onStatus(s: StatusResponse): void {
     if (s.status === 'succeeded' && s.resultUrl && s.beforeUrl) {
-      this.dispatch({ type: 'GEN_SUCCESS', resultUrl: s.resultUrl, beforeUrl: s.beforeUrl, generationId: s.id });
+      this.dispatch({
+        type: 'GEN_SUCCESS',
+        resultUrl: s.resultUrl,
+        beforeUrl: s.beforeUrl,
+        generationId: s.id,
+        ...(s.suggestedQuantity != null ? { suggestedQuantity: s.suggestedQuantity } : {}),
+        ...(s.quantityRationale ? { quantityRationale: s.quantityRationale } : {}),
+      });
       this.emitter.emit('generate:success', {
         generationId: s.id,
         resultUrl: s.resultUrl,

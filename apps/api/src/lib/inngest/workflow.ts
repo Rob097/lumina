@@ -94,6 +94,36 @@ function errorCodeFor(_err: unknown): string {
   return 'generation_failed';
 }
 
+/** Below this model confidence a coverage estimate is dropped rather than shown to the shopper. */
+const QUANTITY_CONFIDENCE_MIN = 0.5;
+
+/**
+ * Best-effort coverage-quantity estimate (#7). Returns nulls (never throws) so a flaky vision call can
+ * never fail an otherwise-successful generation. Only a confident multi-unit coverage estimate is kept.
+ */
+async function estimateCoverage(
+  deps: WorkflowDeps,
+  gen: GenerationRow,
+  category: ProductCategory,
+  roomUrl: string,
+): Promise<{ suggestedQuantity: number | null; quantityRationale: string | null }> {
+  try {
+    const est = await deps.orchestrator.estimateQuantity({
+      room: { url: roomUrl },
+      category,
+      dimensions: gen.productSnapshot.dimensions,
+      productName: gen.productSnapshot.name,
+      placementHint: gen.placementHint ?? undefined,
+    });
+    if (est && est.isCoverage && est.confidence >= QUANTITY_CONFIDENCE_MIN && est.suggestedQuantity > 1) {
+      return { suggestedQuantity: est.suggestedQuantity, quantityRationale: est.rationale };
+    }
+  } catch (err) {
+    deps.reportError?.(err, { generationId: gen.id, stage: 'estimate_quantity' });
+  }
+  return { suggestedQuantity: null, quantityRationale: null };
+}
+
 interface SuccessFields {
   generationId: string;
   merchantId: string;
@@ -103,6 +133,9 @@ interface SuccessFields {
   latencyMs: number;
   width?: number;
   height?: number;
+  /** AI coverage estimate (#7) — null for single-unit products / low-confidence / no estimate. */
+  suggestedQuantity?: number | null;
+  quantityRationale?: string | null;
 }
 
 /** Persist a successful composite + its asset + a usage event (one transaction). */
@@ -116,6 +149,8 @@ export async function finalizeSuccess(db: Database, p: SuccessFields): Promise<v
         model: p.model,
         costCents: p.costCents,
         latencyMs: p.latencyMs,
+        suggestedQuantity: p.suggestedQuantity ?? null,
+        quantityRationale: p.quantityRationale ?? null,
         finishedAt: new Date(),
       })
       .where(eq(generations.id, p.generationId));
@@ -241,6 +276,11 @@ export async function processGeneration(
 
     const key = buildResultKey(gen.merchantId, generationId);
     await deps.storage.putObject(key, composed.bytes, composed.contentType);
+
+    // Coverage-quantity estimate (#7) — best-effort: never fails the generation. Stored only for a
+    // confident coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
+    const { suggestedQuantity, quantityRationale } = await estimateCoverage(deps, gen, category, roomUrl);
+
     await finalizeSuccess(db, {
       generationId,
       merchantId: gen.merchantId,
@@ -250,6 +290,8 @@ export async function processGeneration(
       latencyMs: composed.latencyMs,
       width: composed.width,
       height: composed.height,
+      suggestedQuantity,
+      quantityRationale,
     });
     deps.events?.track(
       generationEvent({

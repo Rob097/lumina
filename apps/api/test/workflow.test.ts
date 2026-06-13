@@ -1,7 +1,20 @@
 import { randomUUID } from 'node:crypto';
-import { AIOrchestrator, MockProvider, type ModerationProvider } from '@lumina/ai';
+import {
+  AIOrchestrator,
+  MockProvider,
+  MockQuantityProvider,
+  type ModerationProvider,
+  type QuantityProvider,
+} from '@lumina/ai';
 import { eq } from 'drizzle-orm';
-import { creditLedger, generationAssets, generations, merchants, usageEvents } from '@lumina/db';
+import {
+  creditLedger,
+  generationAssets,
+  generations,
+  merchants,
+  usageEvents,
+  type ProductSnapshot,
+} from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { processGeneration, type StoragePort } from '../src/lib/inngest/workflow.js';
@@ -34,13 +47,19 @@ function contains(hay: Uint8Array, needle: number[]): boolean {
   return false;
 }
 
-function orchestrator(fail = false): AIOrchestrator {
+function orchestrator(fail = false, quantity?: QuantityProvider): AIOrchestrator {
   const provider = new MockProvider({ name: 'mock', model: 'mock-compose', alwaysFail: fail });
-  return new AIOrchestrator({ chains: { quality: [provider], balanced: [provider], fast: [provider] } });
+  return new AIOrchestrator({
+    chains: { quality: [provider], balanced: [provider], fast: [provider] },
+    ...(quantity ? { quantity } : {}),
+  });
 }
 
 /** Insert a queued generation and debit 1 credit, mimicking createGeneration's committed state. */
-async function queued(creditsAfterDebit: number): Promise<{ merchantId: string; generationId: string }> {
+async function queued(
+  creditsAfterDebit: number,
+  snapshot: Partial<ProductSnapshot> = {},
+): Promise<{ merchantId: string; generationId: string }> {
   const merchantId = firstOrThrow(
     await ctx.db
       .insert(merchants)
@@ -53,7 +72,12 @@ async function queued(creditsAfterDebit: number): Promise<{ merchantId: string; 
       .values({
         merchantId,
         roomKey: `rooms/${merchantId}/r.jpg`,
-        productSnapshot: { name: 'Aura', category: 'lighting', imageUrl: 'https://shop.test/a.png' },
+        productSnapshot: {
+          name: 'Aura',
+          category: 'lighting',
+          imageUrl: 'https://shop.test/a.png',
+          ...snapshot,
+        },
         idempotencyKey: randomUUID(),
         status: 'queued',
         creditsSpent: 1,
@@ -180,5 +204,73 @@ describe('processGeneration', () => {
     expect(
       await processGeneration({ db: ctx.db, orchestrator: orchestrator(), storage }, generationId),
     ).toBe('skipped');
+  });
+
+  it('persists a confident coverage quantity estimate (#7)', async () => {
+    const { generationId } = await queued(4, {
+      category: 'tiles',
+      dimensions: { w: 30, h: 30, unit: 'cm' },
+    });
+    const quantity = new MockQuantityProvider({
+      suggestedQuantity: 9,
+      unit: 'tiles',
+      rationale: 'About 9 tiles to cover the floor.',
+      confidence: 0.8,
+    });
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestrator(false, quantity), storage },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.suggestedQuantity).toBe(9);
+    expect(gen.quantityRationale).toContain('floor');
+    expect(quantity.callCount).toBe(1);
+  });
+
+  it('leaves the quantity null for single-unit products (no estimate call)', async () => {
+    const { generationId } = await queued(4, { category: 'furniture' });
+    const quantity = new MockQuantityProvider();
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestrator(false, quantity), storage },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.suggestedQuantity).toBeNull();
+    expect(quantity.callCount).toBe(0); // orchestrator short-circuits single-unit before the provider
+  });
+
+  it('drops a low-confidence coverage estimate but still succeeds', async () => {
+    const { generationId } = await queued(4, { category: 'tiles' });
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.2 });
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestrator(false, quantity), storage },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.suggestedQuantity).toBeNull();
+  });
+
+  it('never fails the generation when the estimate throws', async () => {
+    const { generationId } = await queued(4, { category: 'tiles' });
+    const throwing: QuantityProvider = {
+      name: 'boom',
+      estimateQuantity: async () => {
+        throw new Error('vision down');
+      },
+    };
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestrator(false, throwing), storage },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.suggestedQuantity).toBeNull();
   });
 });

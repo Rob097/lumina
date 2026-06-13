@@ -1,4 +1,13 @@
-import type { AIProvider, ComposeInput, ProviderResult, SceneAnalysis, SceneProvider } from '../types.js';
+import type {
+  AIProvider,
+  ComposeInput,
+  ProviderResult,
+  QuantityEstimate,
+  QuantityInput,
+  QuantityProvider,
+  SceneAnalysis,
+  SceneProvider,
+} from '../types.js';
 
 export interface MockProviderOptions {
   name: string;
@@ -44,5 +53,29 @@ export class MockProvider implements AIProvider {
 export class MockSceneProvider implements SceneProvider {
   async analyzeScene(_image: { url: string } | { bytes: Uint8Array }): Promise<SceneAnalysis> {
     return { lightDir: 'top-left', colorTempK: 4000, style: 'modern', surfaces: ['floor', 'wall'] };
+  }
+}
+
+/** Mock coverage-quantity estimator returning a fixed estimate (tests + local/e2e). */
+export class MockQuantityProvider implements QuantityProvider {
+  readonly name = 'mock-quantity';
+  private calls = 0;
+
+  constructor(private readonly estimate?: Partial<QuantityEstimate>) {}
+
+  get callCount(): number {
+    return this.calls;
+  }
+
+  async estimateQuantity(_input: QuantityInput, _prompt: string): Promise<QuantityEstimate> {
+    this.calls += 1;
+    return {
+      suggestedQuantity: 6,
+      unit: 'panels',
+      isCoverage: true,
+      rationale: 'About 6 panels to cover the wall.',
+      confidence: 0.8,
+      ...this.estimate,
+    };
   }
 }

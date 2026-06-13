@@ -57,6 +57,13 @@
       "when": 1781249808430,
       "tag": "0007_closed_secret_warriors",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1781301325878,
+      "tag": "0008_wakeful_justice",
+      "breakpoints": true
     }
   ]
 }

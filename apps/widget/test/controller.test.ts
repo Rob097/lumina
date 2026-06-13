@@ -194,4 +194,35 @@ describe('LuminaController', () => {
     controller.ctaClick();
     expect(navigate).not.toHaveBeenCalled();
   });
+
+  it('carries a coverage estimate into state and interpolates {quantity} into the CTA (#7)', async () => {
+    const navigate = vi.fn();
+    const cfg: EffectiveConfig = {
+      ...config(),
+      resultCta: { label: 'Add to cart', urlTemplate: '/?add-to-cart={productId}&quantity={quantity}' },
+    };
+    const withEstimate = (id: string, onUpdate: (s: StatusResponse) => void): (() => void) => {
+      onUpdate({
+        id,
+        status: 'succeeded',
+        resultUrl: 'https://r/res.jpg',
+        beforeUrl: 'https://r/room.jpg',
+        suggestedQuantity: 9,
+        quantityRationale: 'About 9 tiles.',
+      });
+      return () => {};
+    };
+    const { controller } = harness({
+      extra: { config: cfg, navigate, pageUrl: 'https://shop.test/p', watchStatus: withEstimate },
+    });
+    controller.open({ productId: 'SKU' });
+    await controller.selectRoom(room(), 'file');
+    await controller.startGeneration();
+    expect(controller.state.suggestedQuantity).toBe(9);
+    expect(controller.state.quantity).toBe(9); // seeded from the estimate
+
+    controller.setQuantity(12);
+    controller.ctaClick();
+    expect(navigate).toHaveBeenCalledWith('https://shop.test/?add-to-cart=SKU&quantity=12');
+  });
 });

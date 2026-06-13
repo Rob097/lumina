@@ -65,8 +65,10 @@ analytics can listen on the DOM:
 
 `cta:click`, `generate:success` and `feedback` are the conversion/ROI signals merchants wire to analytics.
 A configured **result CTA** also navigates: `cta:click` fires, then the widget interpolates
-`{productId}`/`{productUrl}` into the `urlTemplate`, resolves it against the page URL, and opens it in a
-new tab (so the shopper keeps their result). Merchants doing custom add-to-cart just listen to the event.
+`{productId}`/`{productUrl}`/`{quantity}` into the `urlTemplate`, resolves it against the page URL, and
+opens it in a new tab (so the shopper keeps their result). Merchants doing custom add-to-cart just listen
+to the event. For **coverage products** (tiles/decor/renovation/outdoor) the result shows an AI-suggested
+quantity + a stepper; the chosen value fills `{quantity}` (e.g. `/?add-to-cart={productId}&quantity={quantity}`).
 
 ## Flow
 
