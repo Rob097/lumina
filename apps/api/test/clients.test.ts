@@ -1,0 +1,226 @@
+import { randomUUID } from 'node:crypto';
+import { eq } from 'drizzle-orm';
+import { generations, merchants, products } from '@lumina/db';
+import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  createClient,
+  deleteClient,
+  getClient,
+  listClients,
+  updateClient,
+} from '../src/lib/clients/service';
+import {
+  createGeneration,
+  type GenerateDeps,
+} from '../src/lib/generate/service';
+import { emailGenerationResult } from '../src/lib/generations/email';
+import type { EmailSender } from '../src/lib/email';
+
+let ctx: TestDb;
+
+beforeAll(async () => {
+  ctx = await setupTestDb();
+});
+afterAll(async () => {
+  await ctx?.teardown();
+});
+
+async function newMerchant(credits = 10): Promise<string> {
+  return firstOrThrow(
+    await ctx.db
+      .insert(merchants)
+      .values({ name: 'StudioCo', slug: `st-${randomUUID()}`, creditsBalance: credits })
+      .returning(),
+  ).id;
+}
+
+async function newProduct(merchantId: string): Promise<string> {
+  return firstOrThrow(
+    await ctx.db
+      .insert(products)
+      .values({
+        merchantId,
+        name: 'Oak Console',
+        category: 'furniture',
+        imageUrl: 'https://shop.test/oak.png',
+      })
+      .returning(),
+  ).id;
+}
+
+const noopDeps: GenerateDeps = {
+  enqueue: async () => {},
+  signResult: async (key) => `https://signed/${key}`,
+};
+
+describe('clients service', () => {
+  it('creates, lists, gets, updates and deletes — all merchant-scoped', async () => {
+    const merchantId = await newMerchant();
+
+    const created = await createClient(ctx.db, merchantId, {
+      name: 'Mara Rossi',
+      email: 'mara@example.com',
+    });
+    expect(created.name).toBe('Mara Rossi');
+    expect(created.merchantId).toBe(merchantId);
+
+    const list = await listClients(ctx.db, merchantId);
+    expect(list.map((c) => c.id)).toContain(created.id);
+
+    const updated = await updateClient(ctx.db, merchantId, created.id, { phone: '+39 333' });
+    expect(updated?.phone).toBe('+39 333');
+    expect(updated?.email).toBe('mara@example.com'); // untouched
+
+    expect(await deleteClient(ctx.db, merchantId, created.id)).toBe(true);
+    expect(await getClient(ctx.db, merchantId, created.id)).toBeNull();
+  });
+
+  it('never leaks a client across tenants (scoped by merchant_id)', async () => {
+    const a = await newMerchant();
+    const b = await newMerchant();
+    const client = await createClient(ctx.db, a, { name: 'A Customer' });
+
+    expect(await getClient(ctx.db, b, client.id)).toBeNull(); // B can't read A's client
+    expect((await listClients(ctx.db, b)).map((c) => c.id)).not.toContain(client.id);
+    expect(await updateClient(ctx.db, b, client.id, { name: 'hijack' })).toBeNull();
+    expect(await deleteClient(ctx.db, b, client.id)).toBe(false);
+  });
+});
+
+describe('Studio generation (createGeneration via internal product uuid + clientId)', () => {
+  it('debits one credit and links the client', async () => {
+    const merchantId = await newMerchant(5);
+    const productUuid = await newProduct(merchantId);
+    const client = await createClient(ctx.db, merchantId, { name: 'Walk-in' });
+
+    const result = await createGeneration(ctx.db, noopDeps, {
+      merchantId,
+      productUuid,
+      roomKey: `rooms/${merchantId}/r.jpg`,
+      clientId: client.id,
+      metadata: { source: 'studio' },
+    });
+    expect(result.status).toBe('queued');
+
+    const gen = firstOrThrow(
+      await ctx.db.select().from(generations).where(eq(generations.id, result.generationId)),
+    );
+    expect(gen.clientId).toBe(client.id);
+    expect(gen.productId).toBe(productUuid);
+    expect(gen.productSnapshot.name).toBe('Oak Console');
+
+    const balance = firstOrThrow(
+      await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)),
+    ).creditsBalance;
+    expect(balance).toBe(4); // 5 - 1
+  });
+
+  it('clears client_id on the generation when the client is deleted (ON DELETE SET NULL)', async () => {
+    const merchantId = await newMerchant(5);
+    const productUuid = await newProduct(merchantId);
+    const client = await createClient(ctx.db, merchantId, { name: 'Temp' });
+    const result = await createGeneration(ctx.db, noopDeps, {
+      merchantId,
+      productUuid,
+      roomKey: `rooms/${merchantId}/r2.jpg`,
+      clientId: client.id,
+    });
+
+    await deleteClient(ctx.db, merchantId, client.id);
+
+    const gen = firstOrThrow(
+      await ctx.db.select().from(generations).where(eq(generations.id, result.generationId)),
+    );
+    expect(gen.clientId).toBeNull(); // generation kept on file, link nulled
+  });
+});
+
+describe('emailGenerationResult', () => {
+  function sender(): { sent: { to: string; subject: string }[]; sender: EmailSender } {
+    const sent: { to: string; subject: string }[] = [];
+    return {
+      sent,
+      sender: {
+        async send(msg) {
+          sent.push({ to: msg.to, subject: msg.subject });
+        },
+      },
+    };
+  }
+
+  async function succeededGen(merchantId: string, clientId: string | null): Promise<string> {
+    return firstOrThrow(
+      await ctx.db
+        .insert(generations)
+        .values({
+          merchantId,
+          roomKey: `rooms/${merchantId}/r.jpg`,
+          productSnapshot: { name: 'Oak Console', category: 'furniture', imageUrl: 'https://x/p.png' },
+          idempotencyKey: randomUUID(),
+          status: 'succeeded',
+          resultKey: `results/${merchantId}/g.jpg`,
+          creditsSpent: 1,
+          clientId,
+        })
+        .returning(),
+    ).id;
+  }
+
+  it("emails the linked client's address with a signed result link", async () => {
+    const merchantId = await newMerchant();
+    const client = await createClient(ctx.db, merchantId, {
+      name: 'Mara',
+      email: 'mara@example.com',
+    });
+    const genId = await succeededGen(merchantId, client.id);
+    const { sent, sender: s } = sender();
+    const presign = vi.fn(async (key: string) => `https://signed/${key}`);
+
+    const outcome = await emailGenerationResult(
+      ctx.db,
+      { presignDownload: presign, sender: s },
+      { merchantId, generationId: genId },
+    );
+    expect(outcome).toEqual({ ok: true, email: 'mara@example.com' });
+    expect(sent[0]?.to).toBe('mara@example.com');
+    expect(presign).toHaveBeenCalledWith(`results/${merchantId}/g.jpg`, expect.any(Number));
+  });
+
+  it('falls back to no_recipient when neither an explicit email nor a client email exists', async () => {
+    const merchantId = await newMerchant();
+    const genId = await succeededGen(merchantId, null);
+    const { sent, sender: s } = sender();
+    const outcome = await emailGenerationResult(
+      ctx.db,
+      { presignDownload: async (k) => k, sender: s },
+      { merchantId, generationId: genId },
+    );
+    expect(outcome).toEqual({ ok: false, reason: 'no_recipient' });
+    expect(sent).toHaveLength(0);
+  });
+
+  it('refuses a generation that has not succeeded', async () => {
+    const merchantId = await newMerchant();
+    const genId = firstOrThrow(
+      await ctx.db
+        .insert(generations)
+        .values({
+          merchantId,
+          roomKey: `rooms/${merchantId}/r.jpg`,
+          productSnapshot: { name: 'X', category: 'furniture', imageUrl: 'https://x/p.png' },
+          idempotencyKey: randomUUID(),
+          status: 'queued',
+          creditsSpent: 1,
+        })
+        .returning(),
+    ).id;
+    const { sender: s } = sender();
+    const outcome = await emailGenerationResult(
+      ctx.db,
+      { presignDownload: async (k) => k, sender: s },
+      { merchantId, generationId: genId, email: 'x@y.com' },
+    );
+    expect(outcome).toEqual({ ok: false, reason: 'not_ready' });
+  });
+});

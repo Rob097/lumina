@@ -1,0 +1,126 @@
+/* Studio (#8) — in-dashboard "try in your room" generation + lightweight client linking. The before/after
+   slider reuses the generations `.ba2` component (its CSS is imported by the page). */
+
+.studio {
+  max-width: 640px;
+}
+.studio-head {
+  margin-bottom: 4px;
+}
+.studio-head h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+.studio-head .sub {
+  color: var(--text-muted);
+  font-size: var(--fs-sm);
+}
+
+.studio-compose,
+.studio-result {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.studio-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.studio-label {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+.studio-client-row {
+  display: flex;
+  gap: 8px;
+}
+.studio-client-row select {
+  flex: 1;
+}
+.studio-newclient {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-2);
+}
+.studio-newclient .btn {
+  grid-column: 1 / -1;
+}
+
+.studio-empty {
+  font-size: var(--fs-body);
+  color: var(--text-muted);
+}
+.studio-empty a {
+  color: var(--accent);
+}
+
+.studio-drop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  border: 1.5px dashed var(--border-strong);
+  border-radius: var(--r-lg);
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color var(--dur-fast), color var(--dur-fast);
+}
+.studio-drop:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.studio-drop:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.studio-room {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.studio-room-img {
+  width: 120px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+}
+
+.studio-generate {
+  align-self: flex-start;
+}
+.studio-hint {
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+}
+.studio-error {
+  font-size: var(--fs-body);
+  color: var(--danger);
+}
+
+.studio-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 560px) {
+  .studio-newclient {
+    grid-template-columns: 1fr;
+  }
+  .studio-client-row {
+    flex-wrap: wrap;
+  }
+}

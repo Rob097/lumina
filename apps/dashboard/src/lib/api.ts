@@ -7,9 +7,13 @@ import {
   BulkProductsResultSchema,
   CreateKeyResponseSchema,
   CreditsResponseSchema,
+  ClientSchema,
+  ClientsListResponseSchema,
+  GenerateResponseSchema,
   GenerationDetailSchema,
   GenerationsListResponseSchema,
   MeResponseSchema,
+  SignUploadResponseSchema,
   NotificationListResponseSchema,
   NotificationPrefsResponseSchema,
   ProductSchema,
@@ -23,10 +27,15 @@ import {
   type BulkProductsResult,
   type CreateKeyRequest,
   type CreateKeyResponse,
+  type Client,
+  type ClientInput,
+  type ClientUpdate,
   type CreditsResponse,
   type GenerationDetail,
   type GenerationsListResponse,
   type Product,
+  type SignUploadResponse,
+  type StudioGenerateRequest,
   type ProductInput,
   type ProductUpdate,
   type ProductsListResponse,
@@ -283,6 +292,84 @@ export async function fetchGenerations(
 export async function fetchGeneration(id: string): Promise<GenerationDetail | null> {
   const res = await apiFetch(`/generations/${id}`);
   return res.ok ? GenerationDetailSchema.parse(await res.json()) : null;
+}
+
+// ───────────────────────────── Studio: clients (#8) ─────────────────────────────
+
+export async function fetchClients(): Promise<Client[]> {
+  const res = await apiFetch('/clients');
+  if (!res.ok) {
+    return [];
+  }
+  return ClientsListResponseSchema.parse(await res.json()).clients;
+}
+
+export async function createClient(input: ClientInput): Promise<Client | null> {
+  const res = await apiFetch('/clients', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  return res.ok ? ClientSchema.parse(await res.json()) : null;
+}
+
+export async function updateClient(id: string, patch: ClientUpdate): Promise<Client | null> {
+  const res = await apiFetch(`/clients/${id}`, {
+    method: 'PUT',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  return res.ok ? ClientSchema.parse(await res.json()) : null;
+}
+
+export async function deleteClient(id: string): Promise<boolean> {
+  const res = await apiFetch(`/clients/${id}`, { method: 'DELETE' });
+  return res.ok;
+}
+
+// ───────────────────────────── Studio: generate (#8) ─────────────────────────────
+
+/** Presign an authenticated room upload for the Studio flow (browser PUTs the file to R2 directly). */
+export async function signStudioUpload(contentType: string): Promise<SignUploadResponse | null> {
+  const res = await apiFetch('/uploads/sign', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contentType, kind: 'room' }),
+  });
+  return res.ok ? SignUploadResponseSchema.parse(await res.json()) : null;
+}
+
+/** Start an authenticated (Studio) generation. Returns the id, or an error code for the UI. */
+export async function createStudioGeneration(
+  input: StudioGenerateRequest,
+): Promise<{ generationId: string } | { error: string }> {
+  const res = await apiFetch('/generations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { code?: string } } | null;
+    return { error: body?.error?.code ?? 'generation_failed' };
+  }
+  return { generationId: GenerateResponseSchema.parse(await res.json()).generationId };
+}
+
+/** Email a finished render to the linked client (or an explicit address). */
+export async function emailGenerationResult(
+  id: string,
+  email?: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const res = await apiFetch(`/generations/${id}/email`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(email ? { email } : {}),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+    return { ok: false, message: body?.error?.message ?? 'Could not send the email' };
+  }
+  return { ok: true };
 }
 
 export async function fetchNotifications(): Promise<NotificationListResponse> {

@@ -36,11 +36,16 @@ export interface GenerateDeps {
 
 export interface CreateGenerationInput {
   merchantId: string;
+  /** Public SKU (`external_id`) — the widget path. */
   productId?: string;
+  /** Internal product uuid — the authenticated Studio path (#8), works without an external SKU. */
+  productUuid?: string;
   inlineProduct?: InlineProduct;
   roomKey: string;
   placementHint?: string;
   customInstructions?: string;
+  /** Studio: link the render to a client (#8). */
+  clientId?: string;
   anonId?: string;
   pageUrl?: string;
   metadata?: Record<string, unknown>;
@@ -70,6 +75,35 @@ async function resolveProduct(
   db: Database,
   input: CreateGenerationInput,
 ): Promise<{ productRef: string; snapshot: ProductSnapshot; productId?: string }> {
+  if (input.productUuid) {
+    // Studio (#8): the dashboard references its own catalog by internal uuid.
+    const rows = await db
+      .select({
+        id: products.id,
+        externalId: products.externalId,
+        name: products.name,
+        category: products.category,
+        imageUrl: products.imageUrl,
+        dimensions: products.dimensions,
+      })
+      .from(products)
+      .where(and(eq(products.id, input.productUuid), eq(products.merchantId, input.merchantId)))
+      .limit(1);
+    const product = rows[0];
+    if (!product) {
+      throw new ProductNotFoundError();
+    }
+    return {
+      productRef: product.externalId ?? product.id,
+      productId: product.id,
+      snapshot: {
+        name: product.name,
+        category: product.category,
+        imageUrl: product.imageUrl,
+        ...(product.dimensions ? { dimensions: product.dimensions } : {}),
+      },
+    };
+  }
   if (input.productId) {
     // The public `productId` is the merchant's own SKU (`external_id`), not LUMINA's internal uuid —
     // the widget references `data-lumina-product="<SKU>"`. Resolve it to the internal id for the FK.
@@ -175,6 +209,7 @@ export async function createGeneration(
           productSnapshot: snapshot,
           placementHint: input.placementHint,
           customInstructions: input.customInstructions,
+          clientId: input.clientId,
           idempotencyKey,
           anonId: input.anonId,
           pageUrl: input.pageUrl,

@@ -439,3 +439,28 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   surfaced on `StatusResponse`. The widget shows the estimate + a quantity **stepper** (seeded from the
   suggestion) only for coverage products; the chosen quantity interpolates into a new `{quantity}` CTA
   token (e.g. `/?add-to-cart={productId}&quantity={quantity}`) alongside `{productId}`/`{productUrl}`.
+
+## Post-go-live wave E — Studio + clients (2026-06-13)
+
+- **D60 — Studio (#8) is an authenticated, in-dashboard generation flow that reuses the entire widget
+  pipeline; clients are a lightweight contact list, not a CRM.** The physical-store use case (a shop
+  assistant renders "in your room" for a walk-in) ships as one `/studio` route. The new
+  **`POST /v1/generations`** (session-auth, `requireMerchant`) calls the *same* `createGeneration`
+  service + Inngest workflow as the widget — atomic `debit_credits` before enqueue, same refund-on-fail
+  guarantee — so a Studio render costs one credit and behaves identically (HARD RULE #3 intact). It
+  references the product by **internal uuid** (works for catalog items without an external SKU; a new
+  `productUuid` branch in `resolveProduct`) and tags `metadata.source='studio'`. The room photo uses a
+  new authed **`POST /v1/uploads/sign`** (mirrors the widget's `sign-upload` but behind a merchant
+  session; key stays `{merchant_id}/`), and the browser PUTs straight to R2. **Clients** (`clients`
+  table, migration 0009) carry name + optional email/phone/notes, RLS-scoped by `current_merchant_ids()`
+  exactly like products; `generations.client_id` is a nullable FK **ON DELETE SET NULL** so deleting a
+  client keeps their renders on file. Idempotency is untouched — each Studio upload gets a random
+  `roomKey`, so same-product re-renders never collide. A linked `clientId` is verified to belong to the
+  merchant before linking (the privileged API role bypasses RLS, so the check is explicit — HARD RULE
+  #1). **Email** (`POST /v1/generations/:id/email`) sends the client a **7-day signed R2 link** to the
+  result through the existing Resend `EmailSender` (no-op when unconfigured); recipient is an explicit
+  address or the linked client's email. The dashboard stays server-mediated: a `/studio` server
+  component seeds clients + active products, and a client `StudioView` drives upload → product →
+  (optional) client → generate → poll → before/after (reusing the generations `BeforeAfter`) → email /
+  download, all through `'use server'` actions in `lib/studio-actions.ts`. Workspaces/invites (#2/#3)
+  remain deferred.

@@ -33,6 +33,11 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 | GET | `/api/v1/notifications` | session | member's notifications + unread count |
 | POST | `/api/v1/notifications/read` | session | mark `{ ids }` or `{ all: true }` read |
 | GET / PUT | `/api/v1/notification-prefs` | session | per-member channel toggles |
+| GET / POST | `/api/v1/clients` | session | Studio client list (#8) — list / create |
+| PUT / DELETE | `/api/v1/clients/:id` | session | update / delete (tenant-scoped) |
+| POST | `/api/v1/uploads/sign` | session | authed presigned R2 room upload (Studio) |
+| POST | `/api/v1/generations` | session | Studio generate — reuses `createGeneration`, debits 1 credit, optional `clientId` |
+| POST | `/api/v1/generations/:id/email` | session | email a finished render (7-day signed link) to the client |
 | POST | `/api/v1/billing/checkout` | session | Stripe Checkout URL `{ plan }` |
 | POST | `/api/v1/billing/portal` | session | Stripe Customer Portal URL |
 | POST | `/api/v1/webhooks/stripe` | signature | plan + credit grant; `invoice.payment_failed` → notify |

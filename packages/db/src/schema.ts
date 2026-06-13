@@ -154,6 +154,24 @@ export const widgetConfigs = pgTable(
   ],
 );
 
+// ───────────────────────────── clients (Studio, #8) ─────────────────────────────
+// A merchant's lightweight contact list for the physical-store / in-dashboard Studio flow.
+export const clients = pgTable(
+  'clients',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id, { onDelete: 'cascade' }),
+    name: text('name').notNull(),
+    email: text('email'),
+    phone: text('phone'),
+    notes: text('notes'),
+    createdAt: createdAt(),
+  },
+  (t) => [index('clients_merchant_idx').on(t.merchantId, t.createdAt.desc())],
+);
+
 // ───────────────────────────── generations ─────────────────────────────
 export interface ProductSnapshot {
   name: string;
@@ -177,6 +195,8 @@ export const generations = pgTable(
     productSnapshot: jsonb('product_snapshot').$type<ProductSnapshot>().notNull(),
     placementHint: text('placement_hint'),
     customInstructions: text('custom_instructions'),
+    // Studio (#8): the client this render was made for (in-dashboard generations). Null for widget runs.
+    clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
     idempotencyKey: text('idempotency_key').notNull(),
     // outputs
     resultKey: text('result_key'),
@@ -338,6 +358,7 @@ export const schema = {
   apiKeys,
   products,
   widgetConfigs,
+  clients,
   generations,
   generationAssets,
   creditLedger,

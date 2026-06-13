@@ -51,6 +51,12 @@ const ICONS: Record<string, ReactElement> = {
       <path d="M1 14h6M9 8h6M17 16h6" />
     </>
   ),
+  studio: (
+    <>
+      <path d="M3 8a2 2 0 0 1 2-2h2l1.4-2h7L17 6h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <circle cx="12" cy="12" r="3.2" />
+    </>
+  ),
   'chevron-updown': <path d="M8 9l4-4 4 4M8 15l4 4 4-4" />,
   'chevron-down': <path d="M6 9l6 6 6-6" />,
   menu: <path d="M3 6h18M3 12h18M3 18h18" />,

@@ -36,6 +36,7 @@ export const NAV_GROUPS: readonly NavGroup[] = [
 /** Sidebar navigation (matches the design prototype's order + grouping). */
 export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'overview', label: 'Overview', href: '/overview', group: 'main', icon: 'overview' },
+  { key: 'studio', label: 'Studio', href: '/studio', group: 'main', icon: 'studio' },
   { key: 'generations', label: 'Generations', href: '/generations', group: 'main', icon: 'generations' },
   { key: 'products', label: 'Products', href: '/products', group: 'main', icon: 'products' },
   { key: 'analytics', label: 'Analytics', href: '/analytics', group: 'main', icon: 'analytics' },
