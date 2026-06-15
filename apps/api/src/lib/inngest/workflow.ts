@@ -17,6 +17,8 @@ import type { ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
 import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
+import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
+import { compositeOverOriginal } from '../images/composite.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
 
@@ -123,6 +125,45 @@ async function estimateCoverage(
     deps.reportError?.(err, { generationId: gen.id, stage: 'estimate_quantity' });
   }
   return { suggestedQuantity: null, quantityRationale: null };
+}
+
+// Change-detection knobs (tunable per env in S5 from the golden-set eval).
+const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
+const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
+const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
+const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
+
+/**
+ * Keep only the region the model actually changed (the product + its shadows) and composite it back over
+ * the ORIGINAL, so the rest of the scene is byte-identical to the upload. Falls back to the full model
+ * output when the detected change is implausibly small/large or the images can't be read. Never throws.
+ */
+async function keepOnlyProductChange(
+  original: Uint8Array,
+  composed: { bytes: Uint8Array; contentType: string },
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  try {
+    const change = await computeChangeMask(original, composed.bytes, {
+      threshold: CHANGE_THRESHOLD,
+      feather: CHANGE_FEATHER,
+    });
+    if (
+      !shouldComposite(change.changedFraction, {
+        minFraction: CHANGE_MIN_FRACTION,
+        maxFraction: CHANGE_MAX_FRACTION,
+      })
+    ) {
+      return { bytes: composed.bytes, contentType: composed.contentType };
+    }
+    return await compositeOverOriginal({
+      original,
+      edited: composed.bytes,
+      mask: change.mask,
+      contentType: composed.contentType,
+    });
+  } catch {
+    return { bytes: composed.bytes, contentType: composed.contentType };
+  }
 }
 
 interface SuccessFields {
@@ -262,9 +303,15 @@ export async function processGeneration(
       watermark: plan === 'free',
     });
 
-    // Step 5 — moderate output before persisting; an unsafe composite is never billed.
+    // Pixel-perfect step (#AI-gen v2): Gemini inserts the exact product but re-renders the whole frame.
+    // Detect where it actually changed the scene and composite only that region back over the ORIGINAL,
+    // so everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift).
+    // A too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
+    const finalImage = await keepOnlyProductChange(sanitized, composed);
+
+    // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(
-      { bytes: composed.bytes, contentType: composed.contentType },
+      { bytes: finalImage.bytes, contentType: finalImage.contentType },
       category,
     );
     if (!outputVerdict.ok) {
@@ -282,7 +329,7 @@ export async function processGeneration(
     }
 
     const key = buildResultKey(gen.merchantId, generationId);
-    await deps.storage.putObject(key, composed.bytes, composed.contentType);
+    await deps.storage.putObject(key, finalImage.bytes, finalImage.contentType);
 
     // Coverage-quantity estimate (#7) — best-effort: never fails the generation. Stored only for a
     // confident coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
