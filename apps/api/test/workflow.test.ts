@@ -19,7 +19,7 @@ import {
 } from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { processGeneration, type StoragePort } from '../src/lib/inngest/workflow.js';
+import { markFailed, processGeneration, type StoragePort } from '../src/lib/inngest/workflow.js';
 
 let ctx: TestDb;
 
@@ -315,5 +315,56 @@ describe('processGeneration', () => {
 
     const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
     expect(gen.suggestedQuantity).toBeNull();
+  });
+});
+
+// The Inngest `onFailure` net: when a run dies *outside* processGeneration's own try/catch (a module-load
+// crash, OOM, or timeout — the failure mode that left a generation stuck in QUEUED), this marks it failed
+// and refunds the credit. It must be idempotent so retries / a late onFailure can never double-refund.
+describe('markFailed (Inngest onFailure net)', () => {
+  it('marks a stuck queued generation failed and refunds the credit', async () => {
+    const { merchantId, generationId } = await queued(4);
+    const outcome = await markFailed({ db: ctx.db }, generationId, 'generation_failed');
+    expect(outcome).toBe('failed');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.status).toBe('failed');
+    expect(gen.errorCode).toBe('generation_failed');
+    expect(gen.finishedAt).not.toBeNull();
+
+    const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))
+      .creditsBalance;
+    expect(balance).toBe(5); // refunded (+1)
+  });
+
+  it('is idempotent — a second call neither re-fails nor double-refunds', async () => {
+    const { merchantId, generationId } = await queued(4);
+    expect(await markFailed({ db: ctx.db }, generationId, 'generation_failed')).toBe('failed');
+    expect(await markFailed({ db: ctx.db }, generationId, 'generation_failed')).toBe('skipped');
+
+    const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))
+      .creditsBalance;
+    expect(balance).toBe(5); // still just one refund, not two
+
+    const sum =
+      await ctx.sqlClient`select coalesce(sum(amount),0)::int as s from credit_ledger where merchant_id = ${merchantId}::uuid`;
+    expect(sum[0]?.s).toBe(0); // -1 debit + exactly one +1 refund
+  });
+
+  it('never refunds or overwrites a generation that already succeeded', async () => {
+    const { merchantId, generationId } = await queued(4);
+    await ctx.db.update(generations).set({ status: 'succeeded' }).where(eq(generations.id, generationId));
+
+    expect(await markFailed({ db: ctx.db }, generationId, 'generation_failed')).toBe('skipped');
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.status).toBe('succeeded'); // untouched
+    const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))
+      .creditsBalance;
+    expect(balance).toBe(4); // no refund
+  });
+
+  it('skips a generation that no longer exists', async () => {
+    expect(await markFailed({ db: ctx.db }, randomUUID(), 'generation_failed')).toBe('skipped');
   });
 });

@@ -1,4 +1,4 @@
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
   type AIOrchestrator,
@@ -51,7 +51,7 @@ type GenerationRow = typeof generations.$inferSelect;
  * problems must never change the workflow outcome, so failures here are swallowed (reported, not thrown).
  */
 async function notifyGenerationFailed(
-  deps: WorkflowDeps,
+  deps: Pick<WorkflowDeps, 'notify' | 'reportError'>,
   gen: GenerationRow,
   errorCode: string,
 ): Promise<void> {
@@ -209,20 +209,70 @@ export async function finalizeSuccess(db: Database, p: SuccessFields): Promise<v
   });
 }
 
-/** Terminal failure: mark failed + refund the credit (never bill a failed generation, HARD RULE #3). */
+/**
+ * Terminal failure: mark failed + refund the credit (never bill a failed generation, HARD RULE #3).
+ *
+ * Idempotent by construction: the status flip is conditional on the row still being `queued`/`processing`,
+ * and the refund only fires when that flip actually changed a row. `grant_credits()` is *not* itself
+ * idempotent, so this guard is what prevents a double-refund when both a retry's catch and the Inngest
+ * `onFailure` net (or two retries) reach the same generation. Returns whether it transitioned the row.
+ */
 export async function refundAndFail(
   db: Database,
   p: { generationId: string; merchantId: string; creditsSpent: number; errorCode: string },
-): Promise<void> {
-  await db.transaction(async (tx) => {
-    await tx
+): Promise<boolean> {
+  return db.transaction(async (tx) => {
+    const transitioned = await tx
       .update(generations)
       .set({ status: 'failed', errorCode: p.errorCode, finishedAt: new Date() })
-      .where(eq(generations.id, p.generationId));
+      .where(
+        and(eq(generations.id, p.generationId), inArray(generations.status, ['queued', 'processing'])),
+      )
+      .returning({ id: generations.id });
+    if (transitioned.length === 0) {
+      return false; // already terminal — don't refund again
+    }
     await tx.execute(
       sql`select grant_credits(${p.merchantId}::uuid, ${p.creditsSpent}, 'refund', ${p.generationId})`,
     );
+    return true;
   });
+}
+
+/**
+ * The Inngest `onFailure` net (§4 Phase E): mark a generation failed + refund when a run dies *outside*
+ * `processGeneration`'s own try/catch — a module-load crash, an OOM, or a function timeout — i.e. the
+ * failure mode that previously left the row stuck in QUEUED. Idempotent (no-ops on an already-terminal
+ * row, so it never double-refunds). Best-effort notify/event only when it actually transitions the row.
+ */
+export async function markFailed(
+  deps: Pick<WorkflowDeps, 'db' | 'events' | 'reportError' | 'notify'>,
+  generationId: string,
+  errorCode: string,
+): Promise<ProcessOutcome> {
+  const rows = await deps.db
+    .select()
+    .from(generations)
+    .where(eq(generations.id, generationId))
+    .limit(1);
+  const gen = rows[0];
+  if (!gen) {
+    return 'skipped';
+  }
+  const transitioned = await refundAndFail(deps.db, {
+    generationId,
+    merchantId: gen.merchantId,
+    creditsSpent: gen.creditsSpent,
+    errorCode,
+  });
+  if (!transitioned) {
+    return 'skipped'; // already finished (success or an earlier failure) — leave it alone
+  }
+  await notifyGenerationFailed(deps, gen, errorCode);
+  deps.events?.track(
+    generationEvent({ generationId, merchantId: gen.merchantId, status: 'failed', creditsSpent: gen.creditsSpent, errorCode }),
+  );
+  return 'failed';
 }
 
 /**
@@ -243,9 +293,11 @@ export async function processGeneration(
     return 'skipped';
   }
 
-  await db.update(generations).set({ status: 'processing' }).where(eq(generations.id, generationId));
-
   try {
+    // Inside the try so a failure here (e.g. the DB hiccupping on the status flip) still refunds + marks
+    // failed via the catch, instead of escaping and leaving the row stuck in QUEUED.
+    await db.update(generations).set({ status: 'processing' }).where(eq(generations.id, generationId));
+
     const merchantRows = await db
       .select({ plan: merchants.plan })
       .from(merchants)
