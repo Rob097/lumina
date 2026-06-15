@@ -71,8 +71,8 @@ async function notifyGenerationFailed(
 /** Map a moderation reason to a terminal generation error code. */
 function moderationErrorCode(reason: ModerationReason): string {
   switch (reason) {
-    case 'not_interior':
-      return 'not_interior';
+    case 'not_environment':
+      return 'not_environment';
     case 'face_dominant':
       return 'face_dominant';
     case 'corrupt':

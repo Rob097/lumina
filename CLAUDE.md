@@ -52,7 +52,8 @@ Resend · Sentry · Axiom · Zod (in `packages/shared`).
 8. **AI provider abstraction.** All model calls go through `AIOrchestrator.compose()`. Swapping
    fal.ai ↔ Vertex ↔ Replicate must be a one-file change. No provider SDK calls scattered in handlers.
 9. **Privacy/safety.** Strip EXIF/GPS from uploads. Moderate inputs and outputs. Honor data retention +
-   GDPR delete. Reject non-interior room images and face-dominant images for non-fashion categories.
+   GDPR delete. Reject images that aren't a real **interior or exterior** environment (e.g.
+   selfies/documents/memes) and face-dominant images for non-fashion categories.
 10. **Provisioning/deploy via CLIs.** Use the vendor CLIs (`supabase`, `vercel`, `wrangler`, `stripe`,
     `gh`, `inngest`) for provisioning, migrations, and deploys — not by hand-editing dashboards.
 

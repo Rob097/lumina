@@ -129,10 +129,10 @@ describe('processGeneration', () => {
     expect(sum[0]?.s).toBe(0); // -1 debit + 1 refund
   });
 
-  it('rejects a non-interior input, refunds, and never composes', async () => {
+  it('rejects a non-environment input, refunds, and never composes', async () => {
     const { merchantId, generationId } = await queued(4);
     const rejectInput: ModerationProvider = {
-      moderateInput: async () => ({ ok: false, reason: 'not_interior' }),
+      moderateInput: async () => ({ ok: false, reason: 'not_environment' }),
       moderateOutput: async () => ({ ok: true }),
     };
     const outcome = await processGeneration(
@@ -143,7 +143,7 @@ describe('processGeneration', () => {
 
     const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
     expect(gen.status).toBe('failed');
-    expect(gen.errorCode).toBe('not_interior');
+    expect(gen.errorCode).toBe('not_environment');
     expect(gen.resultKey).toBeNull();
 
     const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))

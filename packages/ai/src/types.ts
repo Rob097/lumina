@@ -6,12 +6,17 @@ export type RoutingPolicy = 'quality' | 'balanced' | 'fast';
 /** An image passed to a provider — either a fetchable URL or raw bytes. */
 export type ImageRef = { url: string } | { bytes: Uint8Array; contentType?: string };
 
+/** Whether the uploaded photo is an indoor space or an outdoor scene (facade, entrance, garden). */
+export type SceneType = 'interior' | 'exterior';
+
 /** Output of the fast scene-analysis pass (§7.4 step 3). */
 export interface SceneAnalysis {
   lightDir: string;
   colorTempK: number;
   style: string;
   surfaces: string[];
+  /** Indoor vs outdoor — drives exterior-aware compositing guidance. Optional until the scene pass is wired. */
+  sceneType?: SceneType;
 }
 
 export interface Dimensions {
@@ -30,6 +35,8 @@ export interface ComposeInput {
   customInstructions?: string;
   dimensions?: Dimensions;
   scene?: SceneAnalysis;
+  /** Indoor vs outdoor — adds exterior-aware guidance to the prompt (facades, gardens, entrances). */
+  sceneType?: SceneType;
   policy: RoutingPolicy;
   /** Long-edge pixels to generate at; defaults are env-configured per policy. */
   resolution?: number;

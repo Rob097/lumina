@@ -29,9 +29,9 @@ describe('generationEvent', () => {
       merchantId: 'm1',
       status: 'failed',
       creditsSpent: 1,
-      errorCode: 'not_interior',
+      errorCode: 'not_environment',
     });
-    expect(e).toMatchObject({ status: 'failed', errorCode: 'not_interior', costCents: null, model: null });
+    expect(e).toMatchObject({ status: 'failed', errorCode: 'not_environment', costCents: null, model: null });
   });
 });
 

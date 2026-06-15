@@ -4,16 +4,17 @@ import type { ImageRef } from './types.js';
 /**
  * Input/output moderation (§7.4 steps 1 & 5, HARD RULE #9). The *policy* is pure and tested here;
  * the actual classifier (a vision model / provider safety filter) lives behind `ModerationProvider`
- * and only produces the signals. We reject non-interior rooms and face-dominant photos for non-fashion
- * categories, and any unsafe content — and a terminal reject refunds the credit upstream.
+ * and only produces the signals. We reject photos that aren't a real environment — interior **or**
+ * exterior (facades, entrances, gardens) — selfies/documents/memes, and face-dominant photos for
+ * non-fashion categories, plus any unsafe content. A terminal reject refunds the credit upstream.
  */
-export type ModerationReason = 'unsafe' | 'not_interior' | 'face_dominant' | 'corrupt';
+export type ModerationReason = 'unsafe' | 'not_environment' | 'face_dominant' | 'corrupt';
 export type ModerationVerdict = { ok: true } | { ok: false; reason: ModerationReason };
 
 /** Classifier outputs in [0,1] for a single image. */
 export interface ImageSignals {
-  /** Probability the photo depicts an interior/space. */
-  interiorScore: number;
+  /** Probability the photo depicts a real usable environment — interior OR exterior. */
+  sceneScore: number;
   /** Fraction of the frame occupied by faces. */
   faceAreaRatio: number;
   /** Unsafe-content probability. */
@@ -21,13 +22,13 @@ export interface ImageSignals {
 }
 
 export interface ModerationThresholds {
-  minInterior: number;
+  minScene: number;
   maxFaceRatioNonFashion: number;
   maxNsfw: number;
 }
 
 export const DEFAULT_MODERATION_THRESHOLDS: ModerationThresholds = {
-  minInterior: 0.5,
+  minScene: 0.5,
   maxFaceRatioNonFashion: 0.25,
   maxNsfw: 0.7,
 };
@@ -43,8 +44,8 @@ export function classifyInput(
   if (signals.nsfwScore >= thresholds.maxNsfw) {
     return { ok: false, reason: 'unsafe' };
   }
-  if (signals.interiorScore < thresholds.minInterior && !FACE_OK_CATEGORIES.has(category)) {
-    return { ok: false, reason: 'not_interior' };
+  if (signals.sceneScore < thresholds.minScene && !FACE_OK_CATEGORIES.has(category)) {
+    return { ok: false, reason: 'not_environment' };
   }
   if (!FACE_OK_CATEGORIES.has(category) && signals.faceAreaRatio > thresholds.maxFaceRatioNonFashion) {
     return { ok: false, reason: 'face_dominant' };

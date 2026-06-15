@@ -2,16 +2,20 @@ import { describe, expect, it } from 'vitest';
 import { classifyInput, classifyOutput, DEFAULT_MODERATION_THRESHOLDS } from '../src/moderation.js';
 import type { ImageSignals } from '../src/moderation.js';
 
-const safe: ImageSignals = { interiorScore: 0.92, faceAreaRatio: 0.02, nsfwScore: 0.01 };
+const safe: ImageSignals = { sceneScore: 0.92, faceAreaRatio: 0.02, nsfwScore: 0.01 };
 
 describe('classifyInput', () => {
-  it('passes a clean interior room', () => {
+  it('passes a clean interior environment', () => {
     expect(classifyInput(safe, 'lighting')).toEqual({ ok: true });
   });
 
-  it('rejects a non-interior room photo', () => {
-    const v = classifyInput({ ...safe, interiorScore: 0.2 }, 'furniture');
-    expect(v).toEqual({ ok: false, reason: 'not_interior' });
+  it('passes an exterior environment (facade/garden) — high scene score', () => {
+    expect(classifyInput({ ...safe, sceneScore: 0.8 }, 'outdoor')).toEqual({ ok: true });
+  });
+
+  it('rejects a non-environment photo (selfie/document/meme)', () => {
+    const v = classifyInput({ ...safe, sceneScore: 0.2 }, 'furniture');
+    expect(v).toEqual({ ok: false, reason: 'not_environment' });
   });
 
   it('rejects a face-dominant photo for non-fashion categories', () => {
@@ -24,7 +28,7 @@ describe('classifyInput', () => {
   });
 
   it('rejects unsafe content regardless of category, before other checks', () => {
-    const v = classifyInput({ interiorScore: 0.0, faceAreaRatio: 0.9, nsfwScore: 0.95 }, 'fashion');
+    const v = classifyInput({ sceneScore: 0.0, faceAreaRatio: 0.9, nsfwScore: 0.95 }, 'fashion');
     expect(v).toEqual({ ok: false, reason: 'unsafe' });
   });
 });
@@ -41,7 +45,7 @@ describe('classifyOutput', () => {
 
 describe('DEFAULT_MODERATION_THRESHOLDS', () => {
   it('exposes tunable thresholds', () => {
-    expect(DEFAULT_MODERATION_THRESHOLDS.minInterior).toBeGreaterThan(0);
+    expect(DEFAULT_MODERATION_THRESHOLDS.minScene).toBeGreaterThan(0);
     expect(DEFAULT_MODERATION_THRESHOLDS.maxFaceRatioNonFashion).toBeLessThan(1);
   });
 });

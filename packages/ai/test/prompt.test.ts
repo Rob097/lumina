@@ -10,11 +10,11 @@ const base: ComposeInput = {
 };
 
 describe('buildComposePrompt', () => {
-  it('always enforces identity preservation and room integrity', () => {
+  it('always enforces identity preservation and environment integrity', () => {
     const p = buildComposePrompt(base);
-    expect(p).toContain('photorealistic interior compositor');
+    expect(p).toContain('photorealistic environment compositor');
     expect(p).toMatch(/exact geometry|identity|exact product/i);
-    expect(p).toMatch(/do not (alter|change) the room/i);
+    expect(p).toMatch(/do not (alter|change) the (room|scene|environment)/i);
     expect(p).toMatch(/contact shadow/i);
   });
 
@@ -42,6 +42,14 @@ describe('buildComposePrompt', () => {
 
   it('adds category-specific guidance (lighting → glow/cast)', () => {
     expect(buildComposePrompt(base)).toMatch(/glow|cast|fixture/i);
+  });
+
+  it('adds exterior guidance only when the scene is exterior', () => {
+    // The system rules always mention "interior OR exterior"; the per-request EXTERIOR guidance does not.
+    expect(buildComposePrompt(base)).not.toMatch(/EXTERIOR scene/);
+    const exterior = buildComposePrompt({ ...base, sceneType: 'exterior', category: 'outdoor' });
+    expect(exterior).toMatch(/EXTERIOR scene/);
+    expect(exterior).toMatch(/ground plane|sky|sun/i);
   });
 
   it('includes real-world dimensions when provided', () => {
