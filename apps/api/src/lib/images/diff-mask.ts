@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import { loadSharp } from './sharp.js';
 
 /**
  * Change detection for pixel-perfect compositing (#AI-gen v2). Gemini is reference-aware (it inserts the
@@ -35,6 +35,7 @@ export async function computeChangeMask(
   const threshold = opts.threshold ?? DEFAULT_THRESHOLD;
   const feather = opts.feather ?? DEFAULT_FEATHER;
   try {
+    const sharp = await loadSharp();
     const meta = await sharp(Buffer.from(original)).metadata();
     const width = meta.width ?? 0;
     const height = meta.height ?? 0;

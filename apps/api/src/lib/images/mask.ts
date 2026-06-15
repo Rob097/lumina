@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import { loadSharp } from './sharp.js';
 
 /**
  * Mask rasterization for pixel-perfect inpainting (#AI-gen v2). The placement step returns a normalized
@@ -48,6 +48,7 @@ export async function rasterizeMask(opts: {
 }): Promise<Uint8Array> {
   const { width, height } = opts;
   const { left, top, w, h } = boxToPixels(opts.box, width, height);
+  const sharp = await loadSharp();
 
   const white = await sharp({
     create: { width: w, height: h, channels: 3, background: { r: 255, g: 255, b: 255 } },

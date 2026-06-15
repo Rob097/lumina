@@ -1,4 +1,4 @@
-import sharp from 'sharp';
+import { loadSharp } from './sharp.js';
 
 /**
  * Server-side image dimensions + aspect-ratio helpers (#AI-gen v2). Used to pin the compose output to
@@ -25,6 +25,7 @@ const SUPPORTED_ASPECT_RATIOS: ReadonlyArray<readonly [string, number]> = [
  */
 export async function readImageSize(bytes: Uint8Array): Promise<{ width: number; height: number }> {
   try {
+    const sharp = await loadSharp();
     const meta = await sharp(Buffer.from(bytes)).metadata();
     return { width: meta.width ?? 0, height: meta.height ?? 0 };
   } catch {
