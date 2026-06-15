@@ -5,10 +5,4 @@
  */
 export { COMPOSE_SYSTEM_INSTRUCTION } from './system.js';
 export { buildComposeTask } from './compose.js';
-export {
-  CATEGORY_GUIDANCE,
-  DEFAULT_CATEGORY_GUIDANCE,
-  EXTERIOR_GUIDANCE,
-  categoryGuidance,
-} from './category-guidance.js';
 export { buildQuantityPrompt } from './quantity.js';

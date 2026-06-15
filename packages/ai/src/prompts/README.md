@@ -14,13 +14,17 @@ Changes are versioned in git — review them like any other code.
 
 | File | What it controls | Used by |
 |---|---|---|
-| `system.ts` | `COMPOSE_SYSTEM_INSTRUCTION` — the stable persona + **HARD RULES** for the compositor (interior **and** exterior). | every compose call |
-| `compose.ts` | `buildComposeTask()` — the per-request task: placement, scale, lighting, category guidance, exterior note, shopper free-text. | every compose call |
-| `category-guidance.ts` | `CATEGORY_GUIDANCE` (one line per product category) + `EXTERIOR_GUIDANCE` (added for outdoor scenes). | `compose.ts` |
+| `system.ts` | `COMPOSE_SYSTEM_INSTRUCTION` — **the master prompt**: objective → inputs → ANALYZE → HARD RULES → output → avoid. Works for ANY product, interior **and** exterior. | every compose call |
+| `compose.ts` | `buildComposeTask()` — the per-request facts: category (soft hint), dimensions, placement hint, scene lighting, exterior note, shopper free-text. | every compose call |
 | `quantity.ts` | `buildQuantityPrompt()` — the coverage-quantity estimate prompt (tiles/decor/renovation/outdoor). | the quantity step (#7) |
 
-> `prompt.ts` (one level up) is a thin assembler: `buildComposePrompt = system + task`. The system
-> instruction and the task are kept separate so the provider can send them as a real system message.
+> **No fixed category switch.** The master prompt has the model identify the product and decide its
+> **placement archetype itself** (open-ended — the examples in `system.ts` only illustrate the idea, they
+> don't limit it). The merchant `category` is passed in `compose.ts` only as a *soft hint*, so the result
+> stays reliable for any product — there is no "unsupported category" failure mode.
+>
+> `prompt.ts` (one level up) is a thin assembler: `buildComposePrompt = system + task`. They are kept
+> separate so the provider can send the system as a real system message.
 
 ## Coming in later stages
 - `scene.ts` — the scene-analysis vision prompt (S2, lighting + interior/exterior).

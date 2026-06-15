@@ -40,8 +40,17 @@ describe('buildComposePrompt', () => {
     expect(p).toContain('3200');
   });
 
-  it('adds category-specific guidance (lighting → glow/cast)', () => {
-    expect(buildComposePrompt(base)).toMatch(/glow|cast|fixture/i);
+  it('has the model decide the placement archetype itself, with open-ended examples (no fixed category)', () => {
+    const p = buildComposePrompt(base);
+    expect(p).toMatch(/do not rely on a fixed category/i);
+    expect(p).toMatch(/not an exhaustive list/i);
+    // a few illustrative archetypes are present, but only as examples
+    expect(p).toMatch(/free-standing object|wall- or ceiling-mounted|reflective surface/i);
+  });
+
+  it('passes the merchant category only as a soft, possibly-wrong hint', () => {
+    const p = buildComposePrompt(base);
+    expect(p).toMatch(/category \(approximate merchant hint/i);
   });
 
   it('adds exterior guidance only when the scene is exterior', () => {
