@@ -16,6 +16,7 @@ import {
 import type { ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
 import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
+import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
 
@@ -224,6 +225,10 @@ export async function processGeneration(
     const snapshot = gen.productSnapshot;
     const category = snapshot.category as ProductCategory;
 
+    // Pin the output aspect ratio to the uploaded room so the edit can't re-frame/rotate the scene.
+    const roomSize = await readImageSize(sanitized);
+    const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
+
     // Step 1 — validate input (reject non-interior / unsafe, fail fast + refund, §7.4).
     const inputVerdict = await moderation.moderateInput({
       room: { url: roomUrl },
@@ -251,6 +256,8 @@ export async function processGeneration(
       category,
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,
+      dimensions: snapshot.dimensions,
+      aspectRatio,
       policy: planToPolicy(plan),
       watermark: plan === 'free',
     });

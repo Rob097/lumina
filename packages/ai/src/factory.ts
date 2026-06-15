@@ -21,16 +21,20 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     });
   }
 
+  // Pin a high output resolution (2K) by default; matching the room's aspect ratio is per-request.
+  const imageSize = env.GATEWAY_IMAGE_SIZE ?? '2K';
   const quality = new GatewayProvider({
     name: 'gateway-quality',
     model: env.GATEWAY_MODEL_QUALITY ?? 'google/gemini-3-pro-image',
     costCents: Number(env.GATEWAY_COST_QUALITY ?? 13),
+    imageSize,
     apiKey,
   });
   const fast = new GatewayProvider({
     name: 'gateway-fast',
     model: env.GATEWAY_MODEL_FAST ?? 'google/gemini-3.1-flash-image-preview',
     costCents: Number(env.GATEWAY_COST_FAST ?? 6),
+    imageSize,
     apiKey,
   });
 

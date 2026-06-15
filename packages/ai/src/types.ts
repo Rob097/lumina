@@ -37,6 +37,8 @@ export interface ComposeInput {
   scene?: SceneAnalysis;
   /** Indoor vs outdoor — adds exterior-aware guidance to the prompt (facades, gardens, entrances). */
   sceneType?: SceneType;
+  /** Output aspect ratio pinned to the room photo (e.g. '4:3') so the model can't re-frame/rotate it. */
+  aspectRatio?: string;
   policy: RoutingPolicy;
   /** Long-edge pixels to generate at; defaults are env-configured per policy. */
   resolution?: number;

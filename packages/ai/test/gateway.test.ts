@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   buildEditMessages,
+  buildImageProviderOptions,
   extractFirstImage,
   GatewayProvider,
 } from '../src/providers/gateway.js';
@@ -32,6 +33,20 @@ describe('buildEditMessages', () => {
     const bytes = new Uint8Array([1, 2, 3]);
     const msgs = buildEditMessages('P', [{ bytes, contentType: 'image/png' }]);
     expect(msgs[0]!.content[1]).toEqual({ type: 'image', image: bytes, mediaType: 'image/png' });
+  });
+});
+
+describe('buildImageProviderOptions', () => {
+  it('always requests TEXT+IMAGE modalities and adds aspectRatio/imageSize when present', () => {
+    expect(buildImageProviderOptions({ aspectRatio: '4:3', imageSize: '2K' })).toEqual({
+      google: { responseModalities: ['TEXT', 'IMAGE'], imageConfig: { aspectRatio: '4:3', imageSize: '2K' } },
+    });
+  });
+
+  it('omits imageConfig entirely when neither aspect ratio nor size is given', () => {
+    expect(buildImageProviderOptions({})).toEqual({
+      google: { responseModalities: ['TEXT', 'IMAGE'] },
+    });
   });
 });
 
@@ -87,6 +102,21 @@ describe('GatewayProvider.compose', () => {
       height: 900,
     });
     expect(result.bytes).toEqual(new Uint8Array([7]));
+  });
+
+  it('forwards the pinned aspect ratio + image size to the runner', async () => {
+    const run = vi.fn(async () => ({ bytes: new Uint8Array([1]), contentType: 'image/jpeg' }));
+    const provider = new GatewayProvider({
+      name: 'gateway-quality',
+      model: 'google/gemini-3-pro-image',
+      costCents: 13,
+      imageSize: '2K',
+      run,
+    });
+    await provider.compose({ ...baseInput(), aspectRatio: '4:3' }, 'PROMPT');
+    expect(run).toHaveBeenCalledWith(
+      expect.objectContaining({ aspectRatio: '4:3', imageSize: '2K' }),
+    );
   });
 
   it('exposes its configured name', () => {

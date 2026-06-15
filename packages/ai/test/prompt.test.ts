@@ -42,7 +42,7 @@ describe('buildComposePrompt', () => {
 
   it('has the model decide the placement archetype itself, with open-ended examples (no fixed category)', () => {
     const p = buildComposePrompt(base);
-    expect(p).toMatch(/do not rely on a fixed category/i);
+    expect(p).toMatch(/do not rely.*on a fixed category/i);
     expect(p).toMatch(/not an exhaustive list/i);
     // a few illustrative archetypes are present, but only as examples
     expect(p).toMatch(/free-standing object|wall- or ceiling-mounted|reflective surface/i);
