@@ -480,3 +480,24 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   merchant-scoped (HARD RULE #1). The UI reuses the design system end-to-end (the generations
   `gen-card` grid + `BeforeAfter` + `GenerationDetailModal`, `.table`/`.drawer`/`.avatar` primitives),
   so the change is mostly composition, not new visual primitives.
+
+- **D62 — Generation quality v2: a single editable master prompt + a pixel-perfect composite, all on the
+  AI Gateway.** The single full-frame Gemini edit rotated/re-framed scenes, guessed scale, and only worked
+  for known categories. Five changes fix this: **(1)** prompts move to one editable surface
+  `packages/ai/src/prompts/` — a structured **master prompt** (`system.ts`: objective→inputs→ANALYZE→hard
+  rules→output) where the model **infers the product's placement archetype itself** (open-ended; the
+  category is a soft hint, not a switch) — reliable for any product, no "unsupported category" cliff.
+  **(2)** Interior **and exterior** scenes (facades/gardens) are first-class: prompt language generalized
+  to "environment", moderation accepts a valid interior *or* exterior (`sceneScore`, reason
+  `not_environment`), HARD RULE #9 reworded. **(3)** The compose call pins the **output aspect ratio to the
+  uploaded room** + `imageSize 2K` via `providerOptions.google.imageConfig`, and feeds the product's real
+  dimensions — killing re-frame/rotation and scale guesswork. **(4)** **Pixel-perfect by construction:**
+  rather than trust the model to "keep the rest," we diff its render against the original
+  (`images/diff-mask.ts`), then composite only the changed region (product + shadows) back over the
+  original (`images/composite.ts`, an explicit raw per-pixel blend) — every pixel outside the product is
+  byte-identical to the upload; a too-small/large change falls back to the full render. `sharp` (server-only)
+  added for these pixel ops. **(5)** We **rejected FLUX.1 Fill** (and any mask-native inpainter): it is
+  text-only and can't reproduce the merchant's *exact* product, so Gemini stays the reference-aware
+  compositor and our composite enforces fidelity — keeping everything on the **one Gateway** (D49) with no
+  new platform; the dormant `fal` provider + `@fal-ai/client` dep were removed. Change-detection knobs
+  (`CHANGE_MASK_*`) are env-tunable from real renders.

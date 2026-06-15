@@ -26,6 +26,5 @@ export {
   type GatewayRunner,
   type GatewayImage,
 } from './providers/gateway.js';
-export { FalProvider, buildFalInput, type FalProviderOptions } from './providers/fal.js';
 export { VertexProvider } from './providers/vertex.js';
 export { ReplicateProvider } from './providers/replicate.js';

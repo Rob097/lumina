@@ -64,12 +64,19 @@ All responses use the standard envelope on error:
 `debit_credits` (1) + inserts a `queued` generation + sends `generation.requested` to Inngest — all atomic.
 
 The Inngest workflow (`generation.requested`, per-merchant + global concurrency caps) runs
-`processGeneration`: `processing` → `AIOrchestrator.compose()` (the single model entrypoint;
-policy-routed with retry + provider fallback) → store to R2 → **coverage-quantity estimate** (#7,
-best-effort: `AIOrchestrator.estimateQuantity()` for coverage categories only; never fails the
+`processGeneration`: `processing` → moderate input → **`AIOrchestrator.compose()`** (the single model
+entrypoint; policy-routed with retry + provider fallback). The compose call pins the **output aspect
+ratio to the uploaded room** + 2K (`providerOptions.google.imageConfig`) and feeds the product's real
+dimensions, so the model can't re-frame/rotate or misjudge scale. Then the **pixel-perfect step**
+(`keepOnlyProductChange`): diff the render against the original to find where the product (and its
+shadows) actually changed, and **composite only that region back over the original** — so every pixel
+outside the product is byte-identical to the upload (a too-small/large change keeps the full render).
+→ moderate output → store to R2 → **coverage-quantity estimate** (#7, best-effort; never fails the
 generation) → finalize (`succeeded`, cost/latency/model + result asset + usage_event +
 `suggested_quantity`/`quantity_rationale`). **Terminal failure refunds the credit**
-(`grant_credits(...,'refund')`) — we never bill a failed generation.
+(`grant_credits(...,'refund')`) — we never bill a failed generation. The compositor prompt is a single
+editable master prompt in [`packages/ai/src/prompts/`](../../packages/ai/src/prompts) (interior **and**
+exterior; the model infers the product's placement archetype itself).
 
 ```bash
 pnpm -F @lumina/api e2e   # offline end-to-end (mock provider + Testcontainers DB): generate → workflow → cache

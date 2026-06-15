@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@ai-sdk/gateway": "^3.0.126",
-    "@fal-ai/client": "^1.5.0",
     "@lumina/shared": "workspace:*",
     "ai": "^6.0.198",
     "zod": "^3.24.1"

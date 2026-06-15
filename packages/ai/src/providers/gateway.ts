@@ -13,7 +13,7 @@ export interface GatewayMessage {
 
 /**
  * Map a prompt + ordered reference images to one multimodal user message. The image order is
- * significant for the prompt contract — ROOM first, PRODUCT second (mirrors `buildFalInput`).
+ * significant for the prompt contract — ROOM first, PRODUCT second.
  */
 export function buildEditMessages(prompt: string, images: ImageRef[]): GatewayMessage[] {
   const content: GatewayContentPart[] = [{ type: 'text', text: prompt }];
