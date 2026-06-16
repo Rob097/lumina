@@ -1,6 +1,7 @@
 import { ProductCategorySchema, ProductInputSchema } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse } from '@/lib/http';
+import { enqueueProductImageProcess } from '@/lib/inngest/product-image';
 import { createProduct, listProducts } from '@/lib/products/service';
 
 export const runtime = 'nodejs';
@@ -37,5 +38,6 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse('invalid_input', 'Invalid product');
   }
   const product = await createProduct(guard.db, guard.merchantId, parsed.data);
+  await enqueueProductImageProcess(guard.merchantId, product.id); // eager cutout (best-effort, D63)
   return jsonResponse(product, { status: 201 });
 }

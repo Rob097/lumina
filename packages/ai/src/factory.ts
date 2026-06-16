@@ -34,7 +34,7 @@ export function selectBgRemovalProvider(
     if (!token || !model) {
       return undefined; // requested but incomplete → degrade, don't crash
     }
-    return new ReplicateMattingProvider({ model, apiToken: token });
+    return new ReplicateMattingProvider({ model, apiToken: token, inputKey: env.BG_REMOVAL_INPUT_KEY });
   }
   return undefined;
 }

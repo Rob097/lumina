@@ -113,4 +113,20 @@ describe('bulkUpsertProducts', () => {
     expect(list.total).toBe(3);
     expect(list.products.find((p) => p.externalId === 'SKU1')?.name).toBe('One Renamed');
   });
+
+  it('calls enqueue once per newly inserted product (eager cutout), not on updates', async () => {
+    const m = await newMerchant();
+    const ids: string[] = [];
+    const enqueue = async (productId: string): Promise<void> => {
+      ids.push(productId);
+    };
+
+    await bulkUpsertProducts(ctx.db, m, [input({ externalId: 'E1' }), input({ externalId: 'E2' })], enqueue);
+    expect(ids).toHaveLength(2);
+
+    // Re-import: E1 updates (no enqueue), E3 inserts (enqueue once).
+    ids.length = 0;
+    await bulkUpsertProducts(ctx.db, m, [input({ externalId: 'E1' }), input({ externalId: 'E3' })], enqueue);
+    expect(ids).toHaveLength(1);
+  });
 });

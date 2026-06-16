@@ -126,14 +126,20 @@ export async function archiveProduct(
   return rows.length > 0;
 }
 
-/** Upsert a batch by `external_id` (rows without one are always inserted). */
+/**
+ * Upsert a batch by `external_id` (rows without one are always inserted). `enqueue` (optional) is called
+ * once per **newly inserted** product after the transaction commits — used to eagerly compute its cutout
+ * (Phase 1 / D63). Best-effort by contract: the caller's `enqueue` must not throw on its own failures.
+ */
 export async function bulkUpsertProducts(
   db: Database,
   merchantId: string,
   inputs: ProductInput[],
+  enqueue?: (productId: string) => Promise<void>,
 ): Promise<BulkProductsResult> {
   let created = 0;
   let updated = 0;
+  const insertedIds: string[] = [];
 
   await db.transaction(async (tx) => {
     for (const input of inputs) {
@@ -162,19 +168,29 @@ export async function bulkUpsertProducts(
           .where(eq(products.id, existing[0].id));
         updated += 1;
       } else {
-        await tx.insert(products).values({
-          merchantId,
-          externalId: input.externalId ?? null,
-          name: input.name,
-          category: input.category,
-          imageUrl: input.imageUrl,
-          dimensions: input.dimensions ?? null,
-          attributes: input.attributes ?? {},
-        });
+        const [inserted] = await tx
+          .insert(products)
+          .values({
+            merchantId,
+            externalId: input.externalId ?? null,
+            name: input.name,
+            category: input.category,
+            imageUrl: input.imageUrl,
+            dimensions: input.dimensions ?? null,
+            attributes: input.attributes ?? {},
+          })
+          .returning({ id: products.id });
+        if (inserted) insertedIds.push(inserted.id);
         created += 1;
       }
     }
   });
+
+  if (enqueue) {
+    for (const id of insertedIds) {
+      await enqueue(id);
+    }
+  }
 
   return { created, updated };
 }

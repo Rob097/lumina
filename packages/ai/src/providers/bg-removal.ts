@@ -17,10 +17,14 @@ export interface MattingCallArgs {
 export type MattingRunner = (args: MattingCallArgs) => Promise<{ bytes: Uint8Array; contentType: string }>;
 
 export interface ReplicateMattingOptions {
-  /** Replicate official-model id, e.g. `men1scus/birefnet`. Env-configured (`BG_REMOVAL_MODEL`). */
+  /**
+   * Replicate model ref (`BG_REMOVAL_MODEL`). A non-official matting model needs a pinned version:
+   * `owner/name:version` (e.g. `men1scus/birefnet:f74986db…`) or a bare 64-char version id. A bare
+   * `owner/name` only works for official models.
+   */
   model: string;
   apiToken?: string;
-  /** The image-input field the model expects (default `image`). */
+  /** The image-input field the model expects (`BG_REMOVAL_INPUT_KEY`, default `image`). */
   inputKey?: string;
   run?: MattingRunner;
 }
@@ -44,6 +48,26 @@ function imageInput(image: ImageRef): string {
   }
   const base64 = Buffer.from(image.bytes).toString('base64');
   return `data:${image.contentType ?? 'image/png'};base64,${base64}`;
+}
+
+/**
+ * Pick the Replicate endpoint + body for a model ref. Replicate runs a bare `owner/name` via the
+ * official-models endpoint, but **every non-official model requires a pinned version** — passed either as
+ * `owner/name:version` or a bare 64-char version id — which goes through `/v1/predictions`. (BiRefNet and
+ * other matting models are not official, so the version form is the one we actually use; see the activation
+ * note in `.env.example`.) Pure, so the endpoint logic is unit-tested without the network.
+ */
+export function buildMattingRequest(
+  model: string,
+  inputKey: string,
+  image: ImageRef,
+): { url: string; body: Record<string, unknown> } {
+  const input = { [inputKey]: imageInput(image) };
+  const isVersioned = model.includes(':') || /^[0-9a-f]{64}$/.test(model);
+  if (isVersioned) {
+    return { url: 'https://api.replicate.com/v1/predictions', body: { version: model, input } };
+  }
+  return { url: `https://api.replicate.com/v1/models/${model}/predictions`, body: { input } };
 }
 
 /** Matting models return a single image URL or an array; take the first string URL. */
@@ -70,14 +94,15 @@ function createReplicateMattingRunner(opts: ReplicateMattingOptions): MattingRun
     if (!token) {
       throw new Error('REPLICATE_API_TOKEN is not set');
     }
-    const res = await fetch(`https://api.replicate.com/v1/models/${model}/predictions`, {
+    const { url: endpoint, body } = buildMattingRequest(model, inputKey, image);
+    const res = await fetch(endpoint, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
         Prefer: 'wait',
       },
-      body: JSON.stringify({ input: { [inputKey]: imageInput(image) } }),
+      body: JSON.stringify(body),
     });
     if (!res.ok) {
       throw new Error(`Replicate matting failed: ${res.status} ${await res.text()}`);

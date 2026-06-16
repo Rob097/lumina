@@ -527,11 +527,19 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   raw image**, all **best-effort** (any failure or no provider configured degrades to the raw product
   image; a cutout failure never fails or bills a generation). New R2 objects keep the `{merchant_id}/`
   prefix. Offline e2e stays green via `MockBgRemovalProvider` (a fidelity-preserving no-op).
-  **Deferred (intentionally, lazy guard makes them non-essential):** the eager `product.image.process`
-  Inngest pre-compute on product create/bulk (an optimization to remove first-generation latency) and the
-  Gemini-edit bg-removal implementation behind the same seam (a secondary fidelity A/B vs matting).
-  `sharp`-based matte erosion/feather is left to a later refinement to keep `packages/ai` free of a native
-  `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).
+  **Eager pre-compute (now implemented):** a `product.image.process` Inngest function computes + caches the
+  cutout on product **create / bulk upsert** (tenant-scoped, idempotent — skips when `clean_image_key` is
+  set, best-effort so it never blocks a product write), so the first generation isn't slowed by it; the
+  lazy guard remains the backstop. **Endpoint correctness (verified on Replicate):** a non-official matting
+  model (BiRefNet et al.) is **not** runnable via the `/v1/models/{owner}/{name}/predictions` endpoint —
+  that is official-models-only — so the provider routes a **version-pinned** ref (`owner/name:version` or a
+  bare version id) through `/v1/predictions` with `Prefer: wait` (`buildMattingRequest`). Verified model:
+  `men1scus/birefnet` (6.2M runs, input field `image`); env `BG_REMOVAL_INPUT_KEY` covers models with a
+  different field. **Deferred — Gemini-edit bg-removal A/B (decided NOT to build):** a generative model
+  re-renders the product (no true alpha) — exactly what this decision rejected for fidelity — and can't be
+  quality-validated offline, so a speculative inferior provider isn't worth shipping; matting is the path.
+  `sharp`-based matte erosion/feather is likewise left to a later refinement to keep `packages/ai` free of a
+  native `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).
 
 - **D64 — Scene-analysis vision pass wired into compose.** The single-shot compositor degraded on noisy
   rooms because it had to infer geometry/lighting/scale from the raw image. Fix: a `SceneProvider`

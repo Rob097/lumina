@@ -175,7 +175,7 @@ async function keepOnlyProductChange(
 }
 
 /** R2 key for a product's cached background-removed cutout (tenant-prefixed, HARD RULE #1). */
-function productCleanKey(merchantId: string, id: string): string {
+export function productCleanKey(merchantId: string, id: string): string {
   return `products/${merchantId}/clean/${id}.png`;
 }
 

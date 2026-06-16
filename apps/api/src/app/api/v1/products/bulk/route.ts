@@ -1,6 +1,7 @@
 import { BulkProductsInputSchema } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse } from '@/lib/http';
+import { enqueueProductImageProcess } from '@/lib/inngest/product-image';
 import { bulkUpsertProducts } from '@/lib/products/service';
 
 export const runtime = 'nodejs';
@@ -16,6 +17,8 @@ export async function POST(request: Request): Promise<Response> {
   if (!parsed.success) {
     return errorResponse('invalid_input', 'Invalid product batch');
   }
-  const result = await bulkUpsertProducts(guard.db, guard.merchantId, parsed.data.products);
+  const result = await bulkUpsertProducts(guard.db, guard.merchantId, parsed.data.products, (productId) =>
+    enqueueProductImageProcess(guard.merchantId, productId),
+  );
   return jsonResponse(result);
 }
