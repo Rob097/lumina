@@ -31,13 +31,56 @@ describe('buildComposePrompt', () => {
     expect(buildComposePrompt(base)).toMatch(/most natural, functional location/i);
   });
 
-  it('injects scene lighting when a scene analysis is present', () => {
+  it('injects scene facts (lighting, surfaces, scale, placement) when a confident analysis is present', () => {
     const p = buildComposePrompt({
       ...base,
-      scene: { lightDir: 'top-left', colorTempK: 3200, style: 'scandi', surfaces: ['floor', 'wall'] },
+      scene: {
+        isExterior: false,
+        lighting: { direction: 'top-left', temperatureK: 3200, intensity: 'high' },
+        surfaces: [{ kind: 'floor' }, { kind: 'wall', orientation: 'back wall' }],
+        tiltDegrees: 0,
+        roomScale: { ceilingHeightM: 2.6, referenceObjects: ['door'] },
+        suggestedPlacement: { region: 'against the back wall' },
+        quality: { blurry: false, dark: false, cluttered: false },
+        confidence: 0.8,
+      },
     });
     expect(p).toContain('top-left');
     expect(p).toContain('3200');
+    expect(p).toMatch(/high/i);
+    expect(p).toMatch(/floor/i);
+    expect(p).toMatch(/2\.6/);
+    expect(p).toContain('against the back wall');
+  });
+
+  it('drops low-confidence scene facts (falls back to composing without them)', () => {
+    const p = buildComposePrompt({
+      ...base,
+      scene: {
+        isExterior: false,
+        lighting: { direction: 'top-left', intensity: 'high' },
+        surfaces: [],
+        tiltDegrees: 0,
+        quality: { blurry: true, dark: true, cluttered: true },
+        confidence: 0.05,
+      },
+    });
+    expect(p).not.toMatch(/Scene lighting/i);
+  });
+
+  it('adds exterior guidance when the scene analysis says it is exterior', () => {
+    const p = buildComposePrompt({
+      ...base,
+      scene: {
+        isExterior: true,
+        lighting: { direction: 'front', intensity: 'high' },
+        surfaces: [{ kind: 'ground' }],
+        tiltDegrees: 0,
+        quality: { blurry: false, dark: false, cluttered: false },
+        confidence: 0.9,
+      },
+    });
+    expect(p).toMatch(/EXTERIOR scene/);
   });
 
   it('has the model decide the placement archetype itself, with open-ended examples (no fixed category)', () => {

@@ -6,6 +6,7 @@ import {
   type ModerationProvider,
   type ModerationReason,
   type RoutingPolicy,
+  type SceneAnalysis,
 } from '@lumina/ai';
 import {
   generationAssets,
@@ -212,6 +213,25 @@ async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Prom
   return { url: rawUrl };
 }
 
+/**
+ * Per-image scene analysis (Phase 2 / D64): a cheap vision pass that gives the compositor lighting,
+ * surfaces, tilt, scale and a placement region for THIS room. Best-effort — a missing provider, an error
+ * or a low-confidence result must never fail or bill the generation, so we swallow errors here and let
+ * compose drop low-confidence facts. Runs in parallel with the product cutout.
+ */
+async function analyzeSceneSafe(
+  deps: WorkflowDeps,
+  gen: GenerationRow,
+  roomUrl: string,
+): Promise<SceneAnalysis | undefined> {
+  try {
+    return (await deps.orchestrator.analyzeScene({ url: roomUrl })) ?? undefined;
+  } catch (err) {
+    deps.reportError?.(err, { generationId: gen.id, stage: 'scene_analysis' });
+    return undefined;
+  }
+}
+
 interface SuccessFields {
   generationId: string;
   merchantId: string;
@@ -389,8 +409,12 @@ export async function processGeneration(
       return 'failed';
     }
 
-    // Compose against a clean product cutout when available (cached per product), else the raw image.
-    const productImage = await resolveProductImage(deps, gen);
+    // Run the independent pre-passes in parallel: the product cutout (cached per product, else the raw
+    // image) and the per-image scene analysis (best-effort facts the compositor can use).
+    const [productImage, scene] = await Promise.all([
+      resolveProductImage(deps, gen),
+      analyzeSceneSafe(deps, gen, roomUrl),
+    ]);
 
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
@@ -399,6 +423,7 @@ export async function processGeneration(
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,
       dimensions: snapshot.dimensions,
+      scene,
       aspectRatio,
       policy: planToPolicy(plan),
       watermark: plan === 'free',

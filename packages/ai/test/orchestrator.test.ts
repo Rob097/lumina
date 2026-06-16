@@ -80,6 +80,7 @@ describe('optional steps', () => {
 
     const withScene = new AIOrchestrator({ chains: chains(primary), scene: new MockSceneProvider() });
     const scene = await withScene.analyzeScene(input.room);
-    expect(scene?.colorTempK).toBe(4000);
+    expect(scene?.isExterior).toBe(false);
+    expect(scene?.lighting.direction).toBe('top-left');
   });
 });

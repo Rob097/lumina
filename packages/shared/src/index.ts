@@ -12,6 +12,7 @@ export * from './config.js';
 export * from './widget.js';
 export * from './generate.js';
 export * from './generation.js';
+export * from './scene.js';
 export * from './client.js';
 export * from './plans.js';
 export * from './account.js';

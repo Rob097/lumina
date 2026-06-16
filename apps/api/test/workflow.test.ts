@@ -7,6 +7,7 @@ import {
   type AIProvider,
   type ModerationProvider,
   type QuantityProvider,
+  type SceneAnalysis,
 } from '@lumina/ai';
 import { eq } from 'drizzle-orm';
 import {
@@ -404,6 +405,57 @@ describe('processGeneration — product cutout', () => {
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, gen)).toBe('succeeded');
     // No cutout cached when removal failed.
     expect(firstOrThrow(await ctx.db.select().from(products).where(eq(products.id, productId))).cleanImageKey).toBeNull();
+  });
+});
+
+describe('processGeneration — scene analysis (Phase 2)', () => {
+  const analysis: SceneAnalysis = {
+    isExterior: false,
+    lighting: { direction: 'top-left', intensity: 'medium' },
+    surfaces: [{ kind: 'floor' }],
+    tiltDegrees: 0,
+    quality: { blurry: false, dark: false, cluttered: false },
+    confidence: 0.8,
+  };
+
+  /** An orchestrator whose compose records the scene it received + a configurable scene analyzer. */
+  function orchestratorCapturingScene(
+    analyzeScene: () => Promise<SceneAnalysis>,
+    captured: { scene?: SceneAnalysis },
+  ): AIOrchestrator {
+    const provider: AIProvider = {
+      name: 'capture',
+      compose: async (input) => {
+        captured.scene = input.scene;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
+      },
+    };
+    return new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      scene: { analyzeScene },
+    });
+  }
+
+  it('runs scene analysis and feeds the result into compose', async () => {
+    const { generationId } = await queued(5);
+    const analyzeScene = vi.fn(async () => analysis);
+    const captured: { scene?: SceneAnalysis } = {};
+    const orch = orchestratorCapturingScene(analyzeScene, captured);
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    expect(analyzeScene).toHaveBeenCalledTimes(1);
+    expect(captured.scene).toEqual(analysis);
+  });
+
+  it('degrades to a successful generation when scene analysis throws (best-effort, no scene facts)', async () => {
+    const { generationId } = await queued(5);
+    const captured: { scene?: SceneAnalysis } = { scene: analysis };
+    const orch = orchestratorCapturingScene(async () => {
+      throw new Error('scene down');
+    }, captured);
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    expect(captured.scene).toBeUndefined();
   });
 });
 

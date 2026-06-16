@@ -17,6 +17,7 @@ Changes are versioned in git — review them like any other code.
 | `system.ts` | `COMPOSE_SYSTEM_INSTRUCTION` — **the master prompt**: objective → inputs → ANALYZE → HARD RULES → output → avoid. Works for ANY product, interior **and** exterior. | every compose call |
 | `compose.ts` | `buildComposeTask()` — the per-request facts: category (soft hint), dimensions, placement hint, scene lighting, exterior note, shopper free-text. | every compose call |
 | `quantity.ts` | `buildQuantityPrompt()` — the coverage-quantity estimate prompt (tiles/decor/renovation/outdoor). | the quantity step (#7) |
+| `scene.ts` | `buildScenePrompt()` — the per-image scene-analysis pass (lighting, surfaces, tilt, scale, placement, quality). Returns **continuous facts about that photo**, never a category. | the scene step (Phase 2 / D64) |
 
 > **No fixed category switch.** The master prompt has the model identify the product and decide its
 > **placement archetype itself** (open-ended — the examples in `system.ts` only illustrate the idea, they
@@ -27,8 +28,7 @@ Changes are versioned in git — review them like any other code.
 > separate so the provider can send the system as a real system message.
 
 ## Coming in later stages
-- `scene.ts` — the scene-analysis vision prompt (S2, lighting + interior/exterior).
-- `placement.ts` — the placement/mask vision prompt (S4, where the product goes).
+- `placement.ts` — the placement/mask vision prompt (where the product goes), if Phase 5 needs it.
 
 ## Guidelines when editing
 - Keep the **HARD RULES** in `system.ts` intact — they are what stop the model from redrawing the

@@ -30,6 +30,13 @@ export {
   type QuantityCallArgs,
 } from './providers/gateway-quantity.js';
 export {
+  GatewaySceneProvider,
+  type GatewaySceneProviderOptions,
+  type SceneRunner,
+  type SceneCallArgs,
+} from './providers/gateway-scene.js';
+export { buildScenePrompt } from './prompts/scene.js';
+export {
   GatewayProvider,
   buildEditMessages,
   extractFirstImage,

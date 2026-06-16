@@ -1,4 +1,10 @@
-import type { ProductCategory } from '@lumina/shared';
+import type { ProductCategory, SceneAnalysis } from '@lumina/shared';
+
+/**
+ * The scene-analysis output (per-image facts) is the shared wire contract (`SceneAnalysisSchema`).
+ * Re-exported so `@lumina/ai` consumers keep a single import surface (HARD RULE #6 — no duplicate types).
+ */
+export type { SceneAnalysis } from '@lumina/shared';
 
 /** Cost/quality routing policy resolved per merchant + request (§7.2). */
 export type RoutingPolicy = 'quality' | 'balanced' | 'fast';
@@ -8,16 +14,6 @@ export type ImageRef = { url: string } | { bytes: Uint8Array; contentType?: stri
 
 /** Whether the uploaded photo is an indoor space or an outdoor scene (facade, entrance, garden). */
 export type SceneType = 'interior' | 'exterior';
-
-/** Output of the fast scene-analysis pass (§7.4 step 3). */
-export interface SceneAnalysis {
-  lightDir: string;
-  colorTempK: number;
-  style: string;
-  surfaces: string[];
-  /** Indoor vs outdoor — drives exterior-aware compositing guidance. Optional until the scene pass is wired. */
-  sceneType?: SceneType;
-}
 
 export interface Dimensions {
   w?: number;

@@ -64,10 +64,20 @@ export class MockBgRemovalProvider implements BgRemovalProvider {
   }
 }
 
-/** Mock scene analyzer returning a fixed analysis. */
+/**
+ * Mock scene analyzer: a neutral "standard interior" analysis for offline/e2e runs (no network, no spend).
+ * Confidence is high enough that the compose path renders it, so the offline pipeline exercises the wiring.
+ */
 export class MockSceneProvider implements SceneProvider {
-  async analyzeScene(_image: { url: string } | { bytes: Uint8Array }): Promise<SceneAnalysis> {
-    return { lightDir: 'top-left', colorTempK: 4000, style: 'modern', surfaces: ['floor', 'wall'] };
+  async analyzeScene(_image: ImageRef): Promise<SceneAnalysis> {
+    return {
+      isExterior: false,
+      lighting: { direction: 'top-left', temperatureK: 4000, intensity: 'medium' },
+      surfaces: [{ kind: 'floor' }, { kind: 'wall' }],
+      tiltDegrees: 0,
+      quality: { blurry: false, dark: false, cluttered: false },
+      confidence: 0.6,
+    };
   }
 }
 

@@ -64,9 +64,12 @@ All responses use the standard envelope on error:
 `debit_credits` (1) + inserts a `queued` generation + sends `generation.requested` to Inngest — all atomic.
 
 The Inngest workflow (`generation.requested`, per-merchant + global concurrency caps) runs
-`processGeneration`: `processing` → moderate input → **resolve the product image** (a background-removed
-**matting cutout**, computed once and cached on `products.clean_image_key`; best-effort — degrades to the
-raw image, D63) → **`AIOrchestrator.compose()`** (the single model entrypoint; policy-routed with retry +
+`processGeneration`: `processing` → moderate input → **two pre-passes in parallel** — (a) **resolve the
+product image** (a background-removed **matting cutout**, computed once and cached on
+`products.clean_image_key`; best-effort — degrades to the raw image, D63) and (b) **scene analysis**
+(a cheap vision pass returning per-image facts — lighting, surfaces, tilt, scale, placement region; fed
+to compose, low-confidence dropped; best-effort, D64) → **`AIOrchestrator.compose()`** (the single model
+entrypoint; policy-routed with retry +
 provider fallback). The compose call pins the **output aspect
 ratio to the uploaded room** + 2K (`providerOptions.google.imageConfig`) and feeds the product's real
 dimensions, so the model can't re-frame/rotate or misjudge scale. Then the **pixel-perfect step**

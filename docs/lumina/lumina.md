@@ -595,8 +595,11 @@ event sink, reportError, notify).
    native dep) and re-store; presign a download URL.
 4. **Pin the aspect ratio** — read the room's size, pick the nearest supported aspect ratio.
 5. **Moderate input** — reject → refund + notify + terminal `failed` (currently the always-safe mock).
-6. **Compose** — `AIOrchestrator.compose({ room, product, category, placementHint, customInstructions,
-   dimensions, aspectRatio, policy, watermark })`.
+6. **Pre-passes (parallel) + compose** — run two best-effort pre-passes together: (a) resolve the product
+   image to a background-removed **matting cutout** cached on `products.clean_image_key` (degrades to the
+   raw image, D63), and (b) **scene analysis** returning per-image facts — lighting, surfaces, tilt, scale,
+   placement region (low-confidence dropped, D64). Then `AIOrchestrator.compose({ room, product, category,
+   placementHint, customInstructions, dimensions, scene, aspectRatio, policy, watermark })`.
 7. **Pixel-perfect** — `keepOnlyProductChange(original, composed)` (§8.7): diff → composite the changed
    region over the original (or keep the full render if the change is implausible). Never throws.
 8. **Moderate output** — unsafe → refund + terminal `failed`.

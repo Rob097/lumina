@@ -532,3 +532,18 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   Gemini-edit bg-removal implementation behind the same seam (a secondary fidelity A/B vs matting).
   `sharp`-based matte erosion/feather is left to a later refinement to keep `packages/ai` free of a native
   `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).
+
+- **D64 — Scene-analysis vision pass wired into compose.** The single-shot compositor degraded on noisy
+  rooms because it had to infer geometry/lighting/scale from the raw image. Fix: a `SceneProvider`
+  (`GatewaySceneProvider`, a `generateObject` call on the cheap flash model — `SCENE_MODEL`, defaulting to
+  `GATEWAY_MODEL_QUANTITY`, on the same `AI_GATEWAY_API_KEY`, no new credential) returning a per-image
+  `SceneAnalysis` validated by a **shared Zod schema** (`@lumina/shared`, HARD RULE #6): interior/exterior,
+  lighting direction/intensity/temperature, surface map, signed tilt estimate, room scale, a free-text
+  placement region, quality flags (blurry/dark/cluttered) and a confidence. It runs **in parallel** with
+  the product cutout (`Promise.all`) and feeds `ComposeInput.scene`; `compose.ts` renders the facts
+  (lighting, surfaces, scale × product dimensions, placement region, exterior note via `isExterior`) and
+  **drops a low-confidence analysis** (< 0.35) so an unsure read is never worse than none. The pass is
+  **best-effort**: a missing provider, an error, or low confidence falls back to the prior compose
+  behaviour and never fails or bills a generation. This is **per-image understanding, NOT a category
+  taxonomy** — the merchant category stays a soft hint only; tilt/quality/scale are consumed by later
+  phases (3 deskew, 4 escalation). Offline e2e stays green via a neutral `MockSceneProvider`.

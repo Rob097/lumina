@@ -2,8 +2,14 @@ import { AIOrchestrator } from './orchestrator.js';
 import { ReplicateMattingProvider } from './providers/bg-removal.js';
 import { GatewayProvider } from './providers/gateway.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
-import { MockBgRemovalProvider, MockProvider, MockQuantityProvider } from './providers/mock.js';
-import type { AIProvider, BgRemovalProvider, RoutingPolicy } from './types.js';
+import { GatewaySceneProvider } from './providers/gateway-scene.js';
+import {
+  MockBgRemovalProvider,
+  MockProvider,
+  MockQuantityProvider,
+  MockSceneProvider,
+} from './providers/mock.js';
+import type { AIProvider, BgRemovalProvider, RoutingPolicy, SceneProvider } from './types.js';
 
 /**
  * Select the product background-removal provider from env (Phase 1 / D63). Returns `undefined` when it
@@ -34,6 +40,24 @@ export function selectBgRemovalProvider(
 }
 
 /**
+ * Select the scene-analysis provider from env (Phase 2 / D64). Scene analysis is always available — the
+ * neutral mock offline, the gateway flash model when creds are present. Best-effort downstream: a
+ * low-confidence/failed analysis is dropped, so this never needs an explicit "off" switch. The model
+ * defaults to the cheap quantity flash model unless `SCENE_MODEL` overrides it (one-file swap, #8).
+ */
+export function selectSceneProvider(env: Record<string, string | undefined>): SceneProvider {
+  const apiKey = env.AI_GATEWAY_API_KEY;
+  const hasCreds = Boolean(apiKey || env.VERCEL_OIDC_TOKEN);
+  if (!hasCreds || env.AI_PROVIDER === 'mock') {
+    return new MockSceneProvider();
+  }
+  return new GatewaySceneProvider({
+    model: env.SCENE_MODEL ?? env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
+    apiKey,
+  });
+}
+
+/**
  * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
  * credentials are present (`AI_GATEWAY_API_KEY` or, on Vercel, `VERCEL_OIDC_TOKEN`) or when
  * `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
@@ -47,6 +71,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     return new AIOrchestrator({
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
       bgRemoval: new MockBgRemovalProvider(),
+      scene: new MockSceneProvider(),
       quantity: new MockQuantityProvider(),
     });
   }
@@ -79,5 +104,10 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     model: env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
     apiKey,
   });
-  return new AIOrchestrator({ chains, bgRemoval: selectBgRemovalProvider(env), quantity });
+  return new AIOrchestrator({
+    chains,
+    bgRemoval: selectBgRemovalProvider(env),
+    scene: selectSceneProvider(env),
+    quantity,
+  });
 }
