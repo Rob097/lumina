@@ -1,6 +1,8 @@
 import type {
   AIProvider,
+  BgRemovalProvider,
   ComposeInput,
+  ImageRef,
   ProviderResult,
   QuantityEstimate,
   QuantityInput,
@@ -46,6 +48,19 @@ export class MockProvider implements AIProvider {
       width: 1024,
       height: 1024,
     };
+  }
+}
+
+/**
+ * Mock background remover: a fidelity-preserving no-op for offline/e2e. Returns the input bytes unchanged
+ * (so product pixels are byte-identical), or a deterministic placeholder when given a url-only ref.
+ */
+export class MockBgRemovalProvider implements BgRemovalProvider {
+  async removeBackground(image: ImageRef): Promise<{ bytes: Uint8Array; contentType: string }> {
+    if ('bytes' in image) {
+      return { bytes: image.bytes, contentType: image.contentType ?? 'image/png' };
+    }
+    return { bytes: new Uint8Array([0x89, 0x50, 0x4e, 0x47]), contentType: 'image/png' };
   }
 }
 

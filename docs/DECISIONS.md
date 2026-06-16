@@ -501,3 +501,34 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   compositor and our composite enforces fidelity — keeping everything on the **one Gateway** (D49) with no
   new platform; the dormant `fal` provider + `@fal-ai/client` dep were removed. Change-detection knobs
   (`CHANGE_MASK_*`) are env-tunable from real renders.
+
+## Generation Engine v2 (2026-06-16) — see `docs/lumina/generation-engine-v2-plan.md`
+
+- **Phase 0 — eval harness expanded for robustness regression.** `scoreEval` now reports `byInputClass`
+  (success/latency/cost/👍 per input difficulty class) beside `byCategory`, and `EvalCaseResult` carries an
+  optional `inputClass` (absent ⇒ `standard`). The golden set
+  (`apps/api/scripts/eval-golden.json`, surfaced via `eval-run.ts`) gained non-standard cases —
+  `tilted`, `ambiguous`, `dark`, `blurry`, `exterior`, `messy-product` — so every later phase can prove it
+  helps hard inputs **without regressing** the standard ones. The golden URLs are placeholders and the 👍
+  rate is a human rating: the **real baseline + the Axiom latency split are owner-run** (need Gateway image
+  credits + real assets) and are tracked in `docs/lumina/generation-engine-v2-eval.md`.
+
+- **D63 — Product background removal wired (matting cutout, cached per product).** Non-studio product
+  photos (busy/hand-held/on-shelf) produced distorted composites because the model had to infer the
+  product silhouette from a noisy reference. Fix: a clean cutout via the existing `BgRemovalProvider` seam
+  (reused, not a new interface — `AIOrchestrator.bgRemoval`, one-file swap per HARD RULE #8), defaulting to
+  a **Replicate matting** model (`ReplicateMattingProvider`, env `BG_REMOVAL_PROVIDER`/`BG_REMOVAL_MODEL`/
+  `REPLICATE_API_TOKEN`, called via the Replicate HTTP API with `Prefer: wait`, injectable runner so the
+  provider logic is unit-tested offline). **A matting model preserves the original product pixels** (it
+  returns a cutout under an alpha matte, it does NOT re-render) — a generative "remove background" was
+  rejected because it re-paints the product and risks altering identity/branding. The cutout is cached on
+  `products.clean_image_key` (column already existed — no migration): the generation workflow resolves the
+  product image as **cached cutout → compute-and-cache (catalog products) / compute-per-gen (inline) →
+  raw image**, all **best-effort** (any failure or no provider configured degrades to the raw product
+  image; a cutout failure never fails or bills a generation). New R2 objects keep the `{merchant_id}/`
+  prefix. Offline e2e stays green via `MockBgRemovalProvider` (a fidelity-preserving no-op).
+  **Deferred (intentionally, lazy guard makes them non-essential):** the eager `product.image.process`
+  Inngest pre-compute on product create/bulk (an optimization to remove first-generation latency) and the
+  Gemini-edit bg-removal implementation behind the same seam (a secondary fidelity A/B vs matting).
+  `sharp`-based matte erosion/feather is left to a later refinement to keep `packages/ai` free of a native
+  `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).

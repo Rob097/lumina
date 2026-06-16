@@ -14,11 +14,12 @@ import {
   generationAssets,
   generations,
   merchants,
+  products,
   usageEvents,
   type ProductSnapshot,
 } from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { markFailed, processGeneration, type StoragePort } from '../src/lib/inngest/workflow.js';
 
 let ctx: TestDb;
@@ -315,6 +316,94 @@ describe('processGeneration', () => {
 
     const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
     expect(gen.suggestedQuantity).toBeNull();
+  });
+});
+
+// Product background removal (Phase 1 / D63): the workflow gives the compositor a clean cutout instead of
+// a busy product photo, computed once per product and cached on products.clean_image_key.
+describe('processGeneration — product cutout', () => {
+  /** Insert a queued generation for a specific catalog product (+ its debit ledger row). */
+  async function queuedForProduct(merchantId: string, productId: string): Promise<string> {
+    const id = firstOrThrow(
+      await ctx.db
+        .insert(generations)
+        .values({
+          merchantId,
+          productId,
+          roomKey: `rooms/${merchantId}/${randomUUID()}.jpg`,
+          productSnapshot: { name: 'Aura', category: 'lighting', imageUrl: 'https://shop.test/aura.png' },
+          idempotencyKey: randomUUID(),
+          status: 'queued',
+          creditsSpent: 1,
+        })
+        .returning(),
+    ).id;
+    await ctx.db.insert(creditLedger).values({ merchantId, amount: -1, reason: 'generation', generationId: id });
+    return id;
+  }
+
+  function orchestratorWithBgRemoval(removeBackground: () => Promise<{ bytes: Uint8Array; contentType: string }>) {
+    const provider = new MockProvider({ name: 'mock', model: 'mock-compose' });
+    return new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      bgRemoval: { removeBackground },
+      quantity: new MockQuantityProvider(),
+    });
+  }
+
+  it('computes a product cutout, caches it on the product, and reuses it on the next generation', async () => {
+    const merchantId = firstOrThrow(
+      await ctx.db.insert(merchants).values({ name: 'CutCo', slug: `cut-${randomUUID()}`, creditsBalance: 10 }).returning(),
+    ).id;
+    const productId = firstOrThrow(
+      await ctx.db
+        .insert(products)
+        .values({ merchantId, name: 'Aura', category: 'lighting', imageUrl: 'https://shop.test/aura.png' })
+        .returning(),
+    ).id;
+
+    const removeBackground = vi.fn(async () => ({ bytes: new Uint8Array([1, 2, 3]), contentType: 'image/png' }));
+    const orch = orchestratorWithBgRemoval(removeBackground);
+
+    const puts: string[] = [];
+    const recStorage: StoragePort = {
+      getObject: async () => CLEAN_JPEG,
+      presignDownload: async (k) => `https://signed/${k}`,
+      putObject: async (k) => {
+        puts.push(k);
+      },
+    };
+
+    const gen1 = await queuedForProduct(merchantId, productId);
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: recStorage }, gen1)).toBe('succeeded');
+    expect(removeBackground).toHaveBeenCalledTimes(1);
+
+    const cleanKey = firstOrThrow(await ctx.db.select().from(products).where(eq(products.id, productId))).cleanImageKey;
+    expect(cleanKey).toMatch(new RegExp(`^products/${merchantId}/clean/`));
+    expect(puts.some((k) => k.startsWith(`products/${merchantId}/clean/`))).toBe(true);
+
+    const gen2 = await queuedForProduct(merchantId, productId);
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: recStorage }, gen2)).toBe('succeeded');
+    expect(removeBackground).toHaveBeenCalledTimes(1); // reused the cache — no second removal call
+  });
+
+  it('degrades to a successful generation when bg removal throws (never bills a cutout failure)', async () => {
+    const merchantId = firstOrThrow(
+      await ctx.db.insert(merchants).values({ name: 'CutCo2', slug: `cut-${randomUUID()}`, creditsBalance: 10 }).returning(),
+    ).id;
+    const productId = firstOrThrow(
+      await ctx.db
+        .insert(products)
+        .values({ merchantId, name: 'Aura', category: 'lighting', imageUrl: 'https://shop.test/aura.png' })
+        .returning(),
+    ).id;
+    const orch = orchestratorWithBgRemoval(async () => {
+      throw new Error('matting down');
+    });
+    const gen = await queuedForProduct(merchantId, productId);
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, gen)).toBe('succeeded');
+    // No cutout cached when removal failed.
+    expect(firstOrThrow(await ctx.db.select().from(products).where(eq(products.id, productId))).cleanImageKey).toBeNull();
   });
 });
 

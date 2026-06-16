@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
   type AIOrchestrator,
+  type ImageRef,
   type ModerationProvider,
   type ModerationReason,
   type RoutingPolicy,
@@ -10,6 +11,7 @@ import {
   generationAssets,
   generations,
   merchants,
+  products,
   usageEvents,
   type Database,
 } from '@lumina/db';
@@ -164,6 +166,50 @@ async function keepOnlyProductChange(
   } catch {
     return { bytes: composed.bytes, contentType: composed.contentType };
   }
+}
+
+/** R2 key for a product's cached background-removed cutout (tenant-prefixed, HARD RULE #1). */
+function productCleanKey(merchantId: string, id: string): string {
+  return `products/${merchantId}/clean/${id}.png`;
+}
+
+/**
+ * Resolve the product image to compose with (Phase 1 / D63). Prefer a cached cutout
+ * (`products.clean_image_key`); else compute one best-effort via the orchestrator's matting provider,
+ * cache it on the catalog product (so the next generation skips the call), and use it. A matting cutout
+ * preserves the product's exact pixels. Any failure — or no provider configured — degrades to the raw
+ * product image; the cutout never fails or bills a generation.
+ */
+async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Promise<ImageRef> {
+  const rawUrl = gen.productSnapshot.imageUrl;
+  if (gen.productId) {
+    const rows = await deps.db
+      .select({ cleanImageKey: products.cleanImageKey })
+      .from(products)
+      .where(eq(products.id, gen.productId))
+      .limit(1);
+    const cleanKey = rows[0]?.cleanImageKey;
+    if (cleanKey) {
+      return { url: await deps.storage.presignDownload(cleanKey) };
+    }
+  }
+  try {
+    const cutout = await deps.orchestrator.bgRemoval({ url: rawUrl });
+    if (cutout) {
+      const key = productCleanKey(gen.merchantId, gen.productId ?? gen.id);
+      await deps.storage.putObject(key, cutout.bytes, cutout.contentType);
+      if (gen.productId) {
+        await deps.db
+          .update(products)
+          .set({ cleanImageKey: key })
+          .where(and(eq(products.id, gen.productId), eq(products.merchantId, gen.merchantId)));
+      }
+      return { url: await deps.storage.presignDownload(key) };
+    }
+  } catch (err) {
+    deps.reportError?.(err, { generationId: gen.id, stage: 'bg_removal' });
+  }
+  return { url: rawUrl };
 }
 
 interface SuccessFields {
@@ -343,9 +389,12 @@ export async function processGeneration(
       return 'failed';
     }
 
+    // Compose against a clean product cutout when available (cached per product), else the raw image.
+    const productImage = await resolveProductImage(deps, gen);
+
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
-      product: { url: snapshot.imageUrl },
+      product: productImage,
       category,
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,

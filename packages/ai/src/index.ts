@@ -11,7 +11,18 @@ export * from './orchestrator.js';
 export * from './moderation.js';
 export * from './eval.js';
 export { createOrchestratorFromEnv } from './factory.js';
-export { MockProvider, MockSceneProvider, MockQuantityProvider } from './providers/mock.js';
+export {
+  MockProvider,
+  MockBgRemovalProvider,
+  MockSceneProvider,
+  MockQuantityProvider,
+} from './providers/mock.js';
+export {
+  ReplicateMattingProvider,
+  type MattingRunner,
+  type MattingCallArgs,
+  type ReplicateMattingOptions,
+} from './providers/bg-removal.js';
 export {
   GatewayQuantityProvider,
   type GatewayQuantityProviderOptions,

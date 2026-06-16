@@ -1,8 +1,37 @@
 import { AIOrchestrator } from './orchestrator.js';
+import { ReplicateMattingProvider } from './providers/bg-removal.js';
 import { GatewayProvider } from './providers/gateway.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
-import { MockProvider, MockQuantityProvider } from './providers/mock.js';
-import type { AIProvider, RoutingPolicy } from './types.js';
+import { MockBgRemovalProvider, MockProvider, MockQuantityProvider } from './providers/mock.js';
+import type { AIProvider, BgRemovalProvider, RoutingPolicy } from './types.js';
+
+/**
+ * Select the product background-removal provider from env (Phase 1 / D63). Returns `undefined` when it
+ * isn't configured (or is configured incompletely) so the workflow simply skips the cutout and composes
+ * the raw product image — bg removal is best-effort, never a hard requirement. A matting model preserves
+ * the original product pixels; the network call is one-file-swappable behind `BgRemovalProvider`.
+ */
+export function selectBgRemovalProvider(
+  env: Record<string, string | undefined>,
+): BgRemovalProvider | undefined {
+  const choice = env.BG_REMOVAL_PROVIDER;
+  if (choice === 'none') {
+    return undefined;
+  }
+  if (choice === 'mock') {
+    return new MockBgRemovalProvider();
+  }
+  const token = env.REPLICATE_API_TOKEN;
+  const model = env.BG_REMOVAL_MODEL;
+  // Explicit `replicate`, or the default when a token + model are present.
+  if (choice === 'replicate' || (!choice && token && model)) {
+    if (!token || !model) {
+      return undefined; // requested but incomplete → degrade, don't crash
+    }
+    return new ReplicateMattingProvider({ model, apiToken: token });
+  }
+  return undefined;
+}
 
 /**
  * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
@@ -17,6 +46,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     const mock = new MockProvider({ name: 'mock', model: 'mock-compose', costCents: 0 });
     return new AIOrchestrator({
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
+      bgRemoval: new MockBgRemovalProvider(),
       quantity: new MockQuantityProvider(),
     });
   }
@@ -49,5 +79,5 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     model: env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
     apiKey,
   });
-  return new AIOrchestrator({ chains, quantity });
+  return new AIOrchestrator({ chains, bgRemoval: selectBgRemovalProvider(env), quantity });
 }
