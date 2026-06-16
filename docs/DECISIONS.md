@@ -547,3 +547,19 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   behaviour and never fails or bills a generation. This is **per-image understanding, NOT a category
   taxonomy** — the merchant category stays a soft hint only; tilt/quality/scale are consumed by later
   phases (3 deskew, 4 escalation). Offline e2e stays green via a neutral `MockSceneProvider`.
+
+- **D65 — Room normalization (deskew + conditional auto-level) before compose.** Tilted/dark rooms
+  produced distorted composites, and the pixel-perfect composite fell back to the (re-framed) full render
+  when the model "corrected" the framing. Fix: normalize the room server-side with `sharp`
+  (`apps/api/src/lib/images/normalize.ts`) **before** compose — a gentle deskew using
+  `SceneAnalysis.tiltDegrees` (Phase 2), **clamped to ±`DESKEW_MAX_DEGREES`** (default 8) and **cropped to
+  the largest inscribed rectangle of the original aspect** so the rotation leaves no wedge borders, plus a
+  **conditional auto-level** (`sharp.normalize()`) only when the scene flags the photo dark
+  (`AUTOLEVEL_ENABLED`, default true). The transform math is pure, unit-tested helpers (`resolveDeskewAngle`
+  clamp, `inscribedRect` crop, `shouldAutoLevel` gate); `sharp` stays **lazily loaded** so a native miss
+  degrades to the un-normalized room. The normalized room is **stored back at the room key** and becomes
+  the baseline for both the **aspect-ratio pin** and the **pixel-perfect blend**, so the returned image may
+  be slightly straightened vs the raw upload (intended — it still depicts the user's room and looks
+  better). **Best-effort**: a level photo, a missing scene, or a sharp failure returns the room unchanged —
+  normalization never fails or bills a generation. Deskew is intentionally gentle to avoid an uncanny
+  perspective warp.

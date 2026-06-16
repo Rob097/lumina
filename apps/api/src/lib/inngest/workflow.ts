@@ -22,6 +22,7 @@ import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
+import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
 
@@ -135,6 +136,10 @@ const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
+
+// Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
+const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
+const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase() !== 'false';
 
 /**
  * Keep only the region the model actually changed (the product + its shadows) and composite it back over
@@ -384,10 +389,6 @@ export async function processGeneration(
     const snapshot = gen.productSnapshot;
     const category = snapshot.category as ProductCategory;
 
-    // Pin the output aspect ratio to the uploaded room so the edit can't re-frame/rotate the scene.
-    const roomSize = await readImageSize(sanitized);
-    const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
-
     // Step 1 — validate input (reject non-interior / unsafe, fail fast + refund, §7.4).
     const inputVerdict = await moderation.moderateInput({
       room: { url: roomUrl },
@@ -416,6 +417,25 @@ export async function processGeneration(
       analyzeSceneSafe(deps, gen, roomUrl),
     ]);
 
+    // Normalize the room before compose (Phase 3 / D65): a gentle, clamped deskew using the scene's tilt
+    // plus a conditional auto-level when the photo is dark, cropped to the inscribed rectangle. Best-effort
+    // — a level photo or a sharp miss returns it unchanged. The normalized room is stored back so the
+    // model composes against it, and it becomes the pixel-perfect base, so the result may be slightly
+    // straightened vs the raw upload (intended).
+    const normalized = await normalizeRoom(sanitized, {
+      tiltDegrees: scene?.tiltDegrees,
+      dark: scene?.quality.dark,
+      maxDeskewDegrees: DESKEW_MAX_DEGREES,
+      autoLevelEnabled: AUTOLEVEL_ENABLED,
+    });
+    if (normalized !== sanitized) {
+      await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
+    }
+
+    // Pin the output aspect ratio to the (normalized) room so the edit can't re-frame/rotate the scene.
+    const roomSize = await readImageSize(normalized);
+    const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
+
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: productImage,
@@ -433,7 +453,7 @@ export async function processGeneration(
     // Detect where it actually changed the scene and composite only that region back over the ORIGINAL,
     // so everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift).
     // A too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
-    const finalImage = await keepOnlyProductChange(sanitized, composed);
+    const finalImage = await keepOnlyProductChange(normalized, composed);
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

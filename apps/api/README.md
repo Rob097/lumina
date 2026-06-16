@@ -68,14 +68,15 @@ The Inngest workflow (`generation.requested`, per-merchant + global concurrency 
 product image** (a background-removed **matting cutout**, computed once and cached on
 `products.clean_image_key`; best-effort — degrades to the raw image, D63) and (b) **scene analysis**
 (a cheap vision pass returning per-image facts — lighting, surfaces, tilt, scale, placement region; fed
-to compose, low-confidence dropped; best-effort, D64) → **`AIOrchestrator.compose()`** (the single model
-entrypoint; policy-routed with retry +
+to compose, low-confidence dropped; best-effort, D64) → **normalize the room** (deskew by the scene's
+tilt, clamped + inscribed-rect crop, plus a dark-photo auto-level; stored back; best-effort, D65) →
+**`AIOrchestrator.compose()`** (the single model entrypoint; policy-routed with retry +
 provider fallback). The compose call pins the **output aspect
 ratio to the uploaded room** + 2K (`providerOptions.google.imageConfig`) and feeds the product's real
 dimensions, so the model can't re-frame/rotate or misjudge scale. Then the **pixel-perfect step**
 (`keepOnlyProductChange`): diff the render against the original to find where the product (and its
-shadows) actually changed, and **composite only that region back over the original** — so every pixel
-outside the product is byte-identical to the upload (a too-small/large change keeps the full render).
+shadows) actually changed, and **composite only that region back over the normalized room** — so every
+pixel outside the product is byte-identical to that room (a too-small/large change keeps the full render).
 → moderate output → store to R2 → **coverage-quantity estimate** (#7, best-effort; never fails the
 generation) → finalize (`succeeded`, cost/latency/model + result asset + usage_event +
 `suggested_quantity`/`quantity_rationale`). **Terminal failure refunds the credit**

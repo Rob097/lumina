@@ -593,15 +593,17 @@ event sink, reportError, notify).
 2. Flip to `processing` (inside the try, so even a hiccup here refunds + fails).
 3. **Sanitize the room on ingest** — strip EXIF/GPS (`stripJpegMetadata`, pure JPEG segment stripper; no
    native dep) and re-store; presign a download URL.
-4. **Pin the aspect ratio** — read the room's size, pick the nearest supported aspect ratio.
-5. **Moderate input** — reject → refund + notify + terminal `failed` (currently the always-safe mock).
-6. **Pre-passes (parallel) + compose** — run two best-effort pre-passes together: (a) resolve the product
-   image to a background-removed **matting cutout** cached on `products.clean_image_key` (degrades to the
-   raw image, D63), and (b) **scene analysis** returning per-image facts — lighting, surfaces, tilt, scale,
-   placement region (low-confidence dropped, D64). Then `AIOrchestrator.compose({ room, product, category,
+4. **Moderate input** — reject → refund + notify + terminal `failed` (currently the always-safe mock).
+5. **Pre-passes (parallel)** — two best-effort passes together: (a) resolve the product image to a
+   background-removed **matting cutout** cached on `products.clean_image_key` (degrades to the raw image,
+   D63); (b) **scene analysis** returning per-image facts — lighting, surfaces, tilt, scale, placement
+   region (low-confidence dropped, D64).
+6. **Normalize + compose** — normalize the room (deskew by the scene's tilt, clamped ±`DESKEW_MAX_DEGREES`
+   + inscribed-rect crop, plus a dark-photo auto-level; store the canonical room back and pin the aspect
+   ratio from its dims; best-effort, D65), then `AIOrchestrator.compose({ room, product, category,
    placementHint, customInstructions, dimensions, scene, aspectRatio, policy, watermark })`.
-7. **Pixel-perfect** — `keepOnlyProductChange(original, composed)` (§8.7): diff → composite the changed
-   region over the original (or keep the full render if the change is implausible). Never throws.
+7. **Pixel-perfect** — `keepOnlyProductChange(normalizedRoom, composed)` (§8.7): diff → composite the
+   changed region over the normalized room (or keep the full render if implausible). Never throws.
 8. **Moderate output** — unsafe → refund + terminal `failed`.
 9. **Store** to R2 (`results/{merchant_id}/{generationId}`).
 10. **Coverage-quantity estimate** (#7) — best-effort, never fails the generation.

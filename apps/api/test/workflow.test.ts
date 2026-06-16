@@ -459,6 +459,72 @@ describe('processGeneration — scene analysis (Phase 2)', () => {
   });
 });
 
+describe('processGeneration — room normalization (Phase 3)', () => {
+  async function realJpeg(w: number, h: number): Promise<Uint8Array> {
+    return new Uint8Array(
+      await sharp({ create: { width: w, height: h, channels: 3, background: { r: 120, g: 120, b: 120 } } }).jpeg().toBuffer(),
+    );
+  }
+
+  /** An orchestrator whose scene pass reports a fixed tilt (so normalization is driven deterministically). */
+  function orchestratorWithTilt(tiltDegrees: number): AIOrchestrator {
+    const provider = new MockProvider({ name: 'mock', model: 'mock-compose' });
+    const analysis: SceneAnalysis = {
+      isExterior: false,
+      lighting: { direction: 'top-left', intensity: 'medium' },
+      surfaces: [],
+      tiltDegrees,
+      quality: { blurry: false, dark: false, cluttered: false },
+      confidence: 0.8,
+    };
+    return new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      scene: { analyzeScene: async () => analysis },
+    });
+  }
+
+  function recordingStorage(room: Uint8Array, puts: { key: string; bytes: Uint8Array }[]): StoragePort {
+    return {
+      getObject: async () => room,
+      presignDownload: async (k) => `https://signed/${k}`,
+      putObject: async (k, b) => {
+        puts.push({ key: k, bytes: b });
+      },
+    };
+  }
+
+  it('deskews a tilted room and stores the straightened (smaller) room back', async () => {
+    const { generationId } = await queued(5);
+    const puts: { key: string; bytes: Uint8Array }[] = [];
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestratorWithTilt(6), storage: recordingStorage(await realJpeg(400, 300), puts) },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+    const roomWrite = puts.filter((p) => p.key.startsWith('rooms/')).at(-1);
+    expect(roomWrite).toBeDefined();
+    const dims = await sharp(Buffer.from(roomWrite!.bytes)).metadata();
+    expect(dims.width).toBeLessThan(400); // inscribed-rect crop removed the rotation wedges
+    expect(dims.height).toBeLessThan(300);
+  });
+
+  it('leaves a level room at its original dimensions (tilt-driven, no needless crop)', async () => {
+    const { generationId } = await queued(5);
+    const puts: { key: string; bytes: Uint8Array }[] = [];
+    const outcome = await processGeneration(
+      { db: ctx.db, orchestrator: orchestratorWithTilt(0), storage: recordingStorage(await realJpeg(400, 300), puts) },
+      generationId,
+    );
+    expect(outcome).toBe('succeeded');
+    const roomWrite = puts.filter((p) => p.key.startsWith('rooms/')).at(-1);
+    if (roomWrite) {
+      const dims = await sharp(Buffer.from(roomWrite.bytes)).metadata();
+      expect(dims.width).toBe(400);
+      expect(dims.height).toBe(300);
+    }
+  });
+});
+
 // The Inngest `onFailure` net: when a run dies *outside* processGeneration's own try/catch (a module-load
 // crash, OOM, or timeout — the failure mode that left a generation stuck in QUEUED), this marks it failed
 // and refunds the credit. It must be idempotent so retries / a late onFailure can never double-refund.
