@@ -2,6 +2,7 @@
   {
     "id": "lighting-aura-floor",
     "category": "lighting",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/living-room-evening.jpg",
     "productUrl": "https://golden.lumina.app/products/aura-floor-lamp.png",
     "placementHint": "in the corner next to the sofa"
@@ -9,6 +10,7 @@
   {
     "id": "furniture-nube-sofa",
     "category": "furniture",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/loft-daylight.jpg",
     "productUrl": "https://golden.lumina.app/products/nube-sofa.png",
     "placementHint": "against the back wall"
@@ -16,12 +18,14 @@
   {
     "id": "decor-arch-mirror",
     "category": "mirror",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/hallway.jpg",
     "productUrl": "https://golden.lumina.app/products/arch-mirror.png"
   },
   {
     "id": "tiles-zellige-kitchen",
     "category": "tiles",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/kitchen-backsplash.jpg",
     "productUrl": "https://golden.lumina.app/products/zellige-tile.png",
     "placementHint": "as the backsplash surface"
@@ -29,6 +33,7 @@
   {
     "id": "decor-rug-bedroom",
     "category": "decor",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/bedroom-morning.jpg",
     "productUrl": "https://golden.lumina.app/products/wool-rug.png",
     "placementHint": "centered under the bed"
@@ -36,7 +41,76 @@
   {
     "id": "outdoor-lounge-patio",
     "category": "outdoor",
+    "inputClass": "standard",
     "roomUrl": "https://golden.lumina.app/rooms/patio-sunset.jpg",
     "productUrl": "https://golden.lumina.app/products/teak-lounger.png"
+  },
+  {
+    "id": "tilted-lighting-pendant",
+    "category": "lighting",
+    "inputClass": "tilted",
+    "roomUrl": "https://golden.lumina.app/rooms/dining-tilted.jpg",
+    "productUrl": "https://golden.lumina.app/products/glass-pendant.png",
+    "placementHint": "above the dining table"
+  },
+  {
+    "id": "ambiguous-furniture-armchair",
+    "category": "furniture",
+    "inputClass": "ambiguous",
+    "roomUrl": "https://golden.lumina.app/rooms/corner-tight-crop.jpg",
+    "productUrl": "https://golden.lumina.app/products/velvet-armchair.png"
+  },
+  {
+    "id": "dark-furniture-bookshelf",
+    "category": "furniture",
+    "inputClass": "dark",
+    "roomUrl": "https://golden.lumina.app/rooms/study-low-light.jpg",
+    "productUrl": "https://golden.lumina.app/products/oak-bookshelf.png",
+    "placementHint": "against the side wall"
+  },
+  {
+    "id": "blurry-decor-floorlamp",
+    "category": "lighting",
+    "inputClass": "blurry",
+    "roomUrl": "https://golden.lumina.app/rooms/livingroom-handheld-blur.jpg",
+    "productUrl": "https://golden.lumina.app/products/tripod-lamp.png"
+  },
+  {
+    "id": "exterior-door-entrance",
+    "category": "door",
+    "inputClass": "exterior",
+    "roomUrl": "https://golden.lumina.app/rooms/house-facade.jpg",
+    "productUrl": "https://golden.lumina.app/products/oak-front-door.png",
+    "placementHint": "as the main entrance door"
+  },
+  {
+    "id": "exterior-outdoor-garden-bench",
+    "category": "outdoor",
+    "inputClass": "exterior",
+    "roomUrl": "https://golden.lumina.app/rooms/garden-afternoon.jpg",
+    "productUrl": "https://golden.lumina.app/products/iron-garden-bench.png"
+  },
+  {
+    "id": "messy-product-pendant-onshelf",
+    "category": "lighting",
+    "inputClass": "messy-product",
+    "roomUrl": "https://golden.lumina.app/rooms/kitchen-bright.jpg",
+    "productUrl": "https://golden.lumina.app/products/pendant-on-cluttered-shelf.jpg",
+    "placementHint": "above the island"
+  },
+  {
+    "id": "messy-product-chair-handheld",
+    "category": "furniture",
+    "inputClass": "messy-product",
+    "roomUrl": "https://golden.lumina.app/rooms/office-daylight.jpg",
+    "productUrl": "https://golden.lumina.app/products/office-chair-handheld-busy-bg.jpg"
+  },
+  {
+    "id": "renovation-microcement-bathroom",
+    "category": "renovation",
+    "inputClass": "standard",
+    "roomUrl": "https://golden.lumina.app/rooms/bathroom-plain.jpg",
+    "productUrl": "https://golden.lumina.app/products/microcement-swatch.png",
+    "placementHint": "as the wall surface finish"
   }
 ]

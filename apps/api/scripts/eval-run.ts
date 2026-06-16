@@ -14,6 +14,8 @@ import type { ProductCategory } from '@lumina/shared';
 interface GoldenCase {
   id: string;
   category: ProductCategory;
+  /** Input difficulty class for the by-class regression breakdown (Phase 0). Defaults to 'standard'. */
+  inputClass?: string;
   roomUrl: string;
   productUrl: string;
   placementHint?: string;
@@ -41,13 +43,14 @@ async function main(): Promise<void> {
       results.push({
         id: c.id,
         category: c.category,
+        inputClass: c.inputClass ?? 'standard',
         status: 'succeeded',
         latencyMs: r.latencyMs,
         costCents: r.costCents,
       });
-      console.log(`✓ ${c.id} (${c.category}) — ${r.model} ${r.latencyMs}ms ${r.costCents}¢`);
+      console.log(`✓ ${c.id} (${c.category} · ${c.inputClass ?? 'standard'}) — ${r.model} ${r.latencyMs}ms ${r.costCents}¢`);
     } catch (err) {
-      results.push({ id: c.id, category: c.category, status: 'failed' });
+      results.push({ id: c.id, category: c.category, inputClass: c.inputClass ?? 'standard', status: 'failed' });
       console.log(`✗ ${c.id} (${c.category}) — ${err instanceof Error ? err.message : String(err)}`);
     }
   }

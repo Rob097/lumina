@@ -8,6 +8,11 @@ import type { ProductCategory } from '@lumina/shared';
 export interface EvalCaseResult {
   id: string;
   category: ProductCategory;
+  /**
+   * Input difficulty class (Phase 0): 'standard' vs a non-standard bucket (e.g. 'tilted', 'dark',
+   * 'blurry', 'ambiguous', 'exterior', 'messy-product'). Absent ⇒ counted as 'standard'.
+   */
+  inputClass?: string;
   status: 'succeeded' | 'failed';
   latencyMs?: number;
   costCents?: number;
@@ -21,6 +26,17 @@ export interface CategoryScore {
   successRate: number;
 }
 
+/** Full per-group breakdown (success + latency + cost + 👍), used per input class. */
+export interface ClassScore {
+  total: number;
+  succeeded: number;
+  successRate: number;
+  avgLatencyMs: number;
+  avgCostCents: number;
+  rated: number;
+  thumbsUpRate: number;
+}
+
 export interface EvalReport {
   total: number;
   succeeded: number;
@@ -30,45 +46,64 @@ export interface EvalReport {
   rated: number;
   thumbsUpRate: number;
   byCategory: Record<string, CategoryScore>;
+  /** Phase 0: the same metrics broken down by input difficulty class (the regression gate's lens). */
+  byInputClass: Record<string, ClassScore>;
 }
 
 function safeRate(num: number, den: number): number {
   return den === 0 ? 0 : num / den;
 }
 
-export function scoreEval(results: EvalCaseResult[]): EvalReport {
-  const succeededCases = results.filter((r) => r.status === 'succeeded');
+/** Aggregate success / latency / cost / 👍 over a set of cases (latency/cost averaged over succeeded). */
+function classScore(cases: EvalCaseResult[]): ClassScore {
+  const succeededCases = cases.filter((r) => r.status === 'succeeded');
   const succeeded = succeededCases.length;
-
-  const latencies = succeededCases.map((r) => r.latencyMs ?? 0);
-  const costs = succeededCases.map((r) => r.costCents ?? 0);
-  const ratedCases = results.filter((r) => r.thumbsUp === true || r.thumbsUp === false);
+  const ratedCases = cases.filter((r) => r.thumbsUp === true || r.thumbsUp === false);
   const thumbsUp = ratedCases.filter((r) => r.thumbsUp === true).length;
+  const sum = (ns: number[]): number => ns.reduce((a, b) => a + b, 0);
+  return {
+    total: cases.length,
+    succeeded,
+    successRate: safeRate(succeeded, cases.length),
+    avgLatencyMs: Math.round(safeRate(sum(succeededCases.map((r) => r.latencyMs ?? 0)), succeeded)),
+    avgCostCents: Math.round(safeRate(sum(succeededCases.map((r) => r.costCents ?? 0)), succeeded)),
+    rated: ratedCases.length,
+    thumbsUpRate: safeRate(thumbsUp, ratedCases.length),
+  };
+}
+
+/** Group cases by a key derived from each case. */
+function groupBy(results: EvalCaseResult[], key: (r: EvalCaseResult) => string): Record<string, EvalCaseResult[]> {
+  const groups: Record<string, EvalCaseResult[]> = {};
+  for (const r of results) {
+    (groups[key(r)] ??= []).push(r);
+  }
+  return groups;
+}
+
+export function scoreEval(results: EvalCaseResult[]): EvalReport {
+  const overall = classScore(results);
 
   const byCategory: Record<string, CategoryScore> = {};
-  for (const r of results) {
-    const c = (byCategory[r.category] ??= { total: 0, succeeded: 0, successRate: 0 });
-    c.total += 1;
-    if (r.status === 'succeeded') c.succeeded += 1;
+  for (const [category, cases] of Object.entries(groupBy(results, (r) => r.category))) {
+    const s = classScore(cases);
+    byCategory[category] = { total: s.total, succeeded: s.succeeded, successRate: s.successRate };
   }
-  for (const c of Object.values(byCategory)) {
-    c.successRate = safeRate(c.succeeded, c.total);
+
+  const byInputClass: Record<string, ClassScore> = {};
+  for (const [cls, cases] of Object.entries(groupBy(results, (r) => r.inputClass ?? 'standard'))) {
+    byInputClass[cls] = classScore(cases);
   }
 
   return {
-    total: results.length,
-    succeeded,
-    successRate: safeRate(succeeded, results.length),
-    avgLatencyMs: Math.round(safeRate(
-      latencies.reduce((a, b) => a + b, 0),
-      succeeded,
-    )),
-    avgCostCents: Math.round(safeRate(
-      costs.reduce((a, b) => a + b, 0),
-      succeeded,
-    )),
-    rated: ratedCases.length,
-    thumbsUpRate: safeRate(thumbsUp, ratedCases.length),
+    total: overall.total,
+    succeeded: overall.succeeded,
+    successRate: overall.successRate,
+    avgLatencyMs: overall.avgLatencyMs,
+    avgCostCents: overall.avgCostCents,
+    rated: overall.rated,
+    thumbsUpRate: overall.thumbsUpRate,
     byCategory,
+    byInputClass,
   };
 }
