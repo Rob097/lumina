@@ -535,11 +535,18 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   that is official-models-only — so the provider routes a **version-pinned** ref (`owner/name:version` or a
   bare version id) through `/v1/predictions` with `Prefer: wait` (`buildMattingRequest`). Verified model:
   `men1scus/birefnet` (6.2M runs, input field `image`); env `BG_REMOVAL_INPUT_KEY` covers models with a
-  different field. **Deferred — Gemini-edit bg-removal A/B (decided NOT to build):** a generative model
-  re-renders the product (no true alpha) — exactly what this decision rejected for fidelity — and can't be
-  quality-validated offline, so a speculative inferior provider isn't worth shipping; matting is the path.
-  `sharp`-based matte erosion/feather is likewise left to a later refinement to keep `packages/ai` free of a
-  native `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).
+  different field. **Vercel-consolidated path added (`BG_REMOVAL_PROVIDER=gateway`, now recommended):**
+  research confirmed **no matting/segmentation model exists on the Vercel AI Gateway** (it exposes only
+  generative image models — FLUX, Imagen, Gemini) and Vercel has no native bg-removal. So the one-service
+  option is a **generative cutout** via the Gateway (`GatewayBgRemovalProvider`, Gemini "Nano Banana"
+  isolates the product on white, reusing `AI_GATEWAY_API_KEY` — no extra service/credential/billing). It
+  **re-renders** the product (lower fidelity than matting, no true alpha), but the cutout is only a
+  **reference** — the compositor re-renders the product into the room anyway (the pixel-perfect step
+  preserves the room, not the product), so a Gateway cutout is "one extra generative step on the reference",
+  not "destroyed pixels". Replicate matting is **kept as the higher-fidelity optional alternative** behind
+  the same seam (one-env-var swap, #8); which wins on real products is an eval question. A true-alpha
+  (chromakey + sharp) gateway variant and `sharp` matte erosion/feather are left to later to keep
+  `packages/ai` free of a native `sharp` dependency (sharp stays confined to `apps/api/src/lib/images`).
 
 - **D64 — Scene-analysis vision pass wired into compose.** The single-shot compositor degraded on noisy
   rooms because it had to infer geometry/lighting/scale from the raw image. Fix: a `SceneProvider`

@@ -65,9 +65,10 @@ All responses use the standard envelope on error:
 
 The Inngest workflow (`generation.requested`, per-merchant + global concurrency caps) runs
 `processGeneration`: `processing` → moderate input → **two pre-passes in parallel** — (a) **resolve the
-product image** (a background-removed **matting cutout**, computed once and cached on
-`products.clean_image_key` — eagerly on product create/bulk via the `product.image.process` Inngest
-function, else lazily here; best-effort — degrades to the raw image, D63) and (b) **scene analysis**
+product image** (a background-removed **cutout** — `BG_REMOVAL_PROVIDER`: `gateway` (Gemini on the AI
+Gateway, the Vercel-only default) or `replicate` (a true matting model) — computed once and cached on
+`products.clean_image_key` (eagerly on product create/bulk via the `product.image.process` Inngest
+function, else lazily here); best-effort — degrades to the raw image, D63) and (b) **scene analysis**
 (a cheap vision pass returning per-image facts — lighting, surfaces, tilt, scale, placement region; fed
 to compose, low-confidence dropped; best-effort, D64) → **normalize the room** (deskew by the scene's
 tilt, clamped + inscribed-rect crop, plus a dark-photo auto-level; stored back; best-effort, D65) →

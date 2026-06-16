@@ -1,5 +1,6 @@
 import { AIOrchestrator } from './orchestrator.js';
 import { ReplicateMattingProvider } from './providers/bg-removal.js';
+import { GatewayBgRemovalProvider } from './providers/bg-removal-gateway.js';
 import { GatewayProvider } from './providers/gateway.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
 import { GatewaySceneProvider } from './providers/gateway-scene.js';
@@ -26,6 +27,18 @@ export function selectBgRemovalProvider(
   }
   if (choice === 'mock') {
     return new MockBgRemovalProvider();
+  }
+  // Vercel-consolidated path: a generative cutout on the AI Gateway (reuses AI_GATEWAY_API_KEY / OIDC — no
+  // Replicate). Lower-fidelity than matting (re-renders the product), but it's only a reference. (D63)
+  if (choice === 'gateway') {
+    const apiKey = env.AI_GATEWAY_API_KEY;
+    if (!apiKey && !env.VERCEL_OIDC_TOKEN) {
+      return undefined; // no gateway creds → degrade, don't crash
+    }
+    return new GatewayBgRemovalProvider({
+      model: env.BG_REMOVAL_GATEWAY_MODEL ?? env.GATEWAY_MODEL_QUALITY ?? 'google/gemini-3-pro-image',
+      apiKey,
+    });
   }
   const token = env.REPLICATE_API_TOKEN;
   const model = env.BG_REMOVAL_MODEL;

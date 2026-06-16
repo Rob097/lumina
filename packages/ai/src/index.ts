@@ -19,10 +19,18 @@ export {
 } from './providers/mock.js';
 export {
   ReplicateMattingProvider,
+  buildMattingRequest,
   type MattingRunner,
   type MattingCallArgs,
   type ReplicateMattingOptions,
 } from './providers/bg-removal.js';
+export {
+  GatewayBgRemovalProvider,
+  type GatewayBgRemovalRunner,
+  type GatewayBgRemovalCallArgs,
+  type GatewayBgRemovalOptions,
+} from './providers/bg-removal-gateway.js';
+export { buildCutoutPrompt } from './prompts/cutout.js';
 export {
   GatewayQuantityProvider,
   type GatewayQuantityProviderOptions,
