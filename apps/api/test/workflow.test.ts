@@ -5,6 +5,7 @@ import {
   MockProvider,
   MockQuantityProvider,
   type AIProvider,
+  type ImageRef,
   type ModerationProvider,
   type QuantityProvider,
   type SceneAnalysis,
@@ -530,12 +531,12 @@ describe('processGeneration — room normalization (Phase 3)', () => {
   });
 });
 
-// Coverage composite (Phase 5 / D67): for a coverage-category product the workflow tiles the cutout onto the
-// real room with sharp and ships THAT deterministic composite as the result — NO generative pass (the REFINE
-// pass was retired because, handed a correct N-tile grid, the model collapsed it to one panel and repainted
-// the room). If the composite can't be built it falls back to a normal generative compose. Single-unit
-// products always compose.
-describe('processGeneration — coverage composite (Phase 5)', () => {
+// Coverage layout-guided refine (Phase 5 / D67): for a coverage-category product the workflow tiles the
+// cutout onto the normalized room with sharp to build a deterministic GUIDE, then refines it generatively
+// (compose receives input.layout) into a photorealistic result. The guide constrains the model (it can't
+// relocate/recount the panels or repaint the room) and is the robust FALLBACK if the refine call fails.
+// Single-unit products compose from scratch (no layout guide).
+describe('processGeneration — coverage layout-guided refine (Phase 5)', () => {
   async function realJpeg(w: number, h: number): Promise<Uint8Array> {
     return new Uint8Array(
       await sharp({ create: { width: w, height: h, channels: 3, background: { r: 200, g: 200, b: 200 } } }).jpeg().toBuffer(),
@@ -545,16 +546,19 @@ describe('processGeneration — coverage composite (Phase 5)', () => {
     return new Uint8Array(await sharp({ create: { width: w, height: h, channels: 3, background: rgb } }).png().toBuffer());
   }
 
-  /** An orchestrator that counts how many times the generative compose is invoked. */
-  function orchestratorCounting(
-    captured: { composeCalls: number },
+  /** Orchestrator that records each compose call + the layout guide it received; can also fail compose. */
+  function orchestratorCapturing(
+    captured: { composeCalls: number; layout?: ImageRef },
     quantity: QuantityProvider,
     cutout: Uint8Array,
+    opts: { failCompose?: boolean } = {},
   ): AIOrchestrator {
     const provider: AIProvider = {
       name: 'cap',
-      compose: async () => {
+      compose: async (input) => {
         captured.composeCalls += 1;
+        captured.layout = input.layout;
+        if (opts.failCompose) throw new Error('compose boom');
         return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 400, height: 300 };
       },
     };
@@ -569,59 +573,76 @@ describe('processGeneration — coverage composite (Phase 5)', () => {
     return firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId))).model;
   }
 
-  it('ships a deterministic composite (no generative call) for a confident coverage product', async () => {
+  it('refines the deterministic guide for a confident coverage product (compose receives the layout)', async () => {
     const room = await realJpeg(400, 300);
     const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
-    const captured = { composeCalls: 0 };
+    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
     const quantity = new MockQuantityProvider({ suggestedQuantity: 9, unit: 'panels', rationale: '~9 panels', confidence: 0.85 });
-    const orch = orchestratorCounting(captured, quantity, cutout);
+    const orch = orchestratorCapturing(captured, quantity, cutout);
     const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
 
     const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
-    expect(captured.composeCalls).toBe(0); // the model is never called for a coverage composite
-    expect(await modelOf(generationId)).toBe(LAYOUT_COMPOSITE_MODEL);
+    expect(captured.composeCalls).toBe(1); // refined generatively, not shipped raw
+    expect(captured.layout).toBeDefined(); // the deterministic guide was passed → REFINE mode
+    expect(await modelOf(generationId)).toBe('mock-compose');
   });
 
-  it('ships a deterministic composite for a coverage category even with a low-confidence estimate', async () => {
+  it('builds + refines a coverage guide even with a low-confidence estimate', async () => {
     // The flaky vision estimate must not gate tiling: a "decor" product is a coverage category, so it tiles
     // regardless of the estimate's confidence (the estimate only refines the count).
     const room = await realJpeg(400, 300);
     const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
-    const captured = { composeCalls: 0 };
+    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
     const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.1 });
-    const orch = orchestratorCounting(captured, quantity, cutout);
+    const orch = orchestratorCapturing(captured, quantity, cutout);
     const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
 
     const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
-    expect(captured.composeCalls).toBe(0);
-    expect(await modelOf(generationId)).toBe(LAYOUT_COMPOSITE_MODEL);
-  });
-
-  it('falls back to a generative compose when the composite cannot be built', async () => {
-    // The default CLEAN_JPEG storage isn't a decodable image → the raster no-ops → no composite → compose.
-    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
-    const captured = { composeCalls: 0 };
-    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.85 });
-    const orch = orchestratorCounting(captured, quantity, cutout);
-
-    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
-    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
     expect(captured.composeCalls).toBe(1);
-    expect(await modelOf(generationId)).toBe('mock-compose');
+    expect(captured.layout).toBeDefined();
   });
 
-  it('composes (no coverage composite) for a single-unit product', async () => {
+  it('falls back to the deterministic composite when the refine call fails', async () => {
     const room = await realJpeg(400, 300);
     const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
-    const captured = { composeCalls: 0 };
-    const orch = orchestratorCounting(captured, new MockQuantityProvider(), cutout);
+    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.85 });
+    const orch = orchestratorCapturing(captured, quantity, cutout, { failCompose: true });
+    const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
+
+    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
+    expect(captured.composeCalls).toBeGreaterThanOrEqual(1); // refine attempted (the orchestrator may retry the chain)
+    expect(await modelOf(generationId)).toBe(LAYOUT_COMPOSITE_MODEL); // shipped the deterministic guide
+  });
+
+  it('composes from scratch (no layout guide) for a single-unit product', async () => {
+    const room = await realJpeg(400, 300);
+    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
+    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
+    const orch = orchestratorCapturing(captured, new MockQuantityProvider(), cutout);
     const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
 
     const { generationId } = await queued(4, { category: 'furniture' });
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
     expect(captured.composeCalls).toBe(1);
+    expect(captured.layout).toBeUndefined(); // no guide → from-scratch compose
+    expect(await modelOf(generationId)).toBe('mock-compose');
+  });
+
+  it('composes from scratch when the coverage guide cannot be built', async () => {
+    // The default CLEAN_JPEG storage isn't a decodable image → the raster no-ops → no guide → from-scratch.
+    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
+    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.85 });
+    const orch = orchestratorCapturing(captured, quantity, cutout);
+
+    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    expect(captured.composeCalls).toBe(1);
+    expect(captured.layout).toBeUndefined();
     expect(await modelOf(generationId)).toBe('mock-compose');
   });
 });

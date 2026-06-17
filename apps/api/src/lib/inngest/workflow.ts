@@ -164,8 +164,11 @@ const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
+// A refined coverage layout legitimately changes a large area (a whole tiled wall), so the pixel-perfect
+// step allows a much larger changed fraction before it gives up and keeps the full refined render.
+const COVERAGE_CHANGE_MAX_FRACTION = Number(process.env.COVERAGE_CHANGE_MAX_FRACTION ?? 0.95);
 
-// "model" recorded for a deterministic coverage composite — a sharp raster, no generative call (D67).
+// "model" recorded when we ship the deterministic coverage composite directly (the refine fallback, D67).
 export const LAYOUT_COMPOSITE_MODEL = 'layout-composite';
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
@@ -530,15 +533,15 @@ export async function processGeneration(
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
 
-    // Coverage composite (Phase 5 / D67): for a coverage-CATEGORY product (decor/tiles/renovation/outdoor)
-    // tile the cutout across the target surface ON the real normalized room (sharp) and ship THAT as the
-    // result — no generative pass. The REFINE pass was retired: handed a correct N-tile grid the model
-    // collapsed it to one panel and repainted the room (production evidence, 2026-06-17). The deterministic
-    // composite keeps the room intact outside the surface, the tiles aligned + counted, and the orientation
-    // correct. Gating is by category (deterministic); the flaky estimate only refines the count. Best-effort:
-    // an unreadable room / missing cutout returns undefined → fall back to the normal generative compose.
+    // Coverage layout-guided REFINE (Phase 5 / D67): for a coverage-CATEGORY product (decor/tiles/renovation/
+    // outdoor) tile the cutout across the target surface ON the normalized room (sharp) to build a
+    // deterministic GUIDE, then refine it generatively into a photorealistic, lit, blended surface. The guide
+    // both constrains the model — it can't relocate, recount, or repaint over the panels/room — and is the
+    // robust FALLBACK if the model call fails (a raw guide is crude but correct). Gating is by category
+    // (deterministic); the flaky estimate only refines the tile count. No guide (unreadable room / missing
+    // cutout) → a normal from-scratch compose, exactly like a single-object product.
     const renderStart = Date.now();
-    const coverageComposite = isCoverageCategory(category)
+    const coverageGuide = isCoverageCategory(category)
       ? await buildCoverageLayoutSafe(deps, gen, {
           roomBytes: normalized,
           product: productImage,
@@ -553,7 +556,7 @@ export async function processGeneration(
 
     // Pipeline diagnostics (one structured line per generation): room dims AFTER auto-orient + normalize
     // (portrait vs landscape pinpoints orientation issues), the aspect pin, the coverage estimate, and
-    // whether a deterministic coverage composite was built. Cheap + high-signal in the Vercel runtime logs.
+    // whether a coverage layout guide was built. Cheap + high-signal in the Vercel runtime logs.
     console.info(
       '[gen] pipeline',
       JSON.stringify({
@@ -565,7 +568,7 @@ export async function processGeneration(
         coverage: estimate
           ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
           : null,
-        composite: Boolean(coverageComposite),
+        guide: Boolean(coverageGuide),
       }),
     );
 
@@ -573,12 +576,37 @@ export async function processGeneration(
     let resultModel: string;
     let resultCostCents: number;
     let resultLatencyMs: number;
-    if (coverageComposite) {
-      // Deterministic coverage result — no model call, no cost.
-      finalImage = coverageComposite;
-      resultModel = LAYOUT_COMPOSITE_MODEL;
-      resultCostCents = 0;
-      resultLatencyMs = Date.now() - renderStart;
+    if (coverageGuide) {
+      // Refine the guide into a photorealistic, lit, blended surface (the REFINE prompt is selected because
+      // `layout` is set; the gateway sends [guide, product]). If the model call fails, ship the deterministic
+      // guide so coverage still works (crude but correct) rather than failing the generation.
+      try {
+        const composed = await deps.orchestrator.compose({
+          room: { url: roomUrl },
+          product: productImage,
+          layout: { bytes: coverageGuide.bytes, contentType: coverageGuide.contentType },
+          category,
+          placementHint: gen.placementHint ?? undefined,
+          customInstructions: gen.customInstructions ?? undefined,
+          dimensions: snapshot.dimensions,
+          scene,
+          aspectRatio,
+          policy: planToPolicy(plan),
+          watermark: plan === 'free',
+        });
+        // A tiled wall legitimately changes a large area, so allow a higher upper bound before the
+        // pixel-perfect step keeps the full refined render; otherwise blend the change over the room.
+        finalImage = await keepOnlyProductChange(normalized, composed, { maxFraction: COVERAGE_CHANGE_MAX_FRACTION });
+        resultModel = composed.model;
+        resultCostCents = composed.costCents;
+        resultLatencyMs = composed.latencyMs;
+      } catch (err) {
+        deps.reportError?.(err, { generationId, merchantId: gen.merchantId, stage: 'coverage_refine' });
+        finalImage = coverageGuide;
+        resultModel = LAYOUT_COMPOSITE_MODEL;
+        resultCostCents = 0;
+        resultLatencyMs = Date.now() - renderStart;
+      }
     } else {
       const composed = await deps.orchestrator.compose({
         room: { url: roomUrl },

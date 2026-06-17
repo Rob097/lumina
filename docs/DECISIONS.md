@@ -579,8 +579,9 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   normalization never fails or bills a generation. Deskew is intentionally gentle to avoid an uncanny
   perspective warp.
 
-- **D66 — Layout-guided REFINE compose for coverage products (Phase 5).** **(Superseded by D67 — the
-  generative REFINE pass proved unreliable in production and was retired.)** A real generation of a 60×60
+- **D66 — Layout-guided REFINE compose for coverage products (Phase 5).** **(See D67 for the production
+  history: this REFINE design is correct and is what ships; it was briefly disabled while sharp was broken
+  on Vercel, then restored once sharp loaded.)** A real generation of a 60×60
   acoustic wall panel produced **one crooked panel** instead of covering the wall. Three compounding gaps:
   the coverage estimate was UI-only (never reached compose), the master prompt actively said *"AVOID
   duplicated product"*, and from-scratch full-frame compose is unreliable at tiling. Fix: when the coverage
@@ -599,20 +600,27 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   unreadable room, or any failure falls back to a normal compose and never fails or re-bills a generation.
   Final quality is gated on a real-image re-test / the eval golden set, not a unit assertion.
 
-- **D67 — Deterministic coverage composite; the generative REFINE pass is retired (Phase 5, supersedes
-  D66).** Production re-tests of the acoustic-panel case (2026-06-17, Studio) showed the layout-guided
-  REFINE path made results **worse**: handed a correct ~29-tile grid, the compose model **collapsed it to a
-  single crooked panel and repainted the room** (and `COVERAGE_CHANGE_MAX_FRACTION=0.95` let the rewritten
-  frame composite through). DB ground truth confirmed the grid *was* built and sent — the generative model
-  simply does not preserve a supplied layout's tile count or the room. **Fix:** for a coverage-category
-  product the **deterministic sharp composite IS the result** — `buildCoverageLayout` tiles the cutout across
-  the target surface on the real normalized room and the workflow ships that, with **no generative pass**
-  (model recorded as `layout-composite` / `LAYOUT_COMPOSITE_MODEL`, cost 0). This guarantees by construction:
-  the room stays intact outside the surface, the tiles stay aligned + counted, and the orientation is
-  correct. Gating stays category-based (deterministic); the flaky estimate only refines the tile count.
-  **Best-effort:** an unreadable room / missing cutout falls back to the normal generative compose (never
-  fails or re-bills). **Retired:** the `COVERAGE_CHANGE_MAX_FRACTION` knob and the `[layout, product]` REFINE
-  compose path are no longer used by the workflow (the `refine.ts` prompt + `ComposeInput.layout` plumbing
-  remain in `packages/ai`, unused, kept in case we revisit a *mask-bounded* harmonization pass). **Known
-  limitation (v1):** tiles are axis-aligned and flatly lit — good for a flat, head-on wall; strongly angled
-  surfaces and per-tile lighting/shadow are a later enhancement (perspective warp + a wall-masked relight).
+- **D67 — Coverage = deterministic GUIDE + generative REFINE, with the guide as fallback (Phase 5; corrects
+  the saga below).** **Production history (2026-06-17):** a long debugging arc on the acoustic-panel case
+  saw "rotated room / single crooked panel / room repainted / null result dims". The real root cause was
+  **`sharp` failing to load on the Vercel Inngest function** (`ERR_DLOPEN_FAILED: libvips-cpp.so` — a pnpm
+  file-tracing miss; the addon resolves libvips via a sibling symlink whose `.so` wasn't packaged at the
+  RUNPATH path). Because every `sharp` call is wrapped in try/catch, the failure was **silent**: auto-orient
+  no-op'd (rooms stayed rotated), the coverage guide never built (so compose ran **from-scratch with no
+  guide** → a single panel), and `readImageSize` returned 0 (null dims). A mid-saga decision to "retire
+  REFINE and ship the deterministic composite" was made on that **false premise** — REFINE had never
+  actually been given a real guide. Once sharp loaded, the deterministic composite worked but, shipped raw,
+  looked like a flat cut-and-paste ("made in Paint"). **Decision (the intended Phase-5 shape):** for a
+  coverage-category product, build the deterministic tiled composite as a **GUIDE** (`buildCoverageLayout`
+  over the normalized room) and **refine it generatively** (`ComposeInput.layout` set → `refine.ts` prompt;
+  the gateway sends `[guide, product]`) into a photorealistic, lit, blended surface. The guide both
+  **constrains** the model (it can't relocate/recount the panels or repaint the room — the failure mode of
+  from-scratch compose) and is the **robust FALLBACK**: if the refine call fails, ship the deterministic
+  guide directly (model `layout-composite`, cost 0 — crude but correct) rather than failing. The
+  pixel-perfect step is coverage-aware (`COVERAGE_CHANGE_MAX_FRACTION`, default 0.95). Gating is by category
+  (deterministic); the flaky estimate only refines the tile count. No guide (unreadable room / missing
+  cutout) → a normal from-scratch compose, like a single-object product. **Sharp robustness:** the libvips
+  `.so` is force-included at the addon's symlink path via `outputFileTracingIncludes`, and
+  `GET /internal/sharp-check` verifies sharp loads on Vercel without a billed generation. **Known limitation
+  (v1 guide):** the guide tiles are axis-aligned + flat — the refine adds the realism; strongly angled walls
+  may still need a perspective warp in the guide later.
