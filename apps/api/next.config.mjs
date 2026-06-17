@@ -17,13 +17,23 @@ const nextConfig = {
   // binary loadable; file tracing (with the monorepo root below) copies it into the function.
   serverExternalPackages: ['sharp'],
   outputFileTracingRoot: monorepoRoot,
-  // Force-include sharp's native libvips sibling. File tracing follows the `.node` addon but CANNOT see
-  // the `libvips-cpp.so` it `dlopen`s at runtime, so the lib was missing from the function bundle and
-  // sharp failed with `ERR_DLOPEN_FAILED: libvips-cpp.so` — silently disabling all image post-processing.
-  // The Inngest route is the only one that runs the image pipeline (workflow + product-image).
+  // Force-include sharp's native libs. File tracing follows the `.node` addon but CANNOT see the
+  // `libvips-cpp.so` it `dlopen`s at runtime. Under pnpm the addon (@img/sharp-linux-x64) resolves libvips
+  // through a SIBLING SYMLINK in its own @img dir
+  // (@img+sharp-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64 -> the libvips package), so we must
+  // include BOTH the addon's @img subtree (the symlink) AND the libvips package itself (the target). With
+  // only the target, dlopen still failed (`libvips-cpp.so: cannot open shared object file`) and ALL image
+  // post-processing silently no-op'd — rotated rooms, no coverage tiling, null result dims.
+  // `/internal/sharp-check` loads sharp the same way so the binary's presence is verifiable without a
+  // (billed) generation. The Inngest route is the only one that runs the full image pipeline.
   outputFileTracingIncludes: {
     '/internal/inngest': [
-      '../../node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64/**',
+      '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/**',
+      '../../node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/**',
+    ],
+    '/internal/sharp-check': [
+      '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/**',
+      '../../node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/**',
     ],
   },
   // Resolve NodeNext-style `.js` relative imports (used for tsc/vitest) to their `.ts` sources.
