@@ -578,3 +578,22 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   better). **Best-effort**: a level photo, a missing scene, or a sharp failure returns the room unchanged —
   normalization never fails or bills a generation. Deskew is intentionally gentle to avoid an uncanny
   perspective warp.
+
+- **D66 — Layout-guided REFINE compose for coverage products (Phase 5).** A real generation of a 60×60
+  acoustic wall panel produced **one crooked panel** instead of covering the wall. Three compounding gaps:
+  the coverage estimate was UI-only (never reached compose), the master prompt actively said *"AVOID
+  duplicated product"*, and from-scratch full-frame compose is unreliable at tiling. Fix: when the coverage
+  estimator returns a **confident multi-unit** estimate, build a programmatic **layout guide** —
+  `apps/api/src/lib/images/layout.ts` tiles the product's cached cutout in a regular grid across the scene's
+  target surface (`scene.suggestedPlacement.bbox`, else a default wall box) on top of the **normalized**
+  room — and compose in a **REFINE pass** (`packages/ai/src/prompts/refine.ts`, selected by
+  `buildComposePrompt` when `ComposeInput.layout` is set; the gateway sends `[layout, product]`). REFINE
+  keeps the laid-out placement/unit-count/coverage, **aligns** the tiles (parallel edges, correct
+  perspective — fixes the "crooked" output), preserves product identity, never touches the room/framing,
+  and **deliberately allows repetition** (the from-scratch dedup rule is dropped). The pixel-perfect step is
+  coverage-aware (`COVERAGE_CHANGE_MAX_FRACTION`, default 0.95) since a tiled wall is a legitimately large
+  change. **Scope:** coverage products only this milestone — single-object placements keep the prior direct
+  compose to avoid regressing what already works; single-object layout-guidance is a later extension. Stays
+  on the existing model + key (D49), no new provider. **Best-effort throughout**: no cached cutout, an
+  unreadable room, or any failure falls back to a normal compose and never fails or re-bills a generation.
+  Final quality is gated on a real-image re-test / the eval golden set, not a unit assertion.

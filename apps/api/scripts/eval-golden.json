@@ -112,5 +112,13 @@
     "roomUrl": "https://golden.lumina.app/rooms/bathroom-plain.jpg",
     "productUrl": "https://golden.lumina.app/products/microcement-swatch.png",
     "placementHint": "as the wall surface finish"
+  },
+  {
+    "id": "coverage-acoustic-panels-wall",
+    "category": "decor",
+    "inputClass": "coverage",
+    "roomUrl": "https://golden.lumina.app/rooms/bedroom-plain-wall.jpg",
+    "productUrl": "https://golden.lumina.app/products/acoustic-wood-panel-60x60.png",
+    "placementHint": "cover the wall behind the bed"
   }
 ]
