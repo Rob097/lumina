@@ -579,7 +579,8 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   normalization never fails or bills a generation. Deskew is intentionally gentle to avoid an uncanny
   perspective warp.
 
-- **D66 — Layout-guided REFINE compose for coverage products (Phase 5).** A real generation of a 60×60
+- **D66 — Layout-guided REFINE compose for coverage products (Phase 5).** **(Superseded by D67 — the
+  generative REFINE pass proved unreliable in production and was retired.)** A real generation of a 60×60
   acoustic wall panel produced **one crooked panel** instead of covering the wall. Three compounding gaps:
   the coverage estimate was UI-only (never reached compose), the master prompt actively said *"AVOID
   duplicated product"*, and from-scratch full-frame compose is unreliable at tiling. Fix: when the coverage
@@ -597,3 +598,21 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   on the existing model + key (D49), no new provider. **Best-effort throughout**: no cached cutout, an
   unreadable room, or any failure falls back to a normal compose and never fails or re-bills a generation.
   Final quality is gated on a real-image re-test / the eval golden set, not a unit assertion.
+
+- **D67 — Deterministic coverage composite; the generative REFINE pass is retired (Phase 5, supersedes
+  D66).** Production re-tests of the acoustic-panel case (2026-06-17, Studio) showed the layout-guided
+  REFINE path made results **worse**: handed a correct ~29-tile grid, the compose model **collapsed it to a
+  single crooked panel and repainted the room** (and `COVERAGE_CHANGE_MAX_FRACTION=0.95` let the rewritten
+  frame composite through). DB ground truth confirmed the grid *was* built and sent — the generative model
+  simply does not preserve a supplied layout's tile count or the room. **Fix:** for a coverage-category
+  product the **deterministic sharp composite IS the result** — `buildCoverageLayout` tiles the cutout across
+  the target surface on the real normalized room and the workflow ships that, with **no generative pass**
+  (model recorded as `layout-composite` / `LAYOUT_COMPOSITE_MODEL`, cost 0). This guarantees by construction:
+  the room stays intact outside the surface, the tiles stay aligned + counted, and the orientation is
+  correct. Gating stays category-based (deterministic); the flaky estimate only refines the tile count.
+  **Best-effort:** an unreadable room / missing cutout falls back to the normal generative compose (never
+  fails or re-bills). **Retired:** the `COVERAGE_CHANGE_MAX_FRACTION` knob and the `[layout, product]` REFINE
+  compose path are no longer used by the workflow (the `refine.ts` prompt + `ComposeInput.layout` plumbing
+  remain in `packages/ai`, unused, kept in case we revisit a *mask-bounded* harmonization pass). **Known
+  limitation (v1):** tiles are axis-aligned and flatly lit — good for a flat, head-on wall; strongly angled
+  surfaces and per-tile lighting/shadow are a later enhancement (perspective warp + a wall-masked relight).

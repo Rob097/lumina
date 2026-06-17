@@ -164,9 +164,9 @@ const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
-// Coverage layouts (Phase 5) deliberately change a large area (a tiled wall), so the pixel-perfect step
-// uses a higher upper bound before it gives up and keeps the full render.
-const COVERAGE_CHANGE_MAX_FRACTION = Number(process.env.COVERAGE_CHANGE_MAX_FRACTION ?? 0.95);
+
+// "model" recorded for a deterministic coverage composite — a sharp raster, no generative call (D67).
+export const LAYOUT_COMPOSITE_MODEL = 'layout-composite';
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -270,10 +270,11 @@ async function analyzeSceneSafe(
 }
 
 /**
- * Build the Phase 5 coverage layout guide: tile the product's cached cutout across the scene's target
- * surface on top of the normalized room, to hand the compose model in a REFINE pass (which yields aligned
- * full-wall coverage instead of one floating unit). Best-effort — no cached cutout, an unreadable room, or
- * any failure returns undefined so compose simply runs without a guide. Never fails the generation.
+ * Build the Phase 5 coverage composite: tile the product's cached cutout across the scene's target surface
+ * on top of the normalized room (sharp). This deterministic composite IS the result for a coverage product
+ * (D67) — aligned full-surface coverage with the room left intact, no generative pass. Best-effort — no
+ * cached cutout, an unreadable room, or any failure returns undefined so the workflow falls back to a normal
+ * compose. Never fails the generation.
  */
 /** Read the bytes behind an ImageRef (inline or URL). Best-effort — returns undefined on any failure. */
 async function fetchImageBytes(ref: ImageRef): Promise<Uint8Array | undefined> {
@@ -295,7 +296,7 @@ async function buildCoverageLayoutSafe(
   deps: WorkflowDeps,
   gen: GenerationRow,
   args: { roomBytes: Uint8Array; product: ImageRef; scene: SceneAnalysis | undefined; count: number },
-): Promise<ImageRef | undefined> {
+): Promise<{ bytes: Uint8Array; contentType: string } | undefined> {
   // Prefer the cached cutout (a clean, trim-able panel); else fall back to the resolved product image so
   // coverage tiling still works when background removal isn't configured.
   let tile: Uint8Array | undefined;
@@ -529,11 +530,15 @@ export async function processGeneration(
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
 
-    // Coverage layout guide (Phase 5): for a coverage-CATEGORY product (decor/tiles/renovation/outdoor) tile
-    // the cutout across the target surface and compose in REFINE mode so the model polishes that layout into
-    // aligned full-wall coverage instead of placing one floating unit. Gating is by category (deterministic);
-    // the flaky vision estimate only refines the count. Best-effort — undefined falls back to a normal compose.
-    const layout = isCoverageCategory(category)
+    // Coverage composite (Phase 5 / D67): for a coverage-CATEGORY product (decor/tiles/renovation/outdoor)
+    // tile the cutout across the target surface ON the real normalized room (sharp) and ship THAT as the
+    // result — no generative pass. The REFINE pass was retired: handed a correct N-tile grid the model
+    // collapsed it to one panel and repainted the room (production evidence, 2026-06-17). The deterministic
+    // composite keeps the room intact outside the surface, the tiles aligned + counted, and the orientation
+    // correct. Gating is by category (deterministic); the flaky estimate only refines the count. Best-effort:
+    // an unreadable room / missing cutout returns undefined → fall back to the normal generative compose.
+    const renderStart = Date.now();
+    const coverageComposite = isCoverageCategory(category)
       ? await buildCoverageLayoutSafe(deps, gen, {
           roomBytes: normalized,
           product: productImage,
@@ -542,13 +547,13 @@ export async function processGeneration(
         })
       : undefined;
 
-    // Pin the output aspect ratio to the (normalized) room so the edit can't re-frame/rotate the scene.
+    // Pin the output aspect ratio to the (normalized) room so a generative edit can't re-frame/rotate it.
     const roomSize = await readImageSize(normalized);
     const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
 
     // Pipeline diagnostics (one structured line per generation): room dims AFTER auto-orient + normalize
     // (portrait vs landscape pinpoints orientation issues), the aspect pin, the coverage estimate, and
-    // whether a layout guide was built. Cheap and high-signal when inspecting Vercel runtime logs.
+    // whether a deterministic coverage composite was built. Cheap + high-signal in the Vercel runtime logs.
     console.info(
       '[gen] pipeline',
       JSON.stringify({
@@ -560,34 +565,43 @@ export async function processGeneration(
         coverage: estimate
           ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
           : null,
-        layout: Boolean(layout),
+        composite: Boolean(coverageComposite),
       }),
     );
 
-    const composed = await deps.orchestrator.compose({
-      room: { url: roomUrl },
-      product: productImage,
-      layout,
-      category,
-      placementHint: gen.placementHint ?? undefined,
-      customInstructions: gen.customInstructions ?? undefined,
-      dimensions: snapshot.dimensions,
-      scene,
-      aspectRatio,
-      policy: planToPolicy(plan),
-      watermark: plan === 'free',
-    });
+    let finalImage: { bytes: Uint8Array; contentType: string };
+    let resultModel: string;
+    let resultCostCents: number;
+    let resultLatencyMs: number;
+    if (coverageComposite) {
+      // Deterministic coverage result — no model call, no cost.
+      finalImage = coverageComposite;
+      resultModel = LAYOUT_COMPOSITE_MODEL;
+      resultCostCents = 0;
+      resultLatencyMs = Date.now() - renderStart;
+    } else {
+      const composed = await deps.orchestrator.compose({
+        room: { url: roomUrl },
+        product: productImage,
+        category,
+        placementHint: gen.placementHint ?? undefined,
+        customInstructions: gen.customInstructions ?? undefined,
+        dimensions: snapshot.dimensions,
+        scene,
+        aspectRatio,
+        policy: planToPolicy(plan),
+        watermark: plan === 'free',
+      });
 
-    // Pixel-perfect step (#AI-gen v2): Gemini inserts the exact product but re-renders the whole frame.
-    // Detect where it actually changed the scene and composite only that region back over the ORIGINAL,
-    // so everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift).
-    // A too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
-    // A coverage layout legitimately changes a large area, so it allows a higher upper bound.
-    const finalImage = await keepOnlyProductChange(
-      normalized,
-      composed,
-      layout ? { maxFraction: COVERAGE_CHANGE_MAX_FRACTION } : {},
-    );
+      // Pixel-perfect step (#AI-gen v2): the model inserts the product but re-renders the whole frame. Detect
+      // where it actually changed the scene and composite only that region back over the ORIGINAL, so
+      // everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift). A
+      // too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
+      finalImage = await keepOnlyProductChange(normalized, composed);
+      resultModel = composed.model;
+      resultCostCents = composed.costCents;
+      resultLatencyMs = composed.latencyMs;
+    }
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(
@@ -623,11 +637,11 @@ export async function processGeneration(
       generationId,
       merchantId: gen.merchantId,
       resultKey: key,
-      model: composed.model,
-      costCents: composed.costCents,
-      latencyMs: composed.latencyMs,
-      width: finalSize.width || composed.width,
-      height: finalSize.height || composed.height,
+      model: resultModel,
+      costCents: resultCostCents,
+      latencyMs: resultLatencyMs,
+      width: finalSize.width || undefined,
+      height: finalSize.height || undefined,
       suggestedQuantity,
       quantityRationale,
     });
@@ -636,9 +650,9 @@ export async function processGeneration(
         generationId,
         merchantId: gen.merchantId,
         status: 'succeeded',
-        model: composed.model,
-        costCents: composed.costCents,
-        latencyMs: composed.latencyMs,
+        model: resultModel,
+        costCents: resultCostCents,
+        latencyMs: resultLatencyMs,
         creditsSpent: gen.creditsSpent,
       }),
     );
