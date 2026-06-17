@@ -265,16 +265,37 @@ async function analyzeSceneSafe(
  * full-wall coverage instead of one floating unit). Best-effort — no cached cutout, an unreadable room, or
  * any failure returns undefined so compose simply runs without a guide. Never fails the generation.
  */
+/** Read the bytes behind an ImageRef (inline or URL). Best-effort — returns undefined on any failure. */
+async function fetchImageBytes(ref: ImageRef): Promise<Uint8Array | undefined> {
+  if ('bytes' in ref) {
+    return ref.bytes;
+  }
+  try {
+    const res = await fetch(ref.url);
+    if (!res.ok) {
+      return undefined;
+    }
+    return new Uint8Array(await res.arrayBuffer());
+  } catch {
+    return undefined;
+  }
+}
+
 async function buildCoverageLayoutSafe(
   deps: WorkflowDeps,
   gen: GenerationRow,
-  args: { roomBytes: Uint8Array; scene: SceneAnalysis | undefined; count: number },
+  args: { roomBytes: Uint8Array; product: ImageRef; scene: SceneAnalysis | undefined; count: number },
 ): Promise<ImageRef | undefined> {
-  let cutout: Uint8Array;
+  // Prefer the cached cutout (a clean, trim-able panel); else fall back to the resolved product image so
+  // coverage tiling still works when background removal isn't configured.
+  let tile: Uint8Array | undefined;
   try {
-    cutout = await deps.storage.getObject(productCleanKey(gen.merchantId, gen.productId ?? gen.id));
+    tile = await deps.storage.getObject(productCleanKey(gen.merchantId, gen.productId ?? gen.id));
   } catch {
-    return undefined; // no cached cutout to tile — compose without a guide
+    tile = await fetchImageBytes(args.product);
+  }
+  if (!tile) {
+    return undefined; // no product bytes to tile — compose without a guide
   }
   try {
     const dims = gen.productSnapshot.dimensions;
@@ -283,7 +304,7 @@ async function buildCoverageLayoutSafe(
     const productAspect = w && h ? w / h : 1;
     const result = await buildCoverageLayout({
       room: args.roomBytes,
-      cutout,
+      cutout: tile,
       box: bboxToBox(args.scene?.suggestedPlacement?.bbox, DEFAULT_WALL_BOX),
       count: args.count,
       productAspect,
@@ -506,6 +527,7 @@ export async function processGeneration(
       estimate && shouldBuildCoverageLayout(estimate)
         ? await buildCoverageLayoutSafe(deps, gen, {
             roomBytes: normalized,
+            product: productImage,
             scene,
             count: estimate.suggestedQuantity,
           })
@@ -514,6 +536,24 @@ export async function processGeneration(
     // Pin the output aspect ratio to the (normalized) room so the edit can't re-frame/rotate the scene.
     const roomSize = await readImageSize(normalized);
     const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
+
+    // Pipeline diagnostics (one structured line per generation): room dims AFTER auto-orient + normalize
+    // (portrait vs landscape pinpoints orientation issues), the aspect pin, the coverage estimate, and
+    // whether a layout guide was built. Cheap and high-signal when inspecting Vercel runtime logs.
+    console.info(
+      '[gen] pipeline',
+      JSON.stringify({
+        generationId,
+        roomW: roomSize.width,
+        roomH: roomSize.height,
+        aspectRatio: aspectRatio ?? null,
+        sceneTilt: scene?.tiltDegrees ?? null,
+        coverage: estimate
+          ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
+          : null,
+        layout: Boolean(layout),
+      }),
+    );
 
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
