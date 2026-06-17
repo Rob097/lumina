@@ -17,9 +17,9 @@ const EXTERIOR_NOTE =
  * Below this confidence the scene analysis (Phase 2 / D64) is dropped and we compose without its facts —
  * an unsure analysis is worse than none. Best-effort: the workflow always attaches what it got.
  */
-const MIN_SCENE_CONFIDENCE = 0.35;
+export const MIN_SCENE_CONFIDENCE = 0.35;
 
-function describeDimensions(d: Dimensions): string {
+export function describeDimensions(d: Dimensions): string {
   const unit = d.unit ?? 'cm';
   const parts: string[] = [];
   if (d.w !== undefined) parts.push(`width ${d.w}${unit}`);

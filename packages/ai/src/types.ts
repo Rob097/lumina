@@ -31,6 +31,12 @@ export interface ComposeInput {
   customInstructions?: string;
   dimensions?: Dimensions;
   scene?: SceneAnalysis;
+  /**
+   * Rough layout guide (Generation Engine v2 / Phase 5): the product already placed/tiled into the room.
+   * When present, compose switches to a REFINE pass (keep the placement/coverage, fix lighting/perspective)
+   * and the provider sends `[layout, product]` instead of `[room, product]`.
+   */
+  layout?: ImageRef;
   /** Indoor vs outdoor — adds exterior-aware guidance to the prompt (facades, gardens, entrances). */
   sceneType?: SceneType;
   /** Output aspect ratio pinned to the room photo (e.g. '4:3') so the model can't re-frame/rotate it. */
