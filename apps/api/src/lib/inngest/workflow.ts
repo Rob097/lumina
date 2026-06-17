@@ -18,7 +18,8 @@ import {
 } from '@lumina/db';
 import type { ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
-import { contentTypeForKey, stripJpegMetadata } from '../images/exif.js';
+import { contentTypeForKey } from '../images/exif.js';
+import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
@@ -378,9 +379,11 @@ export async function processGeneration(
 
     const moderation = deps.moderation ?? new MockModerationProvider();
 
-    // Sanitize on ingest: strip EXIF/GPS from the stored room (defense-in-depth, HARD RULE #9).
+    // Sanitize on ingest: auto-orient (bake EXIF orientation into the pixels) + strip EXIF/GPS from the
+    // stored room (orientation correctness + defense-in-depth, HARD RULE #9). Baking orientation here keeps
+    // portrait uploads upright through scene analysis, the aspect-ratio pin, compose and the pixel-perfect base.
     const original = await deps.storage.getObject(gen.roomKey);
-    const sanitized = stripJpegMetadata(original);
+    const sanitized = await autoOrientAndStrip(original);
     if (sanitized !== original) {
       await deps.storage.putObject(gen.roomKey, sanitized, contentTypeForKey(gen.roomKey));
     }
