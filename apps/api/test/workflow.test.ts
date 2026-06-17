@@ -5,6 +5,7 @@ import {
   MockProvider,
   MockQuantityProvider,
   type AIProvider,
+  type ImageRef,
   type ModerationProvider,
   type QuantityProvider,
   type SceneAnalysis,
@@ -522,6 +523,63 @@ describe('processGeneration — room normalization (Phase 3)', () => {
       expect(dims.width).toBe(400);
       expect(dims.height).toBe(300);
     }
+  });
+});
+
+// Coverage layout guide (Phase 5): for a confident coverage product the workflow tiles the cutout into a
+// rough layout and composes in REFINE mode (compose receives `input.layout`); single-unit products do not.
+describe('processGeneration — coverage layout guide (Phase 5)', () => {
+  async function realJpeg(w: number, h: number): Promise<Uint8Array> {
+    return new Uint8Array(
+      await sharp({ create: { width: w, height: h, channels: 3, background: { r: 200, g: 200, b: 200 } } }).jpeg().toBuffer(),
+    );
+  }
+  async function solidPng(w: number, h: number, rgb: { r: number; g: number; b: number }): Promise<Uint8Array> {
+    return new Uint8Array(await sharp({ create: { width: w, height: h, channels: 3, background: rgb } }).png().toBuffer());
+  }
+
+  function orchestratorCapturingLayout(
+    captured: { layout?: ImageRef },
+    quantity: QuantityProvider,
+    cutout: Uint8Array,
+  ): AIOrchestrator {
+    const provider: AIProvider = {
+      name: 'cap',
+      compose: async (input) => {
+        captured.layout = input.layout;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 400, height: 300 };
+      },
+    };
+    return new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      bgRemoval: { removeBackground: async () => ({ bytes: cutout, contentType: 'image/png' }) },
+      quantity,
+    });
+  }
+
+  it('builds a coverage layout guide and composes in refine mode for a confident coverage product', async () => {
+    const room = await realJpeg(400, 300);
+    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
+    const captured: { layout?: ImageRef } = {};
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, unit: 'panels', rationale: '~9 panels', confidence: 0.85 });
+    const orch = orchestratorCapturingLayout(captured, quantity, cutout);
+    const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
+
+    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
+    expect(captured.layout).toBeDefined();
+  });
+
+  it('composes without a layout guide for a single-unit product', async () => {
+    const room = await realJpeg(400, 300);
+    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
+    const captured: { layout?: ImageRef } = {};
+    const orch = orchestratorCapturingLayout(captured, new MockQuantityProvider(), cutout);
+    const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
+
+    const { generationId } = await queued(4, { category: 'furniture' });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
+    expect(captured.layout).toBeUndefined();
   });
 });
 

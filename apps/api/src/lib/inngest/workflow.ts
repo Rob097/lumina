@@ -5,6 +5,7 @@ import {
   type ImageRef,
   type ModerationProvider,
   type ModerationReason,
+  type QuantityEstimate,
   type RoutingPolicy,
   type SceneAnalysis,
 } from '@lumina/ai';
@@ -23,6 +24,7 @@ import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
+import { DEFAULT_WALL_BOX, bboxToBox, buildCoverageLayout } from '../images/layout.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -102,34 +104,49 @@ function errorCodeFor(_err: unknown): string {
   return 'generation_failed';
 }
 
-/** Below this model confidence a coverage estimate is dropped rather than shown to the shopper. */
+/** Below this model confidence a coverage estimate is dropped (not shown, and no layout guide built). */
 const QUANTITY_CONFIDENCE_MIN = 0.5;
 
 /**
- * Best-effort coverage-quantity estimate (#7). Returns nulls (never throws) so a flaky vision call can
- * never fail an otherwise-successful generation. Only a confident multi-unit coverage estimate is kept.
+ * Best-effort coverage-quantity estimate (#7). Returns null (never throws) so a flaky vision call can never
+ * fail an otherwise-successful generation. Runs in the pre-compose pass so its result can both feed the
+ * stored estimate AND drive the Phase 5 layout guide (it only needs the room + category + dimensions).
  */
-async function estimateCoverage(
+async function estimateCoverageSafe(
   deps: WorkflowDeps,
   gen: GenerationRow,
   category: ProductCategory,
   roomUrl: string,
-): Promise<{ suggestedQuantity: number | null; quantityRationale: string | null }> {
+): Promise<QuantityEstimate | null> {
   try {
-    const est = await deps.orchestrator.estimateQuantity({
+    return await deps.orchestrator.estimateQuantity({
       room: { url: roomUrl },
       category,
       dimensions: gen.productSnapshot.dimensions,
       productName: gen.productSnapshot.name,
       placementHint: gen.placementHint ?? undefined,
     });
-    if (est && est.isCoverage && est.confidence >= QUANTITY_CONFIDENCE_MIN && est.suggestedQuantity > 1) {
-      return { suggestedQuantity: est.suggestedQuantity, quantityRationale: est.rationale };
-    }
   } catch (err) {
     deps.reportError?.(err, { generationId: gen.id, stage: 'estimate_quantity' });
+    return null;
+  }
+}
+
+/** The stored coverage fields — only a confident multi-unit coverage estimate is kept (else null). Pure. */
+export function coverageStoreFields(
+  est: QuantityEstimate | null,
+): { suggestedQuantity: number | null; quantityRationale: string | null } {
+  if (est && est.isCoverage && est.confidence >= QUANTITY_CONFIDENCE_MIN && est.suggestedQuantity > 1) {
+    return { suggestedQuantity: est.suggestedQuantity, quantityRationale: est.rationale };
   }
   return { suggestedQuantity: null, quantityRationale: null };
+}
+
+/** Whether to build a tiled layout guide: a confident, multi-unit coverage estimate (Phase 5). Pure. */
+export function shouldBuildCoverageLayout(est: QuantityEstimate | null): boolean {
+  return Boolean(
+    est && est.isCoverage && est.confidence >= QUANTITY_CONFIDENCE_MIN && est.suggestedQuantity > 1,
+  );
 }
 
 // Change-detection knobs (tunable per env in S5 from the golden-set eval).
@@ -137,6 +154,9 @@ const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
+// Coverage layouts (Phase 5) deliberately change a large area (a tiled wall), so the pixel-perfect step
+// uses a higher upper bound before it gives up and keeps the full render.
+const COVERAGE_CHANGE_MAX_FRACTION = Number(process.env.COVERAGE_CHANGE_MAX_FRACTION ?? 0.95);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -150,6 +170,7 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
 async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
+  opts: { maxFraction?: number } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
     const change = await computeChangeMask(original, composed.bytes, {
@@ -159,7 +180,7 @@ async function keepOnlyProductChange(
     if (
       !shouldComposite(change.changedFraction, {
         minFraction: CHANGE_MIN_FRACTION,
-        maxFraction: CHANGE_MAX_FRACTION,
+        maxFraction: opts.maxFraction ?? CHANGE_MAX_FRACTION,
       })
     ) {
       return { bytes: composed.bytes, contentType: composed.contentType };
@@ -234,6 +255,46 @@ async function analyzeSceneSafe(
     return (await deps.orchestrator.analyzeScene({ url: roomUrl })) ?? undefined;
   } catch (err) {
     deps.reportError?.(err, { generationId: gen.id, stage: 'scene_analysis' });
+    return undefined;
+  }
+}
+
+/**
+ * Build the Phase 5 coverage layout guide: tile the product's cached cutout across the scene's target
+ * surface on top of the normalized room, to hand the compose model in a REFINE pass (which yields aligned
+ * full-wall coverage instead of one floating unit). Best-effort — no cached cutout, an unreadable room, or
+ * any failure returns undefined so compose simply runs without a guide. Never fails the generation.
+ */
+async function buildCoverageLayoutSafe(
+  deps: WorkflowDeps,
+  gen: GenerationRow,
+  args: { roomBytes: Uint8Array; scene: SceneAnalysis | undefined; count: number },
+): Promise<ImageRef | undefined> {
+  let cutout: Uint8Array;
+  try {
+    cutout = await deps.storage.getObject(productCleanKey(gen.merchantId, gen.productId ?? gen.id));
+  } catch {
+    return undefined; // no cached cutout to tile — compose without a guide
+  }
+  try {
+    const dims = gen.productSnapshot.dimensions;
+    const w = dims?.w;
+    const h = dims?.h;
+    const productAspect = w && h ? w / h : 1;
+    const result = await buildCoverageLayout({
+      room: args.roomBytes,
+      cutout,
+      box: bboxToBox(args.scene?.suggestedPlacement?.bbox, DEFAULT_WALL_BOX),
+      count: args.count,
+      productAspect,
+      contentType: contentTypeForKey(gen.roomKey),
+    });
+    if (result.bytes === args.roomBytes) {
+      return undefined; // raster no-op (unreadable room) — nothing to refine
+    }
+    return { bytes: result.bytes, contentType: result.contentType };
+  } catch (err) {
+    deps.reportError?.(err, { generationId: gen.id, stage: 'layout' });
     return undefined;
   }
 }
@@ -414,10 +475,12 @@ export async function processGeneration(
     }
 
     // Run the independent pre-passes in parallel: the product cutout (cached per product, else the raw
-    // image) and the per-image scene analysis (best-effort facts the compositor can use).
-    const [productImage, scene] = await Promise.all([
+    // image), the per-image scene analysis (best-effort facts the compositor can use), and the coverage
+    // estimate (best-effort; feeds both the stored quantity and the Phase 5 layout guide below).
+    const [productImage, scene, estimate] = await Promise.all([
       resolveProductImage(deps, gen),
       analyzeSceneSafe(deps, gen, roomUrl),
+      estimateCoverageSafe(deps, gen, category, roomUrl),
     ]);
 
     // Normalize the room before compose (Phase 3 / D65): a gentle, clamped deskew using the scene's tilt
@@ -435,6 +498,19 @@ export async function processGeneration(
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
 
+    // Coverage layout guide (Phase 5): for a confident multi-unit coverage product, tile the cutout across
+    // the target surface and compose in REFINE mode so the model polishes that layout into aligned full-wall
+    // coverage instead of placing one floating, crooked unit. Best-effort — undefined falls back to a normal
+    // from-scratch compose.
+    const layout =
+      estimate && shouldBuildCoverageLayout(estimate)
+        ? await buildCoverageLayoutSafe(deps, gen, {
+            roomBytes: normalized,
+            scene,
+            count: estimate.suggestedQuantity,
+          })
+        : undefined;
+
     // Pin the output aspect ratio to the (normalized) room so the edit can't re-frame/rotate the scene.
     const roomSize = await readImageSize(normalized);
     const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
@@ -442,6 +518,7 @@ export async function processGeneration(
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: productImage,
+      layout,
       category,
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,
@@ -456,7 +533,12 @@ export async function processGeneration(
     // Detect where it actually changed the scene and composite only that region back over the ORIGINAL,
     // so everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift).
     // A too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
-    const finalImage = await keepOnlyProductChange(normalized, composed);
+    // A coverage layout legitimately changes a large area, so it allows a higher upper bound.
+    const finalImage = await keepOnlyProductChange(
+      normalized,
+      composed,
+      layout ? { maxFraction: COVERAGE_CHANGE_MAX_FRACTION } : {},
+    );
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(
@@ -480,9 +562,9 @@ export async function processGeneration(
     const key = buildResultKey(gen.merchantId, generationId);
     await deps.storage.putObject(key, finalImage.bytes, finalImage.contentType);
 
-    // Coverage-quantity estimate (#7) — best-effort: never fails the generation. Stored only for a
-    // confident coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
-    const { suggestedQuantity, quantityRationale } = await estimateCoverage(deps, gen, category, roomUrl);
+    // Coverage-quantity estimate (#7) — computed in the pre-compose pass above. Stored only for a confident
+    // coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
+    const { suggestedQuantity, quantityRationale } = coverageStoreFields(estimate);
 
     await finalizeSuccess(db, {
       generationId,
