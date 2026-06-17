@@ -26,14 +26,21 @@ const nextConfig = {
   // post-processing silently no-op'd — rotated rooms, no coverage tiling, null result dims.
   // `/internal/sharp-check` loads sharp the same way so the binary's presence is verifiable without a
   // (billed) generation. The Inngest route is the only one that runs the full image pipeline.
+  // NB the THIRD glob: the addon's `.node` dlopens libvips via its RUNPATH ($ORIGIN/../../
+  // sharp-libvips-linux-x64/lib), i.e. through the sibling SYMLINK — so the `.so` must be present at THAT
+  // path, not only at the real libvips package path. The big Inngest function only traced the real path
+  // (sharp loaded fine on the tiny /internal/sharp-check function but NOT here), so glob the `.so` in
+  // explicitly through the symlink. Keep all three: addon tree, libvips package, and the symlinked lib.
   outputFileTracingIncludes: {
     '/internal/inngest': [
       '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/**',
       '../../node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/**',
+      '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64/**',
     ],
     '/internal/sharp-check': [
       '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/**',
       '../../node_modules/.pnpm/@img+sharp-libvips-linux-x64@*/node_modules/@img/**',
+      '../../node_modules/.pnpm/@img+sharp-linux-x64@*/node_modules/@img/sharp-libvips-linux-x64/**',
     ],
   },
   // Resolve NodeNext-style `.js` relative imports (used for tsc/vitest) to their `.ts` sources.
