@@ -570,6 +570,21 @@ describe('processGeneration — coverage layout guide (Phase 5)', () => {
     expect(captured.layout).toBeDefined();
   });
 
+  it('builds the layout for a coverage category even when the estimate is not confident', async () => {
+    // The flaky vision estimate must not gate tiling: a "decor" product is a coverage category, so it tiles
+    // regardless of the estimate's confidence (the estimate only refines the count).
+    const room = await realJpeg(400, 300);
+    const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });
+    const captured: { layout?: ImageRef } = {};
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 9, confidence: 0.1 });
+    const orch = orchestratorCapturingLayout(captured, quantity, cutout);
+    const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
+
+    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
+    expect(captured.layout).toBeDefined();
+  });
+
   it('composes without a layout guide for a single-unit product', async () => {
     const room = await realJpeg(400, 300);
     const cutout = await solidPng(40, 40, { r: 0, g: 0, b: 255 });

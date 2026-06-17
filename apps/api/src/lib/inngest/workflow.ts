@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
+  isCoverageCategory,
   type AIOrchestrator,
   type ImageRef,
   type ModerationProvider,
@@ -142,11 +143,20 @@ export function coverageStoreFields(
   return { suggestedQuantity: null, quantityRationale: null };
 }
 
-/** Whether to build a tiled layout guide: a confident, multi-unit coverage estimate (Phase 5). Pure. */
-export function shouldBuildCoverageLayout(est: QuantityEstimate | null): boolean {
-  return Boolean(
-    est && est.isCoverage && est.confidence >= QUANTITY_CONFIDENCE_MIN && est.suggestedQuantity > 1,
-  );
+/** Default tile count when the (flaky) estimator gives no confident number — enough to read as coverage. */
+const DEFAULT_COVERAGE_COUNT = Number(process.env.COVERAGE_DEFAULT_COUNT ?? 12);
+
+/**
+ * Tiles to lay out for a coverage product: the estimate's count when it's a confident multi-unit number,
+ * else a sensible default. The estimate only refines the COUNT — whether we tile at all is decided by the
+ * product category (deterministic), so a low-confidence/missing estimate never collapses coverage to one
+ * unit. Pure.
+ */
+export function resolveCoverageCount(est: QuantityEstimate | null): number {
+  if (est && est.isCoverage && est.suggestedQuantity > 1) {
+    return est.suggestedQuantity;
+  }
+  return DEFAULT_COVERAGE_COUNT;
 }
 
 // Change-detection knobs (tunable per env in S5 from the golden-set eval).
@@ -519,19 +529,18 @@ export async function processGeneration(
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
 
-    // Coverage layout guide (Phase 5): for a confident multi-unit coverage product, tile the cutout across
-    // the target surface and compose in REFINE mode so the model polishes that layout into aligned full-wall
-    // coverage instead of placing one floating, crooked unit. Best-effort — undefined falls back to a normal
-    // from-scratch compose.
-    const layout =
-      estimate && shouldBuildCoverageLayout(estimate)
-        ? await buildCoverageLayoutSafe(deps, gen, {
-            roomBytes: normalized,
-            product: productImage,
-            scene,
-            count: estimate.suggestedQuantity,
-          })
-        : undefined;
+    // Coverage layout guide (Phase 5): for a coverage-CATEGORY product (decor/tiles/renovation/outdoor) tile
+    // the cutout across the target surface and compose in REFINE mode so the model polishes that layout into
+    // aligned full-wall coverage instead of placing one floating unit. Gating is by category (deterministic);
+    // the flaky vision estimate only refines the count. Best-effort — undefined falls back to a normal compose.
+    const layout = isCoverageCategory(category)
+      ? await buildCoverageLayoutSafe(deps, gen, {
+          roomBytes: normalized,
+          product: productImage,
+          scene,
+          count: resolveCoverageCount(estimate),
+        })
+      : undefined;
 
     // Pin the output aspect ratio to the (normalized) room so the edit can't re-frame/rotate the scene.
     const roomSize = await readImageSize(normalized);
@@ -602,6 +611,10 @@ export async function processGeneration(
     const key = buildResultKey(gen.merchantId, generationId);
     await deps.storage.putObject(key, finalImage.bytes, finalImage.contentType);
 
+    // Measure the stored result's real pixel size (the provider result carries none), so the asset row has
+    // true width/height — used by the dashboard and as the ground truth for diagnosing orientation.
+    const finalSize = await readImageSize(finalImage.bytes);
+
     // Coverage-quantity estimate (#7) — computed in the pre-compose pass above. Stored only for a confident
     // coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
     const { suggestedQuantity, quantityRationale } = coverageStoreFields(estimate);
@@ -613,8 +626,8 @@ export async function processGeneration(
       model: composed.model,
       costCents: composed.costCents,
       latencyMs: composed.latencyMs,
-      width: composed.width,
-      height: composed.height,
+      width: finalSize.width || composed.width,
+      height: finalSize.height || composed.height,
       suggestedQuantity,
       quantityRationale,
     });
