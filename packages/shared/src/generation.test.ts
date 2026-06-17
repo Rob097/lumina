@@ -82,8 +82,23 @@ describe('GenerationDetailSchema', () => {
       anonId: 'anon_abc',
       costCents: 4,
       placementHint: 'floor',
+      suggestedQuantity: 7,
+      quantityRationale: 'About 7 panels to cover the wall.',
     });
     expect(d.placementHint).toBe('floor');
     expect(d.costCents).toBe(4);
+    expect(d.suggestedQuantity).toBe(7);
+  });
+
+  it('accepts a null coverage quantity for non-coverage products', () => {
+    const d = GenerationDetailSchema.parse({
+      ...SUMMARY,
+      anonId: null,
+      costCents: null,
+      placementHint: null,
+      suggestedQuantity: null,
+      quantityRationale: null,
+    });
+    expect(d.suggestedQuantity).toBeNull();
   });
 });

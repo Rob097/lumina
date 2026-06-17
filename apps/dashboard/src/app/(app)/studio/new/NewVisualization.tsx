@@ -45,7 +45,12 @@ export function NewVisualization({
 
   const [phase, setPhase] = useState<Phase>('compose');
   const [generationId, setGenerationId] = useState<string | null>(null);
-  const [result, setResult] = useState<{ resultUrl: string | null; roomUrl: string | null } | null>(null);
+  const [result, setResult] = useState<{
+    resultUrl: string | null;
+    roomUrl: string | null;
+    suggestedQuantity: number | null;
+    quantityRationale: string | null;
+  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const [showNewClient, setShowNewClient] = useState(false);
@@ -125,7 +130,12 @@ export function NewVisualization({
       const detail = await pollStudioGenerationAction(res.generationId);
       if (!detail) continue;
       if (detail.status === 'succeeded') {
-        setResult({ resultUrl: detail.resultUrl ?? null, roomUrl: detail.roomUrl ?? null });
+        setResult({
+          resultUrl: detail.resultUrl ?? null,
+          roomUrl: detail.roomUrl ?? null,
+          suggestedQuantity: detail.suggestedQuantity ?? null,
+          quantityRationale: detail.quantityRationale ?? null,
+        });
         setPhase('result');
         return;
       }
@@ -170,6 +180,15 @@ export function NewVisualization({
           {selectedClient ? <p className="sub">For {selectedClient.name}</p> : null}
         </div>
         <BeforeAfter beforeUrl={result?.roomUrl ?? null} afterUrl={result?.resultUrl ?? null} />
+        {result?.suggestedQuantity ? (
+          <div className="studio-quantity" role="note">
+            <span className="studio-quantity-badge">≈ {result.suggestedQuantity} pcs</span>
+            <span className="studio-quantity-text">
+              estimated to cover the surface
+              {result.quantityRationale ? <em> — {result.quantityRationale}</em> : null}
+            </span>
+          </div>
+        ) : null}
         <div className="studio-actions">
           {result?.resultUrl ? (
             <a className="btn" href={result.resultUrl} target="_blank" rel="noreferrer" download>

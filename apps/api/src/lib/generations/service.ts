@@ -132,5 +132,7 @@ export async function getGeneration(
     anonId: row.anonId,
     costCents: row.costCents,
     placementHint: row.placementHint,
+    suggestedQuantity: row.suggestedQuantity,
+    quantityRationale: row.quantityRationale,
   };
 }

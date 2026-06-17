@@ -377,3 +377,32 @@
     flex: 1;
   }
 }
+
+/* Coverage quantity callout on the Studio result (#7 / D67) — how many units the customer needs to cover
+   the surface. Informational: it never changes how the image is generated. */
+.studio-quantity {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: 10px;
+}
+.studio-quantity-badge {
+  flex: none;
+  font-family: var(--font-display);
+  font-size: var(--fs-body);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+}
+.studio-quantity-text {
+  font-size: var(--fs-sm);
+  color: var(--text-secondary);
+}
+.studio-quantity-text em {
+  color: var(--text-muted);
+  font-style: italic;
+}

@@ -39,5 +39,8 @@ export const GenerationDetailSchema = GenerationSummarySchema.extend({
   anonId: z.string().nullable(),
   costCents: z.number().int().nullable(),
   placementHint: z.string().nullable(),
+  /** Coverage products (#7): how many units cover the surface, + a short rationale. Null otherwise. */
+  suggestedQuantity: z.number().int().positive().nullable(),
+  quantityRationale: z.string().nullable(),
 });
 export type GenerationDetail = z.infer<typeof GenerationDetailSchema>;

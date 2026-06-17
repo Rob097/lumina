@@ -45,7 +45,13 @@ export async function pollStudioGenerationAction(id: string) {
   if (!detail) {
     return null;
   }
-  return { status: detail.status, resultUrl: detail.resultUrl, roomUrl: detail.roomUrl };
+  return {
+    status: detail.status,
+    resultUrl: detail.resultUrl,
+    roomUrl: detail.roomUrl,
+    suggestedQuantity: detail.suggestedQuantity,
+    quantityRationale: detail.quantityRationale,
+  };
 }
 
 export async function emailStudioResultAction(id: string, email?: string) {

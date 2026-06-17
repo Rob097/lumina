@@ -610,17 +610,18 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   guide** → a single panel), and `readImageSize` returned 0 (null dims). A mid-saga decision to "retire
   REFINE and ship the deterministic composite" was made on that **false premise** — REFINE had never
   actually been given a real guide. Once sharp loaded, the deterministic composite worked but, shipped raw,
-  looked like a flat cut-and-paste ("made in Paint"). **Decision (the intended Phase-5 shape):** for a
-  coverage-category product, build the deterministic tiled composite as a **GUIDE** (`buildCoverageLayout`
-  over the normalized room) and **refine it generatively** (`ComposeInput.layout` set → `refine.ts` prompt;
-  the gateway sends `[guide, product]`) into a photorealistic, lit, blended surface. The guide both
-  **constrains** the model (it can't relocate/recount the panels or repaint the room — the failure mode of
-  from-scratch compose) and is the **robust FALLBACK**: if the refine call fails, ship the deterministic
-  guide directly (model `layout-composite`, cost 0 — crude but correct) rather than failing. The
-  pixel-perfect step is coverage-aware (`COVERAGE_CHANGE_MAX_FRACTION`, default 0.95). Gating is by category
-  (deterministic); the flaky estimate only refines the tile count. No guide (unreadable room / missing
-  cutout) → a normal from-scratch compose, like a single-object product. **Sharp robustness:** the libvips
-  `.so` is force-included at the addon's symlink path via `outputFileTracingIncludes`, and
-  `GET /internal/sharp-check` verifies sharp loads on Vercel without a billed generation. **Known limitation
-  (v1 guide):** the guide tiles are axis-aligned + flat — the refine adds the realism; strongly angled walls
-  may still need a perspective warp in the guide later.
+  looked like a flat cut-and-paste ("made in Paint"); refining that guide generatively, in turn, produced
+  worse, distorted walls. **Final decision (owner call, 2026-06-17):** stop putting N product copies in the
+  image entirely. Coverage products generate exactly like every other product — **one from-scratch AI
+  compose** (no layout guide, no tiling) → pixel-perfect blend over the normalized room — which is the clean,
+  photorealistic result merchants expect; the image is *illustrative*. The coverage **quantity** ("you need
+  ~N units to cover this surface") stays valuable but is now purely **informational**: it is still estimated
+  pre-compose (`estimateQuantity`, gemini-2.5-flash) and stored on the generation (`suggested_quantity` /
+  `quantity_rationale`), exposed on `GenerationDetail`, and surfaced in the dashboard Studio result — it
+  never influences how the image is generated. **Removed from the workflow:** `buildCoverageLayout`
+  usage, `resolveCoverageCount`, `LAYOUT_COMPOSITE_MODEL`, and `COVERAGE_CHANGE_MAX_FRACTION` (the
+  `layout.ts` / `refine.ts` / `ComposeInput.layout` modules remain in the tree, dormant, if image-tiling is
+  ever revisited). **Sharp robustness (kept — this was the real production fix):** the libvips `.so` is
+  force-included at the addon's symlink path via `outputFileTracingIncludes`, and `GET /internal/sharp-check`
+  verifies sharp loads on Vercel without a billed generation; this is what unblocked auto-orient (correct
+  orientation), normalization, and the pixel-perfect composite for *all* products.

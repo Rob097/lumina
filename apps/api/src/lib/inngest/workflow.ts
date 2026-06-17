@@ -1,7 +1,6 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
-  isCoverageCategory,
   type AIOrchestrator,
   type ImageRef,
   type ModerationProvider,
@@ -25,7 +24,6 @@ import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
-import { DEFAULT_WALL_BOX, bboxToBox, buildCoverageLayout } from '../images/layout.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -143,33 +141,11 @@ export function coverageStoreFields(
   return { suggestedQuantity: null, quantityRationale: null };
 }
 
-/** Default tile count when the (flaky) estimator gives no confident number — enough to read as coverage. */
-const DEFAULT_COVERAGE_COUNT = Number(process.env.COVERAGE_DEFAULT_COUNT ?? 12);
-
-/**
- * Tiles to lay out for a coverage product: the estimate's count when it's a confident multi-unit number,
- * else a sensible default. The estimate only refines the COUNT — whether we tile at all is decided by the
- * product category (deterministic), so a low-confidence/missing estimate never collapses coverage to one
- * unit. Pure.
- */
-export function resolveCoverageCount(est: QuantityEstimate | null): number {
-  if (est && est.isCoverage && est.suggestedQuantity > 1) {
-    return est.suggestedQuantity;
-  }
-  return DEFAULT_COVERAGE_COUNT;
-}
-
 // Change-detection knobs (tunable per env in S5 from the golden-set eval).
 const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
-// A refined coverage layout legitimately changes a large area (a whole tiled wall), so the pixel-perfect
-// step allows a much larger changed fraction before it gives up and keeps the full refined render.
-const COVERAGE_CHANGE_MAX_FRACTION = Number(process.env.COVERAGE_CHANGE_MAX_FRACTION ?? 0.95);
-
-// "model" recorded when we ship the deterministic coverage composite directly (the refine fallback, D67).
-export const LAYOUT_COMPOSITE_MODEL = 'layout-composite';
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -268,68 +244,6 @@ async function analyzeSceneSafe(
     return (await deps.orchestrator.analyzeScene({ url: roomUrl })) ?? undefined;
   } catch (err) {
     deps.reportError?.(err, { generationId: gen.id, stage: 'scene_analysis' });
-    return undefined;
-  }
-}
-
-/**
- * Build the Phase 5 coverage composite: tile the product's cached cutout across the scene's target surface
- * on top of the normalized room (sharp). This deterministic composite IS the result for a coverage product
- * (D67) — aligned full-surface coverage with the room left intact, no generative pass. Best-effort — no
- * cached cutout, an unreadable room, or any failure returns undefined so the workflow falls back to a normal
- * compose. Never fails the generation.
- */
-/** Read the bytes behind an ImageRef (inline or URL). Best-effort — returns undefined on any failure. */
-async function fetchImageBytes(ref: ImageRef): Promise<Uint8Array | undefined> {
-  if ('bytes' in ref) {
-    return ref.bytes;
-  }
-  try {
-    const res = await fetch(ref.url);
-    if (!res.ok) {
-      return undefined;
-    }
-    return new Uint8Array(await res.arrayBuffer());
-  } catch {
-    return undefined;
-  }
-}
-
-async function buildCoverageLayoutSafe(
-  deps: WorkflowDeps,
-  gen: GenerationRow,
-  args: { roomBytes: Uint8Array; product: ImageRef; scene: SceneAnalysis | undefined; count: number },
-): Promise<{ bytes: Uint8Array; contentType: string } | undefined> {
-  // Prefer the cached cutout (a clean, trim-able panel); else fall back to the resolved product image so
-  // coverage tiling still works when background removal isn't configured.
-  let tile: Uint8Array | undefined;
-  try {
-    tile = await deps.storage.getObject(productCleanKey(gen.merchantId, gen.productId ?? gen.id));
-  } catch {
-    tile = await fetchImageBytes(args.product);
-  }
-  if (!tile) {
-    return undefined; // no product bytes to tile — compose without a guide
-  }
-  try {
-    const dims = gen.productSnapshot.dimensions;
-    const w = dims?.w;
-    const h = dims?.h;
-    const productAspect = w && h ? w / h : 1;
-    const result = await buildCoverageLayout({
-      room: args.roomBytes,
-      cutout: tile,
-      box: bboxToBox(args.scene?.suggestedPlacement?.bbox, DEFAULT_WALL_BOX),
-      count: args.count,
-      productAspect,
-      contentType: contentTypeForKey(gen.roomKey),
-    });
-    if (result.bytes === args.roomBytes) {
-      return undefined; // raster no-op (unreadable room) — nothing to refine
-    }
-    return { bytes: result.bytes, contentType: result.contentType };
-  } catch (err) {
-    deps.reportError?.(err, { generationId: gen.id, stage: 'layout' });
     return undefined;
   }
 }
@@ -533,30 +447,13 @@ export async function processGeneration(
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
 
-    // Coverage layout-guided REFINE (Phase 5 / D67): for a coverage-CATEGORY product (decor/tiles/renovation/
-    // outdoor) tile the cutout across the target surface ON the normalized room (sharp) to build a
-    // deterministic GUIDE, then refine it generatively into a photorealistic, lit, blended surface. The guide
-    // both constrains the model — it can't relocate, recount, or repaint over the panels/room — and is the
-    // robust FALLBACK if the model call fails (a raw guide is crude but correct). Gating is by category
-    // (deterministic); the flaky estimate only refines the tile count. No guide (unreadable room / missing
-    // cutout) → a normal from-scratch compose, exactly like a single-object product.
-    const renderStart = Date.now();
-    const coverageGuide = isCoverageCategory(category)
-      ? await buildCoverageLayoutSafe(deps, gen, {
-          roomBytes: normalized,
-          product: productImage,
-          scene,
-          count: resolveCoverageCount(estimate),
-        })
-      : undefined;
-
-    // Pin the output aspect ratio to the (normalized) room so a generative edit can't re-frame/rotate it.
+    // Pin the output aspect ratio to the (normalized) room so the generative edit can't re-frame/rotate it.
     const roomSize = await readImageSize(normalized);
     const aspectRatio = nearestAspectRatio(roomSize.width, roomSize.height) ?? undefined;
 
     // Pipeline diagnostics (one structured line per generation): room dims AFTER auto-orient + normalize
-    // (portrait vs landscape pinpoints orientation issues), the aspect pin, the coverage estimate, and
-    // whether a coverage layout guide was built. Cheap + high-signal in the Vercel runtime logs.
+    // (portrait vs landscape pinpoints orientation issues), the aspect pin, scene tilt, and the coverage
+    // quantity estimate (surfaced in the dashboard, D67). Cheap + high-signal in the Vercel runtime logs.
     console.info(
       '[gen] pipeline',
       JSON.stringify({
@@ -568,68 +465,30 @@ export async function processGeneration(
         coverage: estimate
           ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
           : null,
-        guide: Boolean(coverageGuide),
       }),
     );
 
-    let finalImage: { bytes: Uint8Array; contentType: string };
-    let resultModel: string;
-    let resultCostCents: number;
-    let resultLatencyMs: number;
-    if (coverageGuide) {
-      // Refine the guide into a photorealistic, lit, blended surface (the REFINE prompt is selected because
-      // `layout` is set; the gateway sends [guide, product]). If the model call fails, ship the deterministic
-      // guide so coverage still works (crude but correct) rather than failing the generation.
-      try {
-        const composed = await deps.orchestrator.compose({
-          room: { url: roomUrl },
-          product: productImage,
-          layout: { bytes: coverageGuide.bytes, contentType: coverageGuide.contentType },
-          category,
-          placementHint: gen.placementHint ?? undefined,
-          customInstructions: gen.customInstructions ?? undefined,
-          dimensions: snapshot.dimensions,
-          scene,
-          aspectRatio,
-          policy: planToPolicy(plan),
-          watermark: plan === 'free',
-        });
-        // A tiled wall legitimately changes a large area, so allow a higher upper bound before the
-        // pixel-perfect step keeps the full refined render; otherwise blend the change over the room.
-        finalImage = await keepOnlyProductChange(normalized, composed, { maxFraction: COVERAGE_CHANGE_MAX_FRACTION });
-        resultModel = composed.model;
-        resultCostCents = composed.costCents;
-        resultLatencyMs = composed.latencyMs;
-      } catch (err) {
-        deps.reportError?.(err, { generationId, merchantId: gen.merchantId, stage: 'coverage_refine' });
-        finalImage = coverageGuide;
-        resultModel = LAYOUT_COMPOSITE_MODEL;
-        resultCostCents = 0;
-        resultLatencyMs = Date.now() - renderStart;
-      }
-    } else {
-      const composed = await deps.orchestrator.compose({
-        room: { url: roomUrl },
-        product: productImage,
-        category,
-        placementHint: gen.placementHint ?? undefined,
-        customInstructions: gen.customInstructions ?? undefined,
-        dimensions: snapshot.dimensions,
-        scene,
-        aspectRatio,
-        policy: planToPolicy(plan),
-        watermark: plan === 'free',
-      });
+    // One from-scratch AI compose for EVERY product, coverage included (D67). We deliberately do NOT tile N
+    // product copies into the image — that read as a flat cut-and-paste; the model produces a clean,
+    // photorealistic render and the coverage QUANTITY is surfaced separately in the dashboard.
+    const composed = await deps.orchestrator.compose({
+      room: { url: roomUrl },
+      product: productImage,
+      category,
+      placementHint: gen.placementHint ?? undefined,
+      customInstructions: gen.customInstructions ?? undefined,
+      dimensions: snapshot.dimensions,
+      scene,
+      aspectRatio,
+      policy: planToPolicy(plan),
+      watermark: plan === 'free',
+    });
 
-      // Pixel-perfect step (#AI-gen v2): the model inserts the product but re-renders the whole frame. Detect
-      // where it actually changed the scene and composite only that region back over the ORIGINAL, so
-      // everything outside the product stays byte-identical to the upload (no re-frame/rotation/drift). A
-      // too-small or too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
-      finalImage = await keepOnlyProductChange(normalized, composed);
-      resultModel = composed.model;
-      resultCostCents = composed.costCents;
-      resultLatencyMs = composed.latencyMs;
-    }
+    // Pixel-perfect step (#AI-gen v2): the model inserts the product but re-renders the whole frame. Detect
+    // where it actually changed the scene and composite only that region back over the ORIGINAL, so everything
+    // outside the product stays byte-identical to the upload (no re-frame/rotation/drift). A too-small or
+    // too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
+    const finalImage = await keepOnlyProductChange(normalized, composed);
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(
@@ -665,11 +524,11 @@ export async function processGeneration(
       generationId,
       merchantId: gen.merchantId,
       resultKey: key,
-      model: resultModel,
-      costCents: resultCostCents,
-      latencyMs: resultLatencyMs,
-      width: finalSize.width || undefined,
-      height: finalSize.height || undefined,
+      model: composed.model,
+      costCents: composed.costCents,
+      latencyMs: composed.latencyMs,
+      width: finalSize.width || composed.width,
+      height: finalSize.height || composed.height,
       suggestedQuantity,
       quantityRationale,
     });
@@ -678,9 +537,9 @@ export async function processGeneration(
         generationId,
         merchantId: gen.merchantId,
         status: 'succeeded',
-        model: resultModel,
-        costCents: resultCostCents,
-        latencyMs: resultLatencyMs,
+        model: composed.model,
+        costCents: composed.costCents,
+        latencyMs: composed.latencyMs,
         creditsSpent: gen.creditsSpent,
       }),
     );
