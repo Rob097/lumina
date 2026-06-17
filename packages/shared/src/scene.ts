@@ -61,8 +61,13 @@ export type RoomScale = z.infer<typeof RoomScaleSchema>;
 export const SuggestedPlacementSchema = z.object({
   /** Free-text placement region (model-defined, open-ended) — never an enum. */
   region: z.string(),
-  /** Normalised [x0, y0, x1, y1] in 0..1, top-left origin. */
-  bbox: z.tuple([z.number(), z.number(), z.number(), z.number()]).optional(),
+  /**
+   * Normalised [x0, y0, x1, y1] in 0..1, top-left origin. A plain repeating array, NOT a `z.tuple`:
+   * a tuple serialises to JSON-Schema `items: [...]` which Gemini's structured-output `response_schema`
+   * proto rejects ("Proto field is not repeating, cannot start list"), silently killing scene analysis.
+   * It's an optional placement hint, so length is validated at the use site rather than in the schema.
+   */
+  bbox: z.array(z.number()).optional(),
 });
 export type SuggestedPlacement = z.infer<typeof SuggestedPlacementSchema>;
 

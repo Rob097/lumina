@@ -38,6 +38,17 @@ describe('SceneAnalysisSchema', () => {
     expect(parsed.lighting.temperatureK).toBeUndefined();
   });
 
+  it('accepts bbox as a plain number array (Gemini response_schema rejects tuple `items`)', () => {
+    // Regression: a `z.tuple` serialises to JSON-Schema `items: [...]` which Gemini's structured-output
+    // proto rejects ("Proto field is not repeating, cannot start list"), silently killing scene analysis.
+    // bbox must therefore be a plain repeating array, not a fixed 4-tuple.
+    const parsed = SceneAnalysisSchema.parse({
+      ...valid,
+      suggestedPlacement: { region: 'on the floor', bbox: [0.1, 0.9] },
+    });
+    expect(parsed.suggestedPlacement?.bbox).toEqual([0.1, 0.9]);
+  });
+
   it('rejects an out-of-range confidence', () => {
     expect(() => SceneAnalysisSchema.parse({ ...valid, confidence: 1.5 })).toThrow();
   });
