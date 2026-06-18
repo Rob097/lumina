@@ -172,6 +172,12 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+.gen-note {
+  margin: 0;
+  font-size: var(--fs-caption);
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 .gen-pageurl {
   display: flex;
   flex-direction: column;

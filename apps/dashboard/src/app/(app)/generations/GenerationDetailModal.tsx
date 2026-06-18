@@ -42,6 +42,9 @@ export function GenerationDetailModal({
     detail?.costCents != null
       ? `${summary.creditsSpent} · $${(detail.costCents / 100).toFixed(2)}`
       : String(summary.creditsSpent);
+  const suggestedQty = detail?.suggestedQuantity ?? null;
+  const suggested =
+    suggestedQty != null ? `${suggestedQty} unit${suggestedQty === 1 ? '' : 's'}` : null;
 
   return (
     <div className="drawer-scrim" onClick={onClose}>
@@ -70,9 +73,14 @@ export function GenerationDetailModal({
             <Row label="Latency" value={latencyLabel(summary.latencyMs)} />
             <Row label="Credits · cost" value={cost} />
             <Row label="Placement" value={detail?.placementHint} />
+            {suggested ? <Row label="Suggested quantity" value={suggested} /> : null}
             <Row label="Created" value={new Date(summary.createdAt).toLocaleString()} />
             {summary.errorCode ? <Row label="Error" value={summary.errorCode} /> : null}
           </div>
+
+          {detail?.quantityRationale ? (
+            <p className="gen-note">{detail.quantityRationale}</p>
+          ) : null}
 
           {summary.pageUrl ? (
             <div className="gen-pageurl">
