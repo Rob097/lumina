@@ -32,3 +32,6 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# claude code (local machine settings — not shared)
+.claude/settings.local.json
