@@ -321,15 +321,6 @@
   font-size: 11px;
 }
 
-/* locked Test environment pill */
-.env-toggle .is-locked {
-  opacity: 0.6;
-  cursor: pointer;
-}
-.env-modal {
-  width: 460px;
-}
-
 /* the account avatar is now a menu trigger — keep it a clean circular button */
 button.avatar {
   border: none;

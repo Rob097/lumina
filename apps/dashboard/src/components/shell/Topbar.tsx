@@ -7,7 +7,6 @@ import { NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
 import { useNav } from '@/lib/providers';
-import { EnvToggle } from './EnvToggle';
 import { NotificationsBell } from './NotificationsBell';
 import { ThemeToggle } from './ThemeToggle';
 
@@ -36,7 +35,6 @@ export function Topbar({
       <div className="grow">
         <h1>{title}</h1>
       </div>
-      <EnvToggle />
       <ThemeToggle />
 
       <NotificationsBell initial={notifications} />

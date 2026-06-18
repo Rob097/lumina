@@ -39,12 +39,6 @@
 .topbar { position: sticky; top: 0; z-index: var(--z-header); height: var(--topbar-h); display: flex; align-items: center; gap: 16px; padding: 0 28px; background: color-mix(in srgb, var(--bg) 86%, transparent); backdrop-filter: blur(12px) saturate(1.4); border-bottom: 1px solid var(--border); }
 .topbar h1 { font-family: var(--font-display); font-size: var(--fs-title-lg); font-weight: 600; letter-spacing: -.012em; }
 .topbar .sub { color: var(--text-muted); font-size: var(--fs-sm); }
-.env-toggle { display: inline-flex; padding: 3px; gap: 2px; background: var(--surface-3); border: 1px solid var(--border); border-radius: var(--r-md); }
-.env-toggle button { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px; border: none; background: transparent; color: var(--text-secondary); font-size: var(--fs-sm); font-weight: 500; border-radius: var(--r-sm); cursor: pointer; }
-.env-toggle button .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
-.env-toggle button.on[data-env="live"] { background: var(--surface); color: var(--success); box-shadow: var(--e-1); }
-.env-toggle button.on[data-env="test"] { background: var(--surface); color: var(--warning); box-shadow: var(--e-1); }
-
 .icon-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid var(--border); background: var(--surface); border-radius: var(--r-md); color: var(--text-secondary); cursor: pointer; transition: all var(--dur-fast); }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); }
 .icon-btn svg { width: 17px; height: 17px; }
