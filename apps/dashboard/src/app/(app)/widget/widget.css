@@ -192,11 +192,11 @@
   overflow: auto;
 }
 .preview-stage.is-dark {
-  --wp-surface: #15181d;
-  --wp-text: #f2f4f7;
-  --wp-muted: #9aa1ab;
-  --wp-border: #272c33;
-  --wp-inset: #1b1f25;
+  --wp-surface: #1a1822;
+  --wp-text: #f3f2f8;
+  --wp-muted: #8a8698;
+  --wp-border: #2a2735;
+  --wp-inset: #221f2d;
   background:
     radial-gradient(120% 80% at 80% -5%, var(--wp-accent-weak) 0%, transparent 50%), #100e17;
 }
