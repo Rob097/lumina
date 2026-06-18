@@ -8,28 +8,34 @@
   gap: 20px;
 }
 
-/* ---- section tabs ---- */
+/* ---- section tabs (segmented control, matching the v2 header) ---- */
 .studio-tabs {
-  display: flex;
-  gap: 4px;
-  border-bottom: 1px solid var(--hairline);
+  display: inline-flex;
+  gap: 3px;
+  padding: 4px;
+  width: max-content;
+  max-width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+  overflow-x: auto;
 }
 .studio-tab {
-  position: relative;
-  padding: 10px 14px;
+  padding: 8px 14px;
+  border-radius: 8px;
   font-size: var(--fs-sm);
-  font-weight: 500;
+  font-weight: 600;
   color: var(--text-secondary);
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  transition: color var(--dur-fast);
+  white-space: nowrap;
+  transition: background var(--dur-fast), color var(--dur-fast);
 }
 .studio-tab:hover {
   color: var(--text);
 }
 .studio-tab.is-on {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
+  background: var(--surface);
+  color: var(--accent-press);
+  box-shadow: var(--e-1);
 }
 
 /* ---- shared bits ---- */
@@ -76,40 +82,45 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 20px var(--space-5);
+  padding: 22px var(--space-6);
 }
 .studio-hero-copy h2 {
   font-family: var(--font-display);
-  font-size: var(--fs-title);
-  font-weight: 600;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
 }
 
 .studio-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
+  gap: 16px;
 }
 .studio-stat {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 16px 18px;
+  gap: 7px;
+  padding: 20px;
   border: 1px solid var(--border);
-  border-radius: var(--r-xl);
+  border-radius: var(--r-2xl);
   background: var(--surface);
+  box-shadow: var(--e-1);
 }
 .studio-stat-label {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: var(--fs-caption);
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: var(--fs-micro);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
 }
 .studio-stat-value {
-  font-size: 28px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .studio-cols {
