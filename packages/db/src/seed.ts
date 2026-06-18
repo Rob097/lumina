@@ -91,7 +91,7 @@ export async function runSeed(db: Database, client: Sql): Promise<SeedResult> {
       isActive: true,
       buttonText: 'Try in your room',
       locale: 'en',
-      theme: { accent: '#0F62FE', mode: 'auto', radius: 16 },
+      theme: { accent: '#5A55D6', mode: 'auto', radius: 16 },
       watermark: false,
     });
 
