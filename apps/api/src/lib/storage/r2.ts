@@ -13,7 +13,7 @@ export interface R2Config {
   accessKeyId: string;
   secretAccessKey: string;
   bucket: string;
-  /** Public CDN base for image-resize URLs, e.g. https://cdn.lumina.app. */
+  /** Public CDN base for image-resize URLs, e.g. https://cdn.example.com (set via env). */
   publicBase?: string;
 }
 

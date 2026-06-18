@@ -9,6 +9,6 @@ export default async function ScriptPage() {
     .filter((k) => k.kind === 'publishable' && !k.revokedAt)
     .map((k) => ({ env: k.env, prefix: k.prefix, siteKey: k.siteKey }));
 
-  const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL ?? 'https://cdn.lumina.app';
+  const cdnUrl = process.env.NEXT_PUBLIC_CDN_URL ?? 'https://lumina-widget.vercel.app';
   return <ScriptInstallView pubKeys={pubKeys} cdnUrl={cdnUrl} />;
 }
