@@ -458,6 +458,13 @@ revoked check.
 
 ## 8. AI pipeline
 
+> **Generation Engine v3 (2026-06-18) — see `docs/DECISIONS.md` D68–D70 and `docs/lumina/generation-engine-v3-brief.md`
+> for the authoritative current design.** In short, the per-image *scene analysis* pass was evolved into a
+> **planner** (one `gemini-2.5-flash` call over BOTH images + product metadata) that classifies the *operation*
+> — `surface_covering` | `object_replacement` | `object_placement` — and feeds a **mode-specific compose**
+> (re-surfacing vs swap vs single placement); the cutout and the pixel-perfect composite are now mode-aware,
+> and routing defaults to the fast model at 1K with escalation to quality at 2K on difficult scenes.
+
 All model calls go through **`AIOrchestrator`** (`packages/ai`), the single seam (hard rule #8). Swapping
 providers is a one-file change. The current provider is the **Vercel AI Gateway**.
 
@@ -578,6 +585,12 @@ Knobs (env, with code defaults so they work unset): `CHANGE_MASK_THRESHOLD` (28)
 ## 9. The durable generation workflow (Inngest)
 
 `apps/api/src/lib/inngest/` — the function (`generation.ts`) + the pure pipeline (`workflow.ts`).
+
+> **Generation Engine v3 (D68–D70):** the pipeline is now `sanitize/orient → (planner ‖ quantity) → derive
+> scene facts → (mode-dependent cutout ‖ normalize) → mode-specific compose → mode-aware pixel-perfect
+> composite → moderate → store`. The planner decides the operation; covering passes the original texture and
+> accepts the full render; routing picks fast/quality from the plan's difficulty. The Inngest route
+> `maxDuration` was brought back to 120s.
 
 ### 9.1 Function config
 
