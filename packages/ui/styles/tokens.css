@@ -1,78 +1,83 @@
 /* ============================================================================
-   LUMINA — Design Tokens
-   AI Visual Commerce · "Linear meets a high-end interior studio"
-   Light-first. Deep near-black dark mode. Electric-blue accent, used sparingly.
-   Base unit: 4px. All screens import this file first.
+   YuzuView — Design Tokens
+   Visual commerce, made calm. Palette derived from the YuzuView mark:
+   indigo-violet leads, plum is a rare accent, neutrals carry a faint cool cast.
+   Light-first. Deep indigo-black dark mode. Base unit: 4px.
+   All screens import this file first. (Code identifiers stay `lumina-*`.)
    ============================================================================ */
 
-/* Fonts: Schibsted Grotesk (display), Geist (UI/body), Geist Mono (code) */
-@import url('https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&family=Geist:wght@300;400;450;500;600;700&family=Geist+Mono:wght@400;500;600&display=swap');
+/* Fonts: Hanken Grotesk (display + UI/body), JetBrains Mono (data/code) */
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* ---- Type families ---------------------------------------------------- */
-  --font-display: 'Schibsted Grotesk', 'Geist', system-ui, sans-serif;
-  --font-ui: 'Geist', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Geist Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --font-display: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-ui: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
 
-  /* ---- Neutral ramp (cool architectural concrete) ----------------------- */
+  /* ---- Neutral ramp (cool violet-tinted) -------------------------------- */
   --n-0:   #ffffff;
-  --n-25:  #fafbfc;
-  --n-50:  #f5f6f8;
-  --n-100: #eef0f3;
-  --n-150: #e7e9ee;
-  --n-200: #dde0e6;
-  --n-300: #c8ccd4;
-  --n-400: #a2a8b3;
-  --n-500: #767d8a;
-  --n-600: #565d6a;
-  --n-700: #3c424d;
-  --n-800: #262b33;
-  --n-900: #181c22;
-  --n-950: #0f1318;
+  --n-25:  #fafafc;
+  --n-50:  #f8f8fb;   /* surface-2 */
+  --n-100: #f0eff5;   /* line-2 */
+  --n-150: #e7e5ee;   /* line */
+  --n-200: #dedce7;
+  --n-300: #c9c6d4;
+  --n-400: #a9a5b5;   /* faint */
+  --n-500: #76727f;   /* muted */
+  --n-600: #5b5866;
+  --n-700: #45424f;   /* ink-2 */
+  --n-800: #2a2735;
+  --n-900: #181621;   /* ink */
+  --n-950: #100e17;   /* dark canvas */
 
-  /* ---- Accent: electric blue -------------------------------------------- */
-  --accent:        #0f62fe;
-  --accent-hover:  #0b53d6;
-  --accent-press:  #0a47b8;
-  --accent-weak:   #e9f0ff;
-  --accent-weak-2: #d8e5ff;
-  --accent-border: #bdd3ff;
+  /* ---- Accent: Yuzu Indigo ---------------------------------------------- */
+  --accent:        #5a55d6;
+  --accent-hover:  #4d45c2;
+  --accent-press:  #3f39a8;
+  --accent-weak:   #eceafb;   /* brand-100 */
+  --accent-weak-2: #dad6f4;
+  --accent-border: #c4bdf4;
   --accent-on:     #ffffff;
+  --accent-300:    #9c95ee;   /* brand-300 */
+  --accent-50:     #f5f3fe;   /* brand-50 */
+  --fruit:         #8b82ec;
+  --plum:          #7a3a66;
 
   /* ---- Semantic --------------------------------------------------------- */
-  --success:       #0e8a55;
-  --success-weak:  #e3f4ec;
-  --success-border:#bfe6d2;
-  --warning:       #b26a00;
-  --warning-weak:  #fbeeda;
-  --warning-border:#f0d6a8;
-  --danger:        #cf3a3a;
-  --danger-weak:   #fbe9e9;
-  --danger-border: #f1c4c4;
+  --success:       #1e8e5a;
+  --success-weak:  #e3f3eb;
+  --success-border:#bfe3cf;
+  --warning:       #b97309;
+  --warning-weak:  #faf0da;
+  --warning-border:#efd9a6;
+  --danger:        #d2453e;
+  --danger-weak:   #fbe7e6;
+  --danger-border: #f1c3c0;
   --info:          var(--accent);
 
-  /* ---- Data-viz (restrained, harmonious) -------------------------------- */
-  --viz-1: #0f62fe;   /* accent */
-  --viz-2: #00a3a1;   /* teal   */
-  --viz-3: #6a5be2;   /* violet */
-  --viz-4: #e0a300;   /* amber  */
-  --viz-5: #e0567a;   /* rose   */
+  /* ---- Data-viz (harmonious with the indigo lead) ----------------------- */
+  --viz-1: #5a55d6;   /* brand        */
+  --viz-2: #8b82ec;   /* fruit violet */
+  --viz-3: #7a3a66;   /* plum         */
+  --viz-4: #b97309;   /* amber        */
+  --viz-5: #d2557a;   /* rose         */
   --viz-grid: var(--n-150);
 
   /* ---- Semantic surface aliases (LIGHT) --------------------------------- */
-  --bg:            #f6f7f9;       /* off-white canvas */
-  --bg-sunken:     #eef0f3;
+  --bg:            #eae9f0;       /* canvas */
+  --bg-sunken:     #e2e0ea;
   --surface:       #ffffff;       /* cards, panels */
-  --surface-2:     #f8f9fb;       /* inset / striped */
-  --surface-3:     #f1f3f6;
+  --surface-2:     #f8f8fb;       /* inset / striped */
+  --surface-3:     #f0eff5;
   --surface-inv:   var(--n-900);  /* dark chips on light */
-  --border:        #e4e7ec;
-  --border-strong: #d3d7df;
-  --hairline:      #edeff2;
-  --overlay:       rgba(20, 24, 30, 0.42);
+  --border:        #e7e5ee;
+  --border-strong: #d9d6e1;
+  --hairline:      #f0eff5;
+  --overlay:       rgba(24, 22, 40, 0.42);
 
   --text:          var(--n-900);
-  --text-secondary:var(--n-600);
+  --text-secondary:var(--n-700);
   --text-muted:    var(--n-500);
   --text-faint:    var(--n-400);
   --text-on-accent:#ffffff;
@@ -94,30 +99,30 @@
   --space-12: 96px;
   --space-13: 128px;
 
-  /* ---- Radius (restrained, not bubbly) ---------------------------------- */
+  /* ---- Radius ----------------------------------------------------------- */
   --r-xs: 4px;
-  --r-sm: 6px;
-  --r-md: 8px;
-  --r-lg: 10px;
-  --r-xl: 12px;
+  --r-sm: 7px;
+  --r-md: 10px;
+  --r-lg: 12px;
+  --r-xl: 14px;
   --r-2xl: 16px;
   --r-3xl: 22px;
   --r-full: 999px;
 
-  /* ---- Elevation (soft, layered — "light filling a room") --------------- */
+  /* ---- Elevation (calm, layered — soft indigo shadows) ------------------ */
   --e-0: none;
-  --e-1: 0 1px 2px rgba(16,18,22,.05), 0 1px 1px rgba(16,18,22,.03);
-  --e-2: 0 1px 2px rgba(16,18,22,.05), 0 4px 10px -2px rgba(16,18,22,.06);
-  --e-3: 0 2px 4px rgba(16,18,22,.05), 0 12px 26px -6px rgba(16,18,22,.11);
-  --e-4: 0 6px 14px -6px rgba(16,18,22,.14), 0 22px 52px -12px rgba(16,18,22,.20);
+  --e-1: 0 1px 2px rgba(24,22,40,.06);
+  --e-2: 0 4px 14px rgba(24,22,40,.07), 0 1px 3px rgba(24,22,40,.05);
+  --e-3: 0 24px 60px rgba(24,22,40,.16), 0 6px 16px rgba(24,22,40,.08);
+  --e-4: 0 32px 80px rgba(24,22,40,.22), 0 8px 22px rgba(24,22,40,.12);
   --e-ring: 0 0 0 4px var(--accent-weak);
   --inset-1: inset 0 1px 0 rgba(255,255,255,.6);
 
   /* ---- Type scale ------------------------------------------------------- */
-  --fs-display-2xl: 56px;  --lh-display-2xl: 1.02; --ls-display-2xl: -0.022em;
-  --fs-display-xl:  44px;  --lh-display-xl:  1.05; --ls-display-xl:  -0.02em;
-  --fs-display-lg:  36px;  --lh-display-lg:  1.08; --ls-display-lg:  -0.018em;
-  --fs-title-xl:    28px;  --lh-title-xl:    1.15; --ls-title-xl:    -0.015em;
+  --fs-display-2xl: 56px;  --lh-display-2xl: 1.02; --ls-display-2xl: -0.025em;
+  --fs-display-xl:  44px;  --lh-display-xl:  1.05; --ls-display-xl:  -0.022em;
+  --fs-display-lg:  36px;  --lh-display-lg:  1.08; --ls-display-lg:  -0.02em;
+  --fs-title-xl:    30px;  --lh-title-xl:    1.12; --ls-title-xl:    -0.02em;
   --fs-title-lg:    22px;  --lh-title-lg:    1.2;  --ls-title-lg:    -0.012em;
   --fs-title:       18px;  --lh-title:       1.3;  --ls-title:       -0.008em;
   --fs-body-lg:     16px;  --lh-body-lg:     1.55; --ls-body-lg:      -0.003em;
@@ -147,51 +152,53 @@
   --z-widget: 2147483000;
 
   /* ---- Layout ----------------------------------------------------------- */
-  --sidebar-w: 248px;
+  --sidebar-w: 264px;
   --topbar-h: 60px;
   --content-max: 1240px;
 }
 
 /* ============================================================================
-   DARK THEME — deep near-black, light filling a room
+   DARK THEME — deep indigo-black, light filling a room
    ============================================================================ */
 :root[data-theme="dark"],
 .theme-dark {
-  --bg:            #0c0e11;
-  --bg-sunken:     #08090b;
-  --surface:       #14171c;
-  --surface-2:     #181c22;
-  --surface-3:     #1d2229;
-  --surface-inv:   #f5f6f8;
-  --border:        #262b32;
-  --border-strong: #333a43;
-  --hairline:      #1f242b;
+  --bg:            #100e17;
+  --bg-sunken:     #0a0910;
+  --surface:       #1a1822;
+  --surface-2:     #221f2d;
+  --surface-3:     #2a2735;
+  --surface-inv:   #f3f2f8;
+  --border:        #2a2735;
+  --border-strong: #3a3647;
+  --hairline:      #221f2d;
   --overlay:       rgba(0,0,0,.6);
 
-  --text:          #f3f5f8;
-  --text-secondary:#aeb6c2;
-  --text-muted:    #828b98;
-  --text-faint:    #5f6773;
-  --text-inv:      #14171c;
+  --text:          #f3f2f8;
+  --text-secondary:#c4c0ce;
+  --text-muted:    #8a8698;
+  --text-faint:    #635f70;
+  --text-inv:      #1a1822;
 
-  --accent:        #4c8dff;
-  --accent-hover:  #6ba0ff;
-  --accent-press:  #3d7df0;
-  --accent-weak:   rgba(76,141,255,.14);
-  --accent-weak-2: rgba(76,141,255,.22);
-  --accent-border: rgba(76,141,255,.36);
+  --accent:        #8e86f2;
+  --accent-hover:  #a39cf6;
+  --accent-press:  #7c73e8;
+  --accent-weak:   rgba(142,134,242,.16);
+  --accent-weak-2: rgba(142,134,242,.24);
+  --accent-border: rgba(142,134,242,.38);
+  --accent-300:    #a39cf6;
+  --fruit:         #a79ff5;
 
-  --success-weak:  rgba(35,180,118,.15);
-  --success-border:rgba(35,180,118,.32);
-  --warning-weak:  rgba(214,142,40,.16);
-  --warning-border:rgba(214,142,40,.34);
-  --danger-weak:   rgba(224,90,90,.15);
-  --danger-border: rgba(224,90,90,.34);
-  --success:       #2cc285;
+  --success-weak:  rgba(30,142,90,.18);
+  --success-border:rgba(30,142,90,.34);
+  --warning-weak:  rgba(185,115,9,.18);
+  --warning-border:rgba(185,115,9,.36);
+  --danger-weak:   rgba(210,69,62,.18);
+  --danger-border: rgba(210,69,62,.36);
+  --success:       #2fb877;
   --warning:       #e0a13e;
   --danger:        #ec6a6a;
 
-  --viz-grid:      #23282f;
+  --viz-grid:      #2a2735;
 
   --e-1: 0 1px 2px rgba(0,0,0,.4);
   --e-2: 0 1px 2px rgba(0,0,0,.4), 0 4px 12px -2px rgba(0,0,0,.5);
@@ -215,7 +222,6 @@ body {
   background: var(--bg);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "cv01", "ss01";
 }
 img, svg, video { display: block; max-width: 100%; }
 button, input, select, textarea { font: inherit; color: inherit; }

@@ -1,6 +1,7 @@
 /* ============================================================================
-   LUMINA — Component Library
-   Requires lumina-tokens.css. Class-based, framework-agnostic.
+   YuzuView — Component Library
+   Requires tokens.css. Class-based, framework-agnostic. Token-driven, so the
+   palette is inherited from tokens.css (re-skinning happens there).
    ============================================================================ */
 
 /* ---- Typography utilities ------------------------------------------------ */
@@ -129,7 +130,7 @@
 .badge-test    { background: var(--warning-weak); color: var(--warning); border-color: var(--warning-border); }
 
 /* ---- Cards / panels ------------------------------------------------------ */
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--e-1); }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-2xl); box-shadow: var(--e-1); }
 .card-2 { box-shadow: var(--e-2); }
 .card-pad { padding: var(--space-5); }
 .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px var(--space-5); border-bottom: 1px solid var(--hairline); }
@@ -164,7 +165,7 @@
 :root[data-theme="dark"] .toast-body { color: var(--text-secondary); }
 
 /* ---- KPI tile ------------------------------------------------------------ */
-.kpi { display: flex; flex-direction: column; gap: 12px; padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-xl); box-shadow: var(--e-1); position: relative; overflow: hidden; }
+.kpi { display: flex; flex-direction: column; gap: 12px; padding: var(--space-5); background: var(--surface); border: 1px solid var(--border); border-radius: var(--r-2xl); box-shadow: var(--e-1); position: relative; overflow: hidden; }
 .kpi-label { display: flex; align-items: center; gap: 7px; font-size: var(--fs-sm); color: var(--text-secondary); font-weight: 500; }
 .kpi-label svg { width: 15px; height: 15px; color: var(--text-muted); }
 .kpi-value { font-family: var(--font-display); font-weight: 700; font-size: 34px; line-height: 1; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }

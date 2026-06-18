@@ -1,5 +1,5 @@
 /* ============================================================================
-   LUMINA — App Shell (merchant dashboard)
+   YuzuView — App Shell (merchant dashboard)
    Sidebar + topbar + content scaffold. Requires tokens + components.
    ============================================================================ */
 
@@ -10,7 +10,7 @@
 .side-top { padding: 16px 14px 8px; }
 .merchant-switch { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px; border: 1px solid var(--border); border-radius: var(--r-lg); background: var(--surface); cursor: pointer; transition: background var(--dur-fast); text-align: left; }
 .merchant-switch:hover { background: var(--surface-2); }
-.merchant-logo { width: 30px; height: 30px; border-radius: var(--r-md); background: linear-gradient(135deg, var(--accent), #2a7bff); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; flex: none; }
+.merchant-logo { width: 30px; height: 30px; border-radius: var(--r-md); background: linear-gradient(135deg, var(--accent), var(--fruit)); color: #fff; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-size: 14px; flex: none; }
 .merchant-switch .nm { font-size: var(--fs-sm); font-weight: 600; line-height: 1.2; }
 .merchant-switch .pl { font-size: var(--fs-micro); color: var(--text-muted); }
 .merchant-switch .chev { margin-left: auto; color: var(--text-faint); width: 16px; height: 16px; }
@@ -62,12 +62,12 @@
   .nav-toggle { display: inline-flex; }
   .side {
     position: fixed; left: 0; top: 0; bottom: 0; height: 100dvh; width: var(--sidebar-w);
-    transform: translateX(-100%); transition: transform var(--dur-base) var(--ease-out);
+    transform: translateX(-100%); transition: transform var(--dur) var(--ease-out);
     z-index: calc(var(--z-modal) + 1); box-shadow: var(--e-4); will-change: transform;
   }
   .side.is-open { transform: translateX(0); }
   .side-scrim { display: block; position: fixed; inset: 0; z-index: var(--z-modal);
-    background: rgba(8, 10, 13, 0.46); backdrop-filter: blur(2px); }
+    background: var(--overlay); backdrop-filter: blur(2px); }
   .topbar { padding: 0 12px; gap: 8px; }
   /* The route title duplicates the nav; drop it on mobile so the toggles/bell/avatar have room. */
   .topbar h1 { display: none; }
