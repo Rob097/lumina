@@ -4,8 +4,8 @@ import '@lumina/ui/styles.css';
 import { Providers, type Env } from '@/lib/providers';
 
 export const metadata = {
-  title: 'LUMINA Dashboard',
-  description: 'LUMINA merchant control plane',
+  title: 'YuzuView Dashboard',
+  description: 'YuzuView merchant control plane',
 };
 
 // Set the theme before paint to avoid a flash (reads localStorage / system preference).
