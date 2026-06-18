@@ -2,13 +2,13 @@
    --lumina-* custom properties set on [data-lumina-container]; nothing leaks to/from the host page. */
 
 [data-lumina-container] {
-  --lumina-accent: #0f62fe;
+  --lumina-accent: #5a55d6;
   --lumina-radius: 16px;
   --lumina-z: 2147483000;
   --lumina-bg: #ffffff;
-  --lumina-fg: #18181b;
-  --lumina-muted: #71717a;
-  --lumina-surface: #f4f4f5;
+  --lumina-fg: #181621;
+  --lumina-muted: #76727f;
+  --lumina-surface: #f4f3f8;
   --lumina-font:
     system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
 }
@@ -20,7 +20,7 @@
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(24, 22, 40, 0.5);
   font-family: var(--lumina-font);
   color: var(--lumina-fg);
   -webkit-font-smoothing: antialiased;
@@ -40,14 +40,16 @@
   overflow-y: auto;
   background: var(--lumina-bg);
   border-radius: var(--lumina-radius) var(--lumina-radius) 0 0;
-  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 -8px 40px rgba(24, 22, 40, 0.2);
   outline: none;
 }
 
 @media (min-width: 640px) {
   .lumina-modal {
     border-radius: var(--lumina-radius);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    box-shadow:
+      0 24px 60px rgba(24, 22, 40, 0.18),
+      0 6px 16px rgba(24, 22, 40, 0.08);
   }
   /* Result step: give the before/after room to breathe so the composite isn't tiny. */
   .lumina-modal-wide {
@@ -68,6 +70,12 @@
   font-size: 22px;
   line-height: 1;
   cursor: pointer;
+  transition:
+    background 0.14s ease,
+    transform 0.14s ease;
+}
+.lumina-close:hover {
+  background: color-mix(in srgb, var(--lumina-muted) 18%, var(--lumina-surface));
 }
 
 .lumina-body {
@@ -121,6 +129,10 @@
   background: var(--lumina-accent);
   border-color: var(--lumina-accent);
   color: #fff;
+  box-shadow: 0 1px 2px rgba(24, 22, 40, 0.12);
+}
+.lumina-btn-primary:hover {
+  filter: brightness(0.96);
 }
 
 .lumina-dropzone {
@@ -221,6 +233,8 @@
 .lumina-chip.is-active {
   border-color: var(--lumina-accent);
   color: var(--lumina-accent);
+  background: color-mix(in srgb, var(--lumina-accent) 9%, transparent);
+  font-weight: 600;
 }
 
 .lumina-instructions {
@@ -260,7 +274,7 @@
 
 .lumina-error-text {
   margin: 0;
-  color: #dc2626;
+  color: #d2453e;
   font-size: 13px;
 }
 
@@ -402,9 +416,9 @@
 
 @media (prefers-color-scheme: dark) {
   [data-lumina-container][style*='--lumina-mode: auto'] {
-    --lumina-bg: #16161a;
-    --lumina-fg: #f4f4f5;
-    --lumina-muted: #a1a1aa;
-    --lumina-surface: #1f1f24;
+    --lumina-bg: #1a1822;
+    --lumina-fg: #f3f2f8;
+    --lumina-muted: #8a8698;
+    --lumina-surface: #221f2d;
   }
 }

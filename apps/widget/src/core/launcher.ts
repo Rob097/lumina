@@ -24,12 +24,12 @@ const SELECTOR = '[data-lumina-button]';
 export const LAUNCHER_BUTTON_CSS = `.lumina-launcher{display:inline-flex;align-items:center;gap:8px;box-sizing:border-box;
   font-family:var(--lumina-font,system-ui,-apple-system,'Segoe UI',Roboto,sans-serif);
   font-size:15px;font-weight:600;line-height:1;padding:12px 18px;border:0;cursor:pointer;
-  border-radius:var(--lumina-radius,16px);background:var(--lumina-accent,#0F62FE);color:#fff;
+  border-radius:var(--lumina-radius,16px);background:var(--lumina-accent,#5A55D6);color:#fff;
   box-shadow:0 2px 8px rgba(0,0,0,.16);transition:filter .15s ease,transform .1s ease;
   -webkit-font-smoothing:antialiased}
 .lumina-launcher:hover{filter:brightness(1.06)}
 .lumina-launcher:active{transform:translateY(1px)}
-.lumina-launcher:focus-visible{outline:2px solid var(--lumina-accent,#0F62FE);outline-offset:2px}
+.lumina-launcher:focus-visible{outline:2px solid var(--lumina-accent,#5A55D6);outline-offset:2px}
 .lumina-launcher svg{width:18px;height:18px;flex:none}`;
 
 const STYLES = `:host{all:initial}\n${LAUNCHER_BUTTON_CSS}`;

@@ -4,7 +4,7 @@ import { trapFocus } from './mount.js';
 
 /**
  * Focus-trapped, mobile-first modal shell (§3.2). Clicking the overlay or pressing Escape closes it;
- * the "Powered by LUMINA" footer shows when the watermark is on (free tier / configured).
+ * the "Powered by YuzuView" footer shows when the watermark is on (free tier / configured).
  */
 export interface ModalProps {
   onClose: () => void;

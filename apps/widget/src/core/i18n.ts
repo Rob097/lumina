@@ -65,7 +65,7 @@ export type StringTable = Record<StringKey, string>;
 const en: StringTable = {
   'button.try': 'Try in your room',
   close: 'Close',
-  poweredBy: 'Powered by LUMINA',
+  poweredBy: 'Powered by YuzuView',
   'upload.title': 'Add a photo of your room',
   'upload.drop': 'Drag a photo here, or',
   'upload.browse': 'browse files',
@@ -117,7 +117,7 @@ const en: StringTable = {
 const it: StringTable = {
   'button.try': 'Provalo nella tua stanza',
   close: 'Chiudi',
-  poweredBy: 'Offerto da LUMINA',
+  poweredBy: 'Offerto da YuzuView',
   'upload.title': 'Aggiungi una foto della tua stanza',
   'upload.drop': 'Trascina una foto qui, oppure',
   'upload.browse': 'sfoglia i file',
@@ -169,7 +169,7 @@ const it: StringTable = {
 const de: StringTable = {
   'button.try': 'In deinem Raum ausprobieren',
   close: 'Schließen',
-  poweredBy: 'Bereitgestellt von LUMINA',
+  poweredBy: 'Bereitgestellt von YuzuView',
   'upload.title': 'Füge ein Foto deines Raums hinzu',
   'upload.drop': 'Foto hierher ziehen oder',
   'upload.browse': 'Dateien durchsuchen',
@@ -221,7 +221,7 @@ const de: StringTable = {
 const fr: StringTable = {
   'button.try': 'Essayez dans votre pièce',
   close: 'Fermer',
-  poweredBy: 'Proposé par LUMINA',
+  poweredBy: 'Proposé par YuzuView',
   'upload.title': 'Ajoutez une photo de votre pièce',
   'upload.drop': 'Glissez une photo ici, ou',
   'upload.browse': 'parcourir les fichiers',
@@ -273,7 +273,7 @@ const fr: StringTable = {
 const es: StringTable = {
   'button.try': 'Pruébalo en tu habitación',
   close: 'Cerrar',
-  poweredBy: 'Con tecnología de LUMINA',
+  poweredBy: 'Con tecnología de YuzuView',
   'upload.title': 'Añade una foto de tu habitación',
   'upload.drop': 'Arrastra una foto aquí, o',
   'upload.browse': 'explorar archivos',
