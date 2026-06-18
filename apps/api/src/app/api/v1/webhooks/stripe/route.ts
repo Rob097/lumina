@@ -33,7 +33,7 @@ async function handlePaymentFailed(db: Database, event: Stripe.Event): Promise<v
       merchantId,
       type: 'payment_failed',
       title: 'A payment failed',
-      body: 'Your latest LUMINA payment didn’t go through. Update your billing details to avoid interruption.',
+      body: 'Your latest YuzuView payment didn’t go through. Update your billing details to avoid interruption.',
       data: { invoiceId: invoice.id ?? null },
     },
   ).catch(() => {

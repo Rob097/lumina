@@ -60,7 +60,7 @@ export async function emailGenerationResult(
     html: [
       `<p>Here's how <strong>${escapeHtml(product)}</strong> looks in your space.</p>`,
       `<p><a href="${link}">View your visualization</a> (link valid for 7 days).</p>`,
-      `<p style="color:#888;font-size:12px">Sent via LUMINA.</p>`,
+      `<p style="color:#888;font-size:12px">Sent via YuzuView.</p>`,
     ].join(''),
     text: `Here's how ${product} looks in your space: ${link} (link valid for 7 days).`,
   });

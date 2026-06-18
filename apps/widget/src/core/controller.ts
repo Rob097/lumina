@@ -188,7 +188,7 @@ export class LuminaController {
   async save(): Promise<void> {
     const { resultUrl, generationId } = this.state;
     if (!resultUrl) return;
-    await this.saveImage(resultUrl, `lumina-${generationId ?? 'result'}.jpg`);
+    await this.saveImage(resultUrl, `yuzuview-${generationId ?? 'result'}.jpg`);
     if (generationId) this.emitter.emit('result:save', { generationId });
   }
 
