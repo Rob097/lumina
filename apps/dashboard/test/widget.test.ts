@@ -19,16 +19,16 @@ const BASE: WidgetSettings = {
 
 describe('hexToRgba', () => {
   it('expands a #rrggbb hex into an rgba() string', () => {
-    expect(hexToRgba('#0f62fe', 0.12)).toBe('rgba(15, 98, 254, 0.12)');
+    expect(hexToRgba('#5a55d6', 0.12)).toBe('rgba(90, 85, 214, 0.12)');
     expect(hexToRgba('#000000', 1)).toBe('rgba(0, 0, 0, 1)');
   });
 });
 
 describe('previewVars', () => {
-  it('falls back to LUMINA defaults for an empty theme', () => {
+  it('falls back to YuzuView defaults for an empty theme', () => {
     const v = previewVars(BASE);
-    expect(v['--wp-accent']).toBe('#0f62fe');
-    expect(v['--wp-accent-weak']).toBe('rgba(15, 98, 254, 0.12)');
+    expect(v['--wp-accent']).toBe('#5a55d6');
+    expect(v['--wp-accent-weak']).toBe('rgba(90, 85, 214, 0.12)');
     expect(v['--wp-radius']).toBe('16px');
     expect(v['--wp-font']).toBe('var(--font-ui)');
   });
