@@ -11,11 +11,9 @@ import { BrandIcon } from '@/components/ui/BrandIcon';
 export function PlatformPicker({ onSelectScript }: { onSelectScript: () => void }) {
   return (
     <div className="install-guide">
-      <div className="install-head">
-        <p className="t-secondary">
-          Choose where you&apos;re installing YuzuView. The generic script works on any website today —
-          native plugins for the major platforms are on the way.
-        </p>
+      <div className="install-hero">
+        <h2>Where are you installing YuzuView?</h2>
+        <p>Pick your platform. The generic script works anywhere; one-click installers are on the way.</p>
       </div>
 
       <div className="platform-grid">
@@ -23,14 +21,14 @@ export function PlatformPicker({ onSelectScript }: { onSelectScript: () => void 
           const available = p.status === 'available';
           const inner = (
             <>
-              <BrandIcon name={p.brandIcon} size={34} />
-              <div className="platform-meta">
-                <h3>
-                  {p.name}
-                  {!available && <span className="badge badge-neutral platform-soon">Coming soon</span>}
-                </h3>
-                <p>{p.blurb}</p>
+              <div className="platform-card-top">
+                <BrandIcon name={p.brandIcon} size={42} />
+                <span className={`badge ${available ? 'badge-success' : 'badge-neutral'}`}>
+                  {available ? 'Available' : 'Coming soon'}
+                </span>
               </div>
+              <h3>{p.name}</h3>
+              <p>{p.blurb}</p>
             </>
           );
 
@@ -42,9 +40,6 @@ export function PlatformPicker({ onSelectScript }: { onSelectScript: () => void 
               onClick={onSelectScript}
             >
               {inner}
-              <span className="platform-go" aria-hidden="true">
-                →
-              </span>
             </button>
           ) : (
             <div key={p.id} className="card platform-card is-soon" aria-disabled="true">
