@@ -1,14 +1,15 @@
+import { neutralGenerationPlan, type GenerationPlan } from '@lumina/shared';
 import type {
   AIProvider,
   BgRemovalProvider,
   ComposeInput,
   ImageRef,
+  PlannerInput,
+  PlannerProvider,
   ProviderResult,
   QuantityEstimate,
   QuantityInput,
   QuantityProvider,
-  SceneAnalysis,
-  SceneProvider,
 } from '../types.js';
 
 export interface MockProviderOptions {
@@ -65,19 +66,13 @@ export class MockBgRemovalProvider implements BgRemovalProvider {
 }
 
 /**
- * Mock scene analyzer: a neutral "standard interior" analysis for offline/e2e runs (no network, no spend).
- * Confidence is high enough that the compose path renders it, so the offline pipeline exercises the wiring.
+ * Mock planner: the neutral `object_placement` plan for offline/e2e runs (no network, no spend) — exactly
+ * the pre-planner behaviour (place the product once at the most natural location), so the offline pipeline
+ * exercises the wiring without inventing facts.
  */
-export class MockSceneProvider implements SceneProvider {
-  async analyzeScene(_image: ImageRef): Promise<SceneAnalysis> {
-    return {
-      isExterior: false,
-      lighting: { direction: 'top-left', temperatureK: 4000, intensity: 'medium' },
-      surfaces: [{ kind: 'floor' }, { kind: 'wall' }],
-      tiltDegrees: 0,
-      quality: { blurry: false, dark: false, cluttered: false },
-      confidence: 0.6,
-    };
+export class MockPlannerProvider implements PlannerProvider {
+  async plan(_input: PlannerInput): Promise<GenerationPlan> {
+    return neutralGenerationPlan();
   }
 }
 

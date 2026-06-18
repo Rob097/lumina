@@ -10,6 +10,7 @@ import {
   type QuantityProvider,
   type SceneAnalysis,
 } from '@lumina/ai';
+import type { GenerationPlan } from '@lumina/shared';
 import { eq } from 'drizzle-orm';
 import {
   creditLedger,
@@ -409,19 +410,25 @@ describe('processGeneration — product cutout', () => {
   });
 });
 
-describe('processGeneration — scene analysis (Phase 2)', () => {
-  const analysis: SceneAnalysis = {
-    isExterior: false,
-    lighting: { direction: 'top-left', intensity: 'medium' },
-    surfaces: [{ kind: 'floor' }],
-    tiltDegrees: 0,
-    quality: { blurry: false, dark: false, cluttered: false },
+describe('processGeneration — planner (Phase 1)', () => {
+  const plan: GenerationPlan = {
+    mode: 'surface_covering',
+    target: { description: 'the back wall', bbox: [0, 0.1, 1, 0.9] },
+    repetition: { kind: 'grid', estimatedCount: 8 },
+    scale: { productDimensionsCm: { w: 60, h: 60 } },
+    sceneFacts: {
+      isExterior: false,
+      lighting: { direction: 'top-left', intensity: 'medium' },
+      surfaces: [{ kind: 'wall' }],
+      tiltDegrees: 0,
+      quality: { blurry: false, dark: false, cluttered: false },
+    },
     confidence: 0.8,
   };
 
-  /** An orchestrator whose compose records the scene it received + a configurable scene analyzer. */
+  /** An orchestrator whose compose records the scene facts it received + a configurable planner. */
   function orchestratorCapturingScene(
-    analyzeScene: () => Promise<SceneAnalysis>,
+    planFn: () => Promise<GenerationPlan>,
     captured: { scene?: SceneAnalysis },
   ): AIOrchestrator {
     const provider: AIProvider = {
@@ -433,30 +440,32 @@ describe('processGeneration — scene analysis (Phase 2)', () => {
     };
     return new AIOrchestrator({
       chains: { quality: [provider], balanced: [provider], fast: [provider] },
-      scene: { analyzeScene },
+      planner: { plan: planFn },
     });
   }
 
-  it('runs scene analysis and feeds the result into compose', async () => {
+  it('runs the planner and feeds its per-image facts into compose', async () => {
     const { generationId } = await queued(5);
-    const analyzeScene = vi.fn(async () => analysis);
+    const planFn = vi.fn(async () => plan);
     const captured: { scene?: SceneAnalysis } = {};
-    const orch = orchestratorCapturingScene(analyzeScene, captured);
+    const orch = orchestratorCapturingScene(planFn, captured);
 
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
-    expect(analyzeScene).toHaveBeenCalledTimes(1);
-    expect(captured.scene).toEqual(analysis);
+    expect(planFn).toHaveBeenCalledTimes(1);
+    expect(captured.scene?.lighting.direction).toBe('top-left');
+    expect(captured.scene?.suggestedPlacement?.region).toBe('the back wall');
+    expect(captured.scene?.confidence).toBe(0.8);
   });
 
-  it('degrades to a successful generation when scene analysis throws (best-effort, no scene facts)', async () => {
+  it('degrades to a successful generation when the planner throws (best-effort neutral plan)', async () => {
     const { generationId } = await queued(5);
-    const captured: { scene?: SceneAnalysis } = { scene: analysis };
+    const captured: { scene?: SceneAnalysis } = {};
     const orch = orchestratorCapturingScene(async () => {
-      throw new Error('scene down');
+      throw new Error('planner down');
     }, captured);
 
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
-    expect(captured.scene).toBeUndefined();
+    expect(captured.scene?.confidence).toBe(0); // neutral object_placement fallback
   });
 });
 
@@ -467,20 +476,26 @@ describe('processGeneration — room normalization (Phase 3)', () => {
     );
   }
 
-  /** An orchestrator whose scene pass reports a fixed tilt (so normalization is driven deterministically). */
+  /** An orchestrator whose planner reports a fixed tilt (so normalization is driven deterministically). */
   function orchestratorWithTilt(tiltDegrees: number): AIOrchestrator {
     const provider = new MockProvider({ name: 'mock', model: 'mock-compose' });
-    const analysis: SceneAnalysis = {
-      isExterior: false,
-      lighting: { direction: 'top-left', intensity: 'medium' },
-      surfaces: [],
-      tiltDegrees,
-      quality: { blurry: false, dark: false, cluttered: false },
+    const plan: GenerationPlan = {
+      mode: 'object_placement',
+      target: { description: 'the corner' },
+      repetition: { kind: 'single' },
+      scale: {},
+      sceneFacts: {
+        isExterior: false,
+        lighting: { direction: 'top-left', intensity: 'medium' },
+        surfaces: [],
+        tiltDegrees,
+        quality: { blurry: false, dark: false, cluttered: false },
+      },
       confidence: 0.8,
     };
     return new AIOrchestrator({
       chains: { quality: [provider], balanced: [provider], fast: [provider] },
-      scene: { analyzeScene: async () => analysis },
+      planner: { plan: async () => plan },
     });
   }
 

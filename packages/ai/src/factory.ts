@@ -3,14 +3,14 @@ import { ReplicateMattingProvider } from './providers/bg-removal.js';
 import { GatewayBgRemovalProvider } from './providers/bg-removal-gateway.js';
 import { GatewayProvider } from './providers/gateway.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
-import { GatewaySceneProvider } from './providers/gateway-scene.js';
+import { GatewayPlannerProvider } from './providers/gateway-planner.js';
 import {
   MockBgRemovalProvider,
+  MockPlannerProvider,
   MockProvider,
   MockQuantityProvider,
-  MockSceneProvider,
 } from './providers/mock.js';
-import type { AIProvider, BgRemovalProvider, RoutingPolicy, SceneProvider } from './types.js';
+import type { AIProvider, BgRemovalProvider, PlannerProvider, RoutingPolicy } from './types.js';
 
 /**
  * Select the product background-removal provider from env (Phase 1 / D63). Returns `undefined` when it
@@ -53,19 +53,20 @@ export function selectBgRemovalProvider(
 }
 
 /**
- * Select the scene-analysis provider from env (Phase 2 / D64). Scene analysis is always available — the
- * neutral mock offline, the gateway flash model when creds are present. Best-effort downstream: a
- * low-confidence/failed analysis is dropped, so this never needs an explicit "off" switch. The model
- * defaults to the cheap quantity flash model unless `SCENE_MODEL` overrides it (one-file swap, #8).
+ * Select the planner provider from env (Generation Engine v3 §4.1). The planner is always available — the
+ * neutral mock offline (a zero-confidence `object_placement` plan = pre-planner behaviour), the gateway
+ * flash model when creds are present. Best-effort downstream: a low-confidence/failed plan falls back to a
+ * neutral plan, so this never needs an explicit "off" switch. The model defaults to the cheap flash model
+ * unless `PLANNER_MODEL` (or the legacy `SCENE_MODEL`) overrides it (one-file swap, #8).
  */
-export function selectSceneProvider(env: Record<string, string | undefined>): SceneProvider {
+export function selectPlannerProvider(env: Record<string, string | undefined>): PlannerProvider {
   const apiKey = env.AI_GATEWAY_API_KEY;
   const hasCreds = Boolean(apiKey || env.VERCEL_OIDC_TOKEN);
   if (!hasCreds || env.AI_PROVIDER === 'mock') {
-    return new MockSceneProvider();
+    return new MockPlannerProvider();
   }
-  return new GatewaySceneProvider({
-    model: env.SCENE_MODEL ?? env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
+  return new GatewayPlannerProvider({
+    model: env.PLANNER_MODEL ?? env.SCENE_MODEL ?? env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
     apiKey,
   });
 }
@@ -84,7 +85,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     return new AIOrchestrator({
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
       bgRemoval: new MockBgRemovalProvider(),
-      scene: new MockSceneProvider(),
+      planner: new MockPlannerProvider(),
       quantity: new MockQuantityProvider(),
     });
   }
@@ -120,7 +121,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
   return new AIOrchestrator({
     chains,
     bgRemoval: selectBgRemovalProvider(env),
-    scene: selectSceneProvider(env),
+    planner: selectPlannerProvider(env),
     quantity,
   });
 }

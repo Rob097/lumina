@@ -1,4 +1,4 @@
-import type { ProductCategory, SceneAnalysis } from '@lumina/shared';
+import type { GenerationPlan, ProductCategory, SceneAnalysis } from '@lumina/shared';
 
 /**
  * The scene-analysis output (per-image facts) is the shared wire contract (`SceneAnalysisSchema`).
@@ -74,8 +74,26 @@ export interface BgRemovalProvider {
   removeBackground(image: ImageRef): Promise<{ bytes: Uint8Array; contentType: string }>;
 }
 
-export interface SceneProvider {
-  analyzeScene(image: ImageRef): Promise<SceneAnalysis>;
+/**
+ * Input to the planner (Generation Engine v3 §4.1): both images + the known product metadata. The planner
+ * reasons over all of it to decide the *operation* (mode), target, repetition and scale — replacing the
+ * separate scene-analysis pass (one call, not two).
+ */
+export interface PlannerInput {
+  room: ImageRef;
+  product: ImageRef;
+  productName?: string;
+  dimensions?: Dimensions;
+  /** Merchant category — a soft hint only; the planner infers the operation per image. */
+  category?: ProductCategory;
+}
+
+/**
+ * The planner: a single cheap reasoning call returning a Zod-validated {@link GenerationPlan}. Swapping the
+ * model/provider stays a one-file change behind this seam (HARD RULE #8).
+ */
+export interface PlannerProvider {
+  plan(input: PlannerInput): Promise<GenerationPlan>;
 }
 
 /** Input to the coverage-quantity estimator (§7 — "how many units to cover this surface"). */

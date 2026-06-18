@@ -1,3 +1,4 @@
+import type { GenerationPlan } from '@lumina/shared';
 import { buildComposePrompt } from './prompt.js';
 import { buildQuantityPrompt, isCoverageCategory, singleUnitEstimate } from './quantity.js';
 import type {
@@ -6,12 +7,12 @@ import type {
   ComposeInput,
   ComposeResult,
   ImageRef,
+  PlannerInput,
+  PlannerProvider,
   QuantityEstimate,
   QuantityInput,
   QuantityProvider,
   RoutingPolicy,
-  SceneAnalysis,
-  SceneProvider,
 } from './types.js';
 
 export interface ProviderAttempt {
@@ -38,7 +39,8 @@ export interface OrchestratorConfig {
   /** Base backoff between retries in ms (default 250, exponential). */
   backoffMs?: number;
   bgRemoval?: BgRemovalProvider;
-  scene?: SceneProvider;
+  /** The planner (§4.1): one reasoning pass over both images → a GenerationPlan. */
+  planner?: PlannerProvider;
   /** Optional coverage-quantity estimator (§7 #7). */
   quantity?: QuantityProvider;
   /** Injectable sleep (tests pass a no-op). */
@@ -85,12 +87,15 @@ export class AIOrchestrator {
     throw new AIComposeError('all providers failed', attempts);
   }
 
-  /** Optional fast vision pass (§7.4 step 3). Returns null when no scene provider is configured. */
-  async analyzeScene(image: ImageRef): Promise<SceneAnalysis | null> {
-    if (!this.config.scene) {
+  /**
+   * The planner (§4.1): one reasoning pass over both images + product metadata → a GenerationPlan. Returns
+   * null when no planner is configured. Best-effort handling (fallback to a neutral plan) lives in the caller.
+   */
+  async plan(input: PlannerInput): Promise<GenerationPlan | null> {
+    if (!this.config.planner) {
       return null;
     }
-    return this.config.scene.analyzeScene(image);
+    return this.config.planner.plan(input);
   }
 
   /**

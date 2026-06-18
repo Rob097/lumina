@@ -1,0 +1,23 @@
+{
+  "capturedAt": "2026-06-18",
+  "commit": "ac16e42 (pipeline) on branch feat/generation-engine-v3",
+  "note": "Generation Engine v3 Phase 0 baseline. Single-pass from-scratch compose (no planner, no mode-specific prompt). Model google/gemini-3-pro-image (quality), 2K, aspect-pinned. 👍 confirmed by the owner (7/7). Frozen comparison point — re-run `pnpm -F @lumina/api eval` after each phase and compare.",
+  "aggregate": {
+    "total": 7,
+    "succeeded": 7,
+    "successRate": 1,
+    "avgLatencyMs": 43548,
+    "avgCostCents": 13,
+    "thumbsUp": 7,
+    "thumbsUpRate": 1
+  },
+  "cases": [
+    { "id": "standard-bedroom-lamp", "inputClass": "standard", "status": "succeeded", "latencyMs": 48355, "costCents": 13, "thumbsUp": true },
+    { "id": "tilted-livingroom-lamp", "inputClass": "tilted", "status": "succeeded", "latencyMs": 41861, "costCents": 13, "thumbsUp": true },
+    { "id": "dark-livingroom-lamp", "inputClass": "dark", "status": "succeeded", "latencyMs": 43223, "costCents": 13, "thumbsUp": true },
+    { "id": "blurry-livingroom-lamp", "inputClass": "blurry", "status": "succeeded", "latencyMs": 43200, "costCents": 13, "thumbsUp": true },
+    { "id": "exterior-facade-lamp", "inputClass": "exterior", "status": "succeeded", "latencyMs": 38158, "costCents": 13, "thumbsUp": true },
+    { "id": "coverage-slats-wall", "inputClass": "coverage", "status": "succeeded", "latencyMs": 52159, "costCents": 13, "thumbsUp": true },
+    { "id": "coverage-discrete-tile", "inputClass": "coverage-discrete", "status": "succeeded", "latencyMs": 37882, "costCents": 13, "thumbsUp": true }
+  ]
+}

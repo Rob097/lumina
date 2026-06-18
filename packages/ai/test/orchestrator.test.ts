@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { AIComposeError, AIOrchestrator } from '../src/orchestrator.js';
-import { MockProvider, MockSceneProvider } from '../src/providers/mock.js';
+import { MockProvider, MockPlannerProvider } from '../src/providers/mock.js';
 import type { AIProvider, ComposeInput, RoutingPolicy } from '../src/types.js';
 
 const input: ComposeInput = {
@@ -74,13 +74,14 @@ describe('AIOrchestrator.compose', () => {
 });
 
 describe('optional steps', () => {
-  it('analyzeScene returns null without a provider, a value with one', async () => {
+  it('plan returns null without a provider, a neutral plan with one', async () => {
     const primary = new MockProvider({ name: 'primary' });
-    expect(await new AIOrchestrator({ chains: chains(primary) }).analyzeScene(input.room)).toBeNull();
+    const plannerInput = { room: input.room, product: input.product, category: 'furniture' as const };
+    expect(await new AIOrchestrator({ chains: chains(primary) }).plan(plannerInput)).toBeNull();
 
-    const withScene = new AIOrchestrator({ chains: chains(primary), scene: new MockSceneProvider() });
-    const scene = await withScene.analyzeScene(input.room);
-    expect(scene?.isExterior).toBe(false);
-    expect(scene?.lighting.direction).toBe('top-left');
+    const withPlanner = new AIOrchestrator({ chains: chains(primary), planner: new MockPlannerProvider() });
+    const plan = await withPlanner.plan(plannerInput);
+    expect(plan?.mode).toBe('object_placement');
+    expect(plan?.confidence).toBe(0);
   });
 });

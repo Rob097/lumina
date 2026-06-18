@@ -14,7 +14,7 @@ export { createOrchestratorFromEnv } from './factory.js';
 export {
   MockProvider,
   MockBgRemovalProvider,
-  MockSceneProvider,
+  MockPlannerProvider,
   MockQuantityProvider,
 } from './providers/mock.js';
 export {
@@ -38,12 +38,13 @@ export {
   type QuantityCallArgs,
 } from './providers/gateway-quantity.js';
 export {
-  GatewaySceneProvider,
-  type GatewaySceneProviderOptions,
-  type SceneRunner,
-  type SceneCallArgs,
-} from './providers/gateway-scene.js';
-export { buildScenePrompt } from './prompts/scene.js';
+  GatewayPlannerProvider,
+  type GatewayPlannerProviderOptions,
+  type PlannerRunner,
+  type PlannerCallArgs,
+} from './providers/gateway-planner.js';
+export { buildPlannerPrompt } from './prompts/planner.js';
+export { planToSceneAnalysis } from './planning.js';
 export {
   GatewayProvider,
   buildEditMessages,

@@ -625,3 +625,37 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   force-included at the addon's symlink path via `outputFileTracingIncludes`, and `GET /internal/sharp-check`
   verifies sharp loads on Vercel without a billed generation; this is what unblocked auto-orient (correct
   orientation), normalization, and the pixel-perfect composite for *all* products.
+
+## Generation Engine v3 — Planner-driven compose (2026-06-18) — see `docs/lumina/generation-engine-v3-brief.md`
+
+- **Phase 0 finding (recorded for Phase 2).** The Phase 0 de-risk spike + a captured eval baseline (7 real
+  cases, owner-confirmed 👍 7/7) showed the image model (Nano Banana Pro) **can** re-surface a wall with a
+  repeating product in correct perspective via prompting alone — **no homography/perspective-warp fallback
+  needed** — but only when **told to cover** (an explicit "cover/tile the wall" hint). The brief's "single
+  crooked panel" failure is therefore the model not *deciding* to cover when unprompted, NOT an inability to
+  cover. So the planner's value is operation **inference**; Phase 2's mode-specific compose must drive
+  covering from `plan.mode` (not a hint) and tighten the covering prompt to change ONLY the target surface
+  (the spike's covering prompt over-altered the rest of the scene). `sharp` was re-verified alive on staging
+  (`GET /internal/sharp-check` → `{ok:true}`) and the 90° portrait-rotation fix re-confirmed on the §3.1 case.
+
+- **D68 — Planner-driven compose (Phase 1).** Added the missing reasoning step. A single cheap
+  `gemini-2.5-flash` **planner** (`GatewayPlannerProvider`, `generateObject` + the shared
+  `GenerationPlanSchema` in `packages/shared`) reasons over **BOTH images + product metadata** and returns a
+  structured `GenerationPlan`: the operation **`mode`** (`surface_covering` | `object_replacement` |
+  `object_placement`), `target` (description + optional bbox — a plain number array, never a `z.tuple`, which
+  Gemini's `response_schema` rejects), `repetition` (kind + `estimatedCount` clamped to [1,999] via a
+  transform so a wild number never fails the parse), `scale`, per-image `sceneFacts` (reusing the scene
+  sub-schemas), and `confidence`. **`mode` is an *operation* inferred per image, NOT a product-category
+  taxonomy** — the scalable constraint the owner requires. It **evolves and replaces the separate
+  scene-analysis pass (one call, not two)**: the dead scene stack (`SceneProvider`, `GatewaySceneProvider`,
+  `prompts/scene.ts`, `MockSceneProvider`, `orchestrator.analyzeScene`, `selectSceneProvider`) is removed;
+  `planToSceneAnalysis` adapts the plan's facts into the `SceneAnalysis` the (unchanged-this-phase)
+  compositor already consumes, so compose behaviour is preserved while the new mode/target/repetition fields
+  wait for Phase 2. **Best-effort:** no provider / an error / no result falls back to a neutral
+  zero-confidence `object_placement` plan (`neutralGenerationPlan`), so the planner never fails or bills a
+  generation (HARD RULE #3). Env `PLANNER_MODEL` (legacy alias `SCENE_MODEL`), defaulting to
+  `GATEWAY_MODEL_QUANTITY`; reuses `AI_GATEWAY_API_KEY` (no new credential, HARD RULE #8). **Eval gate (real
+  Gateway, 7-case golden set):** the planner classified all 7 cases correctly — the 5 lamp cases
+  `object_placement`, both coverage cases (slatted acoustic panel + discrete tile) `surface_covering`; 7/7
+  success, no visual regression vs the Phase 0 baseline (avg latency 43.5s → 46.5s — the +3s planner call,
+  addressed in Phase 3).

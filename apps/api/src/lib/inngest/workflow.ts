@@ -1,13 +1,13 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
+  planToSceneAnalysis,
   type AIOrchestrator,
   type ImageRef,
   type ModerationProvider,
   type ModerationReason,
   type QuantityEstimate,
   type RoutingPolicy,
-  type SceneAnalysis,
 } from '@lumina/ai';
 import {
   generationAssets,
@@ -17,7 +17,7 @@ import {
   usageEvents,
   type Database,
 } from '@lumina/db';
-import type { ProductCategory } from '@lumina/shared';
+import { neutralGenerationPlan, type GenerationPlan, type ProductCategory } from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
 import { contentTypeForKey } from '../images/exif.js';
 import { autoOrientAndStrip } from '../images/orient.js';
@@ -230,21 +230,26 @@ async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Prom
 }
 
 /**
- * Per-image scene analysis (Phase 2 / D64): a cheap vision pass that gives the compositor lighting,
- * surfaces, tilt, scale and a placement region for THIS room. Best-effort — a missing provider, an error
- * or a low-confidence result must never fail or bill the generation, so we swallow errors here and let
- * compose drop low-confidence facts. Runs in parallel with the product cutout.
+ * The planner (§4.1): one cheap reasoning pass over BOTH images + product metadata that decides the
+ * operation (covering / replacement / placement), the target, repetition and scale, and carries the
+ * per-image facts (lighting, surfaces, tilt, quality) the compositor uses. Evolves and replaces the
+ * separate scene pass — one call, not two. Best-effort: a missing provider, an error, or no result falls
+ * back to a neutral `object_placement` plan (today's behaviour), so the planner never fails or bills a
+ * generation. Runs in parallel with the product cutout.
  */
-async function analyzeSceneSafe(
-  deps: WorkflowDeps,
-  gen: GenerationRow,
-  roomUrl: string,
-): Promise<SceneAnalysis | undefined> {
+async function planSafe(deps: WorkflowDeps, gen: GenerationRow, roomUrl: string): Promise<GenerationPlan> {
   try {
-    return (await deps.orchestrator.analyzeScene({ url: roomUrl })) ?? undefined;
+    const plan = await deps.orchestrator.plan({
+      room: { url: roomUrl },
+      product: { url: gen.productSnapshot.imageUrl },
+      productName: gen.productSnapshot.name,
+      dimensions: gen.productSnapshot.dimensions,
+      category: gen.productSnapshot.category as ProductCategory,
+    });
+    return plan ?? neutralGenerationPlan();
   } catch (err) {
-    deps.reportError?.(err, { generationId: gen.id, stage: 'scene_analysis' });
-    return undefined;
+    deps.reportError?.(err, { generationId: gen.id, stage: 'planner' });
+    return neutralGenerationPlan();
   }
 }
 
@@ -424,13 +429,16 @@ export async function processGeneration(
     }
 
     // Run the independent pre-passes in parallel: the product cutout (cached per product, else the raw
-    // image), the per-image scene analysis (best-effort facts the compositor can use), and the coverage
-    // estimate (best-effort; feeds both the stored quantity and the Phase 5 layout guide below).
-    const [productImage, scene, estimate] = await Promise.all([
+    // image), the planner (§4.1 — one reasoning pass over both images → the operation + per-image facts,
+    // replacing the separate scene pass), and the coverage estimate (best-effort).
+    const [productImage, genPlan, estimate] = await Promise.all([
       resolveProductImage(deps, gen),
-      analyzeSceneSafe(deps, gen, roomUrl),
+      planSafe(deps, gen, roomUrl),
       estimateCoverageSafe(deps, gen, category, roomUrl),
     ]);
+    // Phase 1: feed the plan's per-image facts into the (unchanged) compositor through the SceneAnalysis it
+    // already consumes. The new mode/target/repetition fields drive the mode-specific compose in Phase 2.
+    const scene = planToSceneAnalysis(genPlan);
 
     // Normalize the room before compose (Phase 3 / D65): a gentle, clamped deskew using the scene's tilt
     // plus a conditional auto-level when the photo is dark, cropped to the inscribed rectangle. Best-effort
@@ -438,8 +446,8 @@ export async function processGeneration(
     // model composes against it, and it becomes the pixel-perfect base, so the result may be slightly
     // straightened vs the raw upload (intended).
     const normalized = await normalizeRoom(sanitized, {
-      tiltDegrees: scene?.tiltDegrees,
-      dark: scene?.quality.dark,
+      tiltDegrees: scene.tiltDegrees,
+      dark: scene.quality.dark,
       maxDeskewDegrees: DESKEW_MAX_DEGREES,
       autoLevelEnabled: AUTOLEVEL_ENABLED,
     });
@@ -461,7 +469,8 @@ export async function processGeneration(
         roomW: roomSize.width,
         roomH: roomSize.height,
         aspectRatio: aspectRatio ?? null,
-        sceneTilt: scene?.tiltDegrees ?? null,
+        mode: genPlan.mode,
+        sceneTilt: scene.tiltDegrees,
         coverage: estimate
           ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
           : null,
