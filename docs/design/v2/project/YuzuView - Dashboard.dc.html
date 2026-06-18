@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;-webkit-font-smoothing:antialiased}
+  @keyframes yzShim{0%{background-position:-200% 0}100%{background-position:200% 0}}
+  @keyframes yzSpin{to{transform:rotate(360deg)}}
+  @media (prefers-reduced-motion: reduce){*{animation-duration:.001ms!important}}
+</style>
+</helmet>
+<div style="--f:'Hanken Grotesk',system-ui,sans-serif;--fm:'JetBrains Mono',ui-monospace,monospace;--brand:#5A55D6;--brand-600:#4D45C2;--brand-700:#3F39A8;--brand-300:#9C95EE;--brand-100:#ECEAFB;--brand-50:#F5F3FE;--fruit:#8B82EC;--plum:#7A3A66;--ink:#181621;--ink-2:#45424F;--muted:#76727F;--faint:#A9A5B5;--line:#E7E5EE;--line-2:#F0EFF5;--surface:#FFFFFF;--surface-2:#F8F8FB;--canvas:#EAE9F0;--success:#1E8E5A;--success-100:#E3F3EB;--warning:#B97309;--warning-100:#FAF0DA;--danger:#D2453E;--danger-100:#FBE7E6;--e1:0 1px 2px rgba(24,22,40,.06);--e2:0 4px 14px rgba(24,22,40,.07),0 1px 3px rgba(24,22,40,.05);--e3:0 24px 60px rgba(24,22,40,.16),0 6px 16px rgba(24,22,40,.08);font-family:var(--f);color:var(--ink);background:radial-gradient(120% 60% at 50% -10%, #F1F0F6 0%, var(--canvas) 60%);width:max-content;min-width:100%;min-height:100vh;box-sizing:border-box;padding:56px 56px 110px;display:flex;flex-direction:column;align-items:center;gap:64px;">
+
+  <!-- COVER -->
+  <div style="width:1240px;max-width:100%;display:flex;flex-direction:column;gap:14px;">
+    <img src="assets/yuzuview-logo.png" alt="YuzuView" style="height:46px;width:auto;align-self:flex-start;display:block;" />
+    <div style="font:500 16px/1.5 var(--f);color:var(--ink-2);">Dashboard — merchant control plane. Auth, onboarding, Studio, catalog, analytics, install, billing &amp; settings.</div>
+  </div>
+
+  <!-- ============ AUTH ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Auth</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Sign in · create account</span></div>
+    <div style="width:1100px;max-width:100%;height:680px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:1.04fr 1fr;">
+      <!-- brand panel -->
+      <div style="position:relative;background:linear-gradient(150deg,#4A45B8 0%,#5A55D6 45%,#7A3A66 130%);padding:44px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;">
+        <div style="position:absolute;width:420px;height:420px;border-radius:50%;background:radial-gradient(circle, rgba(255,255,255,.16), transparent 70%);top:-120px;right:-120px;"></div>
+        <div style="display:flex;align-items:center;gap:11px;position:relative;"><span style="width:42px;height:42px;border-radius:12px;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:var(--e2);"><img src="assets/yuzuview-mark.png" style="width:30px;height:30px;object-fit:contain;" /></span><span style="font:800 20px/1 var(--f);color:#fff;letter-spacing:-.01em;">YuzuView</span></div>
+        <div style="position:relative;display:flex;flex-direction:column;gap:16px;">
+          <div style="font:800 34px/1.12 var(--f);color:#fff;letter-spacing:-.02em;max-width:330px;">See it in the room before they buy.</div>
+          <div style="font:500 15px/1.55 var(--f);color:rgba(255,255,255,.82);max-width:330px;">Composite your real products into a shopper’s own space — and turn “maybe” into “add to cart.”</div>
+        </div>
+        <div style="position:relative;display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:14px;padding:14px 16px;backdrop-filter:blur(8px);width:max-content;">
+          <span style="font:700 26px/1 var(--f);color:#fff;font-variant-numeric:tabular-nums;">+24.8%</span>
+          <span style="font:500 12px/1.4 var(--f);color:rgba(255,255,255,.82);max-width:150px;">of previews convert to add-to-cart</span>
+        </div>
+      </div>
+      <!-- form -->
+      <div style="padding:48px 52px;display:flex;flex-direction:column;justify-content:center;gap:22px;">
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:800 26px/1.1 var(--f);letter-spacing:-.02em;">Welcome back</span><span style="font:500 14px/1.5 var(--f);color:var(--muted);">Sign in to your merchant dashboard.</span></div>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Email</span><div style="border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:500 14px/1 var(--f);color:var(--ink);background:var(--surface-2);">alex@acmelighting.com</div></label>
+          <label style="display:flex;flex-direction:column;gap:7px;"><div style="display:flex;justify-content:space-between;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Password</span><span style="font:600 12px/1 var(--f);color:var(--brand);cursor:pointer;">Forgot?</span></div><div style="display:flex;align-items:center;justify-content:space-between;border:2px solid var(--brand);border-radius:10px;padding:11px 14px;box-shadow:0 0 0 4px var(--brand-100);"><span style="font:500 14px/1 var(--f);color:var(--ink);letter-spacing:.18em;">••••••••••</span><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg></div></label>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <button style="border:none;background:var(--brand);color:#fff;font:600 14px/1 var(--f);padding:13px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Sign in</button>
+          <button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px/1 var(--f);padding:13px;border-radius:10px;cursor:pointer;">Create account</button>
+        </div>
+        <div style="display:flex;align-items:center;gap:12px;"><span style="flex:1;height:1px;background:var(--line);"></span><span style="font:500 12px/1 var(--f);color:var(--faint);">or</span><span style="flex:1;height:1px;background:var(--line);"></span></div>
+        <button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 14px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;"><svg width="17" height="17" viewBox="0 0 24 24"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2c-.3 1.5-1.1 2.7-2.4 3.6v3h3.9c2.3-2.1 3.6-5.2 3.6-8.8Z"/><path fill="#34A853" d="M12 24c3.2 0 6-1.1 8-2.9l-3.9-3c-1.1.7-2.5 1.2-4.1 1.2-3.1 0-5.8-2.1-6.7-5H1.3v3.1C3.3 21.3 7.3 24 12 24Z"/><path fill="#FBBC05" d="M5.3 14.3c-.2-.7-.4-1.5-.4-2.3s.1-1.6.4-2.3V6.6H1.3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l4-3.1Z"/><path fill="#EA4335" d="M12 4.8c1.8 0 3.3.6 4.6 1.8l3.4-3.4C18 1.2 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l4 3.1c.9-2.9 3.6-4.9 6.7-4.9Z"/></svg>Continue with Google</button>
+        <span style="font:500 12px/1.5 var(--f);color:var(--faint);text-align:center;">By continuing you agree to the Terms &amp; Privacy Policy.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ONBOARDING ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Onboarding</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Guided setup · live widget preview</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="overview" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Setup</span><div style="display:flex;align-items:center;gap:10px;"><button style="width:38px;height:38px;border-radius:9px;border:1px solid var(--line);background:var(--surface);display:flex;align-items:center;justify-content:center;color:var(--ink-2);cursor:pointer;position:relative;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span style="position:absolute;top:-4px;right:-4px;min-width:17px;height:17px;border-radius:9px;background:var(--danger);color:#fff;font:700 10px/17px var(--f);text-align:center;border:2px solid var(--surface);">3</span></button><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></div></header>
+        <div style="flex:1;overflow:auto;padding:34px 40px 42px;display:flex;flex-direction:column;gap:26px;">
+          <!-- header + progress -->
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:30px;">
+            <div style="display:flex;flex-direction:column;gap:9px;"><span style="font:700 11px/1 var(--f);letter-spacing:.14em;text-transform:uppercase;color:var(--muted);">Almost there</span><span style="font:800 32px/1.05 var(--f);letter-spacing:-.02em;">Get YuzuView live</span></div>
+            <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end;width:230px;"><div style="display:flex;justify-content:space-between;width:100%;font:600 12px/1 var(--f);color:var(--ink-2);"><span>Progress</span><span>2 of 5</span></div><div style="width:100%;height:8px;border-radius:8px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden;"><div style="width:40%;height:100%;background:var(--brand);"></div></div></div>
+          </div>
+          <!-- up-next focus card -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--e2);overflow:hidden;display:grid;grid-template-columns:1fr 300px;">
+            <div style="padding:30px;display:flex;flex-direction:column;gap:16px;">
+              <span style="font:700 11px/1 var(--f);letter-spacing:.12em;text-transform:uppercase;color:var(--brand);">Up next · Step 2</span>
+              <div style="display:flex;flex-direction:column;gap:8px;"><span style="font:800 24px/1.1 var(--f);letter-spacing:-.01em;">Configure your widget</span><span style="font:500 15px/1.55 var(--f);color:var(--ink-2);max-width:430px;">Pick your accent color, light or dark, corner radius and button text. Everything updates in the live preview to the right — no code needed.</span></div>
+              <button style="border:none;background:var(--brand);color:#fff;font:600 14px/1 var(--f);padding:13px 20px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;width:max-content;display:flex;align-items:center;gap:8px;">Open widget settings <span style="font-size:15px;">→</span></button>
+            </div>
+            <div style="background:linear-gradient(160deg,#F3F2FA,#ECEAFB);display:flex;align-items:flex-end;justify-content:center;padding:26px 26px 0;">
+              <div style="width:210px;border-radius:26px 26px 0 0;background:#15131D;padding:7px 7px 0;box-shadow:var(--e3);">
+                <div style="background:#fff;border-radius:20px 20px 0 0;overflow:hidden;">
+                  <div style="padding:12px 12px 0;display:flex;flex-direction:column;gap:9px;">
+                    <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 12px/1 var(--f);">Here’s your room</span><span style="color:var(--muted);font-size:13px;">×</span></div>
+                    <div style="position:relative;height:150px;border-radius:12px;overflow:hidden;">
+                      <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&amp;q=80" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
+                      <div style="position:absolute;inset:0;clip-path:inset(0 46% 0 0);"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=500&amp;q=80" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1) brightness(.8);" /></div>
+                      <div style="position:absolute;top:0;bottom:0;left:54%;width:2px;background:#fff;"></div>
+                      <span style="position:absolute;top:50%;left:calc(54% - 13px);transform:translateY(-50%);width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:var(--e1);display:flex;align-items:center;justify-content:center;font:700 10px/1 var(--f);color:var(--brand);">⇄</span>
+                    </div>
+                    <button style="border:none;background:var(--brand);color:#fff;font:600 12px/1 var(--f);padding:10px;border-radius:9px;">Add to cart</button>
+                    <span style="font:500 9px/1 var(--f);color:var(--faint);text-align:center;padding-bottom:10px;">Powered by YuzuView</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- checklist -->
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--e1);"><span style="width:30px;height:30px;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div style="flex:1;"><span style="font:700 15px/1.3 var(--f);">Account</span> <span style="font:500 14px/1.3 var(--f);color:var(--muted);">— workspace “Acme Lighting” is set up.</span></div></div>
+            <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:2px solid var(--brand);border-radius:14px;padding:18px 20px;box-shadow:var(--e2);"><span style="width:30px;height:30px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font:700 14px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">2</span><div style="flex:1;"><span style="font:700 15px/1.3 var(--f);">Configure the widget</span> <span style="font:500 14px/1.3 var(--f);color:var(--muted);">— make it match your store.</span></div><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:10px 16px;border-radius:9px;cursor:pointer;">Configure →</button></div>
+            <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--e1);"><span style="width:30px;height:30px;border-radius:50%;background:var(--success);color:#fff;display:flex;align-items:center;justify-content:center;flex:none;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span><div style="flex:1;"><span style="font:700 15px/1.3 var(--f);">Products</span> <span style="font:500 14px/1.3 var(--f);color:var(--muted);">— 48 products imported.</span></div></div>
+            <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--e1);"><span style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font:700 14px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">4</span><div style="flex:1;"><span style="font:700 15px/1.3 var(--f);">Install</span> <span style="font:500 14px/1.3 var(--f);color:var(--muted);">— paste the script on your storefront.</span></div><button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:10px 16px;border-radius:9px;cursor:pointer;">Get script</button></div>
+            <div style="display:flex;align-items:center;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--e1);"><span style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font:700 14px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">5</span><div style="flex:1;"><span style="font:700 15px/1.3 var(--f);">Go live</span> <span style="font:500 14px/1.3 var(--f);color:var(--muted);">— run your first preview.</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STUDIO ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Studio</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">In-store visualizations · sub-tabs are live</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="studio" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;">
+          <div style="display:flex;align-items:center;gap:16px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Studio</span>
+            <div style="display:flex;gap:3px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:11px;">
+              <button data-val="overview" onClick="{{ setStudio }}" style="{{ studioOverview }}">Overview</button>
+              <button data-val="new" onClick="{{ setStudio }}" style="{{ studioNew }}">New visualization</button>
+              <button data-val="clients" onClick="{{ setStudio }}" style="{{ studioClients }}">Clients</button>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;"><button data-val="new" onClick="{{ setStudio }}" style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:10px 16px;border-radius:9px;box-shadow:var(--e1);cursor:pointer;display:flex;align-items:center;gap:7px;">+ New visualization</button><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></div>
+        </header>
+
+        <div style="flex:1;overflow:auto;padding:30px 36px 38px;">
+          <!-- OVERVIEW -->
+          <sc-if value="{{ showStudioOverview }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;flex-direction:column;gap:24px;">
+              <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:800 26px/1.1 var(--f);letter-spacing:-.02em;">Run a preview for a walk-in customer</span><span style="font:500 15px/1.5 var(--f);color:var(--muted);max-width:560px;">Upload their room, place a product, then email or save the result — optionally filed under a client.</span></div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+                <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Clients</span><span style="font:700 30px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">24</span></div>
+                <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Client renders</span><span style="font:700 30px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">86</span></div>
+                <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:7px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Credits left</span><span style="font:700 30px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">742</span></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:16px;">
+                <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 15px/1 var(--f);">Recent renders</span><button data-val="new" onClick="{{ setStudio }}" style="border:none;background:transparent;font:600 12px/1 var(--f);color:var(--brand);cursor:pointer;">New →</button></div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+                    <div style="aspect-ratio:1;border-radius:11px;overflow:hidden;"><img src="https://images.unsplash.com/photo-1567016432779-094069958ea5?w=200&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+                    <div style="aspect-ratio:1;border-radius:11px;overflow:hidden;"><img src="https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=200&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+                    <div style="aspect-ratio:1;border-radius:11px;overflow:hidden;"><img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=200&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+                    <div style="aspect-ratio:1;border-radius:11px;overflow:hidden;"><img src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=200&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+                  </div>
+                </div>
+                <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e1);">
+                  <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 15px/1 var(--f);">Recent clients</span><button data-val="clients" onClick="{{ setStudio }}" style="border:none;background:transparent;font:600 12px/1 var(--f);color:var(--brand);cursor:pointer;">All →</button></div>
+                  <div style="display:flex;flex-direction:column;gap:4px;">
+                    <div style="display:flex;align-items:center;gap:11px;padding:8px 0;"><span style="width:34px;height:34px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">LM</span><div style="flex:1;min-width:0;"><div style="font:600 13px/1.3 var(--f);">Laura Moretti</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">laura@studio-nord.it</div></div><span style="font:600 12px/1 var(--f);color:var(--muted);">7</span></div>
+                    <div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid var(--line-2);"><span style="width:34px;height:34px;border-radius:50%;background:#EAD9E5;color:var(--plum);font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">RK</span><div style="flex:1;min-width:0;"><div style="font:600 13px/1.3 var(--f);">Reto König</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">reto.k@gmx.ch</div></div><span style="font:600 12px/1 var(--f);color:var(--muted);">3</span></div>
+                    <div style="display:flex;align-items:center;gap:11px;padding:8px 0;border-top:1px solid var(--line-2);"><span style="width:34px;height:34px;border-radius:50%;background:#D9E5EA;color:#2A6F8A;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">SM</span><div style="flex:1;min-width:0;"><div style="font:600 13px/1.3 var(--f);">Sofia Marín</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">sofia@casamarin.es</div></div><span style="font:600 12px/1 var(--f);color:var(--muted);">5</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- NEW VISUALIZATION -->
+          <sc-if value="{{ showStudioNew }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:1fr 1.1fr;gap:22px;align-items:start;">
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px;box-shadow:var(--e1);">
+                <span style="font:700 16px/1 var(--f);">Compose</span>
+                <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Client <span style="color:var(--faint);font-weight:500;">(optional)</span></span><div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Laura Moretti<span style="color:var(--muted);">▾</span></div></label>
+                <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Product</span><div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Halo Arc Floor Lamp<span style="color:var(--muted);">▾</span></div></label>
+                <div style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Room photo</span>
+                  <div style="position:relative;border-radius:12px;overflow:hidden;height:180px;border:1px solid var(--line);"><img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=600&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><button style="position:absolute;bottom:10px;right:10px;border:none;background:rgba(21,19,29,.78);color:#fff;font:600 12px/1 var(--f);padding:8px 12px;border-radius:8px;cursor:pointer;backdrop-filter:blur(4px);">Choose another</button></div>
+                </div>
+                <button style="border:none;background:var(--brand);color:#fff;font:600 14px/1 var(--f);padding:14px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Generate visualization</button>
+                <span style="font:500 11px/1 var(--f);color:var(--muted);text-align:center;">1 credit · failed runs are refunded automatically.</span>
+              </div>
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--e1);">
+                <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 16px/1 var(--f);">Your visualization</span><span style="font:600 12px/1 var(--f);color:var(--muted);">For Laura Moretti</span></div>
+                <div data-track style="position:relative;height:300px;border-radius:14px;overflow:hidden;user-select:none;touch-action:none;box-shadow:var(--e1);">
+                  <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=900&amp;q=80" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
+                  <div style="position:absolute;inset:0;clip-path:{{ sliderStudio.clip }};"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=900&amp;q=80" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1) brightness(.8);" /></div>
+                  <span style="position:absolute;top:11px;left:11px;font:600 11px/1 var(--f);color:#fff;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:7px;">Before</span>
+                  <span style="position:absolute;top:11px;right:11px;font:600 11px/1 var(--f);color:#fff;background:var(--brand);padding:6px 10px;border-radius:7px;">After</span>
+                  <div style="position:absolute;top:0;bottom:0;left:{{ sliderStudio.left }};width:2px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.25);"></div>
+                  <div onPointerDown="{{ dragStudio }}" style="position:absolute;top:50%;left:{{ sliderStudio.handle }};transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:var(--e2);cursor:ew-resize;display:flex;align-items:center;justify-content:center;font:700 15px/1 var(--f);color:var(--brand);">⇄</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;"><span style="font:700 13px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:6px 10px;border-radius:7px;">≈ 12 pcs</span><span style="font:500 13px/1.4 var(--f);color:var(--ink-2);">estimated to cover the surface.</span></div>
+                <div style="display:flex;gap:10px;">
+                  <button style="flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;cursor:pointer;">Download</button>
+                  <button style="flex:1;border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Email to client</button>
+                  <button style="flex:none;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;cursor:pointer;">New render</button>
+                </div>
+                <span style="font:500 11px/1.4 var(--f);color:var(--muted);">Emails a 7-day link to laura@studio-nord.it.</span>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- CLIENTS -->
+          <sc-if value="{{ showStudioClients }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:18px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;">
+                <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 13px;width:300px;box-shadow:var(--e1);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="font:500 13px/1 var(--f);color:var(--faint);">Search clients…</span></div>
+                <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">+ Add client</button>
+              </div>
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--e1);">
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1.2fr 0.8fr;gap:12px;padding:13px 22px;background:var(--surface-2);font:700 10px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);"><span>Client</span><span>Contact</span><span>Renders</span><span>Last activity</span><span style="text-align:right;">Actions</span></div>
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1.2fr 0.8fr;gap:12px;padding:14px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font:700 11px/1 var(--f);display:flex;align-items:center;justify-content:center;">LM</span><span style="font-weight:600;color:var(--brand-700);cursor:pointer;">Laura Moretti</span></span><span style="color:var(--ink-2);">laura@studio-nord.it</span><span style="font-variant-numeric:tabular-nums;">7</span><span style="color:var(--muted);">2 days ago</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;color:var(--danger);">Delete</span></span></div>
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1.2fr 0.8fr;gap:12px;padding:14px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:#EAD9E5;color:var(--plum);font:700 11px/1 var(--f);display:flex;align-items:center;justify-content:center;">RK</span><span style="font-weight:600;color:var(--brand-700);cursor:pointer;">Reto König</span></span><span style="color:var(--ink-2);">reto.k@gmx.ch</span><span style="font-variant-numeric:tabular-nums;">3</span><span style="color:var(--muted);">5 days ago</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;color:var(--danger);">Delete</span></span></div>
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1.2fr 0.8fr;gap:12px;padding:14px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:#D9E5EA;color:#2A6F8A;font:700 11px/1 var(--f);display:flex;align-items:center;justify-content:center;">SM</span><span style="font-weight:600;color:var(--brand-700);cursor:pointer;">Sofia Marín</span></span><span style="color:var(--ink-2);">sofia@casamarin.es</span><span style="font-variant-numeric:tabular-nums;">5</span><span style="color:var(--muted);">1 week ago</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;color:var(--danger);">Delete</span></span></div>
+                <div style="display:grid;grid-template-columns:2fr 2fr 1fr 1.2fr 0.8fr;gap:12px;padding:14px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:10px;"><span style="width:30px;height:30px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);color:var(--muted);font:700 11px/1 var(--f);display:flex;align-items:center;justify-content:center;">TB</span><span style="font-weight:600;color:var(--brand-700);cursor:pointer;">Tomas Beck</span></span><span style="color:var(--muted);">+49 30 1234 567</span><span style="font-variant-numeric:tabular-nums;">2</span><span style="color:var(--muted);">3 weeks ago</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;color:var(--danger);">Delete</span></span></div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ STUDIO — CLIENT DETAIL (with edit drawer) ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Studio</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Client detail · edit drawer</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="studio" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="position:relative;display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Studio</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:28px 36px 38px;display:flex;flex-direction:column;gap:22px;">
+          <span style="font:600 13px/1 var(--f);color:var(--muted);cursor:pointer;">← All clients</span>
+          <div style="display:flex;align-items:center;gap:18px;">
+            <span style="width:64px;height:64px;border-radius:50%;background:var(--brand-100);color:var(--brand-700);font:700 22px/1 var(--f);display:flex;align-items:center;justify-content:center;flex:none;">LM</span>
+            <div style="flex:1;display:flex;flex-direction:column;gap:6px;"><span style="font:800 26px/1 var(--f);letter-spacing:-.02em;">Laura Moretti</span><div style="display:flex;gap:16px;font:500 13px/1 var(--f);color:var(--ink-2);"><span style="color:var(--brand);">laura@studio-nord.it</span><span>+39 02 8765 432</span></div></div>
+            <div style="display:flex;gap:10px;"><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">+ New visualization</button><button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;cursor:pointer;">Edit</button></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px 20px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);">Notes</span><div style="font:500 14px/1.6 var(--f);color:var(--ink-2);margin-top:8px;">Interior designer, Studio Nord. Prefers warm minimalist lighting; renovating a 3-room flat in Milan. Follow up on the pendant trio quote.</div></div>
+          <div style="display:flex;flex-direction:column;gap:14px;">
+            <span style="font:700 15px/1 var(--f);">Visualizations <span style="color:var(--muted);font-weight:500;">· 7</span></span>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;">
+              <div style="aspect-ratio:4/3;border-radius:12px;overflow:hidden;box-shadow:var(--e1);"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+              <div style="aspect-ratio:4/3;border-radius:12px;overflow:hidden;box-shadow:var(--e1);"><img src="https://images.unsplash.com/photo-1567016432779-094069958ea5?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+              <div style="aspect-ratio:4/3;border-radius:12px;overflow:hidden;box-shadow:var(--e1);"><img src="https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+              <div style="aspect-ratio:4/3;border-radius:12px;overflow:hidden;box-shadow:var(--e1);"><img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div>
+            </div>
+            <button style="align-self:center;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);padding:10px 20px;border-radius:10px;cursor:pointer;">Load more</button>
+          </div>
+        </div>
+        <!-- edit drawer -->
+        <div style="position:absolute;inset:0;background:rgba(20,18,40,.32);display:flex;justify-content:flex-end;">
+          <div style="width:400px;height:100%;background:var(--surface);box-shadow:-12px 0 40px rgba(20,18,40,.18);display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line);"><span style="font:700 16px/1 var(--f);">Edit client</span><span style="width:30px;height:30px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);font:600 16px/1 var(--f);cursor:pointer;">×</span></div>
+            <div style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:16px;">
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Name</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Laura Moretti</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Email</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">laura@studio-nord.it</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Phone</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">+39 02 8765 432</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Notes</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1.5 var(--f);background:var(--surface-2);min-height:90px;color:var(--ink-2);">Interior designer, Studio Nord. Prefers warm minimalist lighting…</div></label>
+            </div>
+            <div style="display:flex;gap:10px;padding:18px 24px;border-top:1px solid var(--line);"><button style="flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 14px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;">Cancel</button><button style="flex:1;border:none;background:var(--brand);color:#fff;font:600 14px/1 var(--f);padding:12px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Save changes</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ GENERATIONS ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Generations</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Quality gallery · detail modal</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="generations" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="position:relative;display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Generations</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:24px 36px 38px;display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <span style="padding:8px 14px;border-radius:999px;background:var(--brand);color:#fff;font:600 13px/1 var(--f);">All</span>
+            <span style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);">Queued</span>
+            <span style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);">Processing</span>
+            <span style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);">Succeeded</span>
+            <span style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);">Failed</span>
+            <span style="padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);">Refunded</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Halo Arc Floor Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 18, 14:22</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1567016432779-094069958ea5?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Lumen Pendant Trio</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 18, 13:08</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;background:var(--warning-100);display:flex;align-items:center;justify-content:center;"><span style="width:30px;height:30px;border:3px solid var(--warning);border-top-color:transparent;border-radius:50%;animation:yzSpin 1s linear infinite;"></span><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--warning);background:#fff;padding:5px 8px;border-radius:6px;">Processing</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Nordic Wall Sconce</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 18, 12:55</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Orbit Table Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 18, 11:40</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;background:var(--danger-100);display:flex;align-items:center;justify-content:center;"><svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--danger)" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--danger);background:#fff;padding:5px 8px;border-radius:6px;">Failed</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Halo Arc Floor Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 18, 10:18 · refunded</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Lumen Pendant Trio</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 17, 18:02</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1556909212-d5b604d0c90d?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Orbit Table Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 17, 16:45</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Nordic Wall Sconce</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 17, 15:30</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1531973576160-7125cd663d86?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Halo Arc Floor Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 17, 12:11</div></div></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--e1);cursor:pointer;"><div style="aspect-ratio:1;position:relative;"><img src="https://images.unsplash.com/photo-1513506003901-1e6a229e2d15?w=300&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /><span style="position:absolute;top:8px;left:8px;font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 8px;border-radius:6px;">Succeeded</span></div><div style="padding:11px 13px;"><div style="font:600 12.5px/1.3 var(--f);">Orbit Table Lamp</div><div style="font:500 11px/1 var(--f);color:var(--muted);margin-top:3px;">Jun 17, 09:50</div></div></div>
+          </div>
+          <button style="align-self:center;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);padding:11px 22px;border-radius:10px;cursor:pointer;">Load more</button>
+        </div>
+        <!-- detail modal -->
+        <div style="position:absolute;inset:0;background:rgba(20,18,40,.42);display:flex;align-items:center;justify-content:center;padding:34px;">
+          <div style="width:760px;max-width:100%;background:var(--surface);border-radius:18px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:1.4fr 1fr;">
+            <div data-track style="position:relative;user-select:none;touch-action:none;min-height:380px;">
+              <img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=900&amp;q=80" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />
+              <div style="position:absolute;inset:0;clip-path:{{ sliderGen.clip }};"><img src="https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=900&amp;q=80" style="width:100%;height:100%;object-fit:cover;filter:grayscale(1) brightness(.8);" /></div>
+              <span style="position:absolute;top:11px;left:11px;font:600 11px/1 var(--f);color:#fff;background:rgba(0,0,0,.5);padding:6px 10px;border-radius:7px;">Before</span>
+              <span style="position:absolute;top:11px;right:11px;font:600 11px/1 var(--f);color:#fff;background:var(--brand);padding:6px 10px;border-radius:7px;">After</span>
+              <div style="position:absolute;top:0;bottom:0;left:{{ sliderGen.left }};width:2px;background:#fff;box-shadow:0 0 8px rgba(0,0,0,.25);"></div>
+              <div onPointerDown="{{ dragGen }}" style="position:absolute;top:50%;left:{{ sliderGen.handle }};transform:translateY(-50%);width:38px;height:38px;border-radius:50%;background:#fff;box-shadow:var(--e2);cursor:ew-resize;display:flex;align-items:center;justify-content:center;font:700 15px/1 var(--f);color:var(--brand);">⇄</div>
+            </div>
+            <div style="padding:22px;display:flex;flex-direction:column;gap:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 16px/1 var(--f);">Halo Arc Floor Lamp</span><span style="width:28px;height:28px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);font:600 16px/1 var(--f);cursor:pointer;">×</span></div>
+              <span style="font:600 11px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 9px;border-radius:7px;width:max-content;">Succeeded</span>
+              <div style="display:flex;flex-direction:column;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden;">
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);"><span style="color:var(--muted);">Category</span><span style="color:var(--ink);">Lighting</span></div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);border-top:1px solid var(--line-2);"><span style="color:var(--muted);">Model</span><span style="color:var(--ink);">yuzu-compose-v3</span></div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);border-top:1px solid var(--line-2);"><span style="color:var(--muted);">Latency</span><span style="color:var(--ink);font-variant-numeric:tabular-nums;">71 s</span></div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);border-top:1px solid var(--line-2);"><span style="color:var(--muted);">Credits · cost</span><span style="color:var(--ink);">1 · $0.04</span></div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);border-top:1px solid var(--line-2);"><span style="color:var(--muted);">Placement</span><span style="color:var(--ink);">On the floor</span></div>
+                <div style="display:flex;justify-content:space-between;padding:10px 14px;font:500 13px/1 var(--f);border-top:1px solid var(--line-2);"><span style="color:var(--muted);">Created</span><span style="color:var(--ink);">Jun 18, 14:22</span></div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:5px;"><span style="font:600 11px/1 var(--f);color:var(--muted);">Page URL</span><span style="font:500 12px/1.4 var(--fm);color:var(--brand);word-break:break-all;">acmelighting.com/products/halo-arc</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ PRODUCTS ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Products</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Catalog · add-product drawer</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="products" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="position:relative;display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Products</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:24px 36px 38px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:9px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 13px;width:260px;box-shadow:var(--e1);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><span style="font:500 13px/1 var(--f);color:var(--faint);">Search products…</span></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 13px;font:600 13px/1 var(--f);color:var(--ink-2);box-shadow:var(--e1);">All categories<span style="color:var(--muted);">▾</span></div>
+            <div style="margin-left:auto;display:flex;gap:10px;"><button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;cursor:pointer;">Import CSV</button><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">+ Add product</button></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--e1);">
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:13px 22px;background:var(--surface-2);font:700 10px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);"><span>Product</span><span>Category</span><span>External ID</span><span>Added</span><span style="text-align:right;">Actions</span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=80&amp;q=80" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" /><span style="font-weight:600;">Halo Arc Floor Lamp</span></span><span><span style="font:600 11px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:5px 9px;border-radius:6px;">Lighting</span></span><span style="font:500 12px/1 var(--fm);color:var(--muted);">SKU-HALO-01</span><span style="color:var(--muted);">May 2</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;">Archive</span></span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=80&amp;q=80" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" /><span style="font-weight:600;">Lumen Pendant Trio</span></span><span><span style="font:600 11px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:5px 9px;border-radius:6px;">Lighting</span></span><span style="font:500 12px/1 var(--fm);color:var(--muted);">SKU-LMN-03</span><span style="color:var(--muted);">May 2</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;">Archive</span></span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=80&amp;q=80" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" /><span style="font-weight:600;">Nordic Wall Sconce</span></span><span><span style="font:600 11px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:5px 9px;border-radius:6px;">Lighting</span></span><span style="font:500 12px/1 var(--fm);color:var(--muted);">SKU-NWS-07</span><span style="color:var(--muted);">May 9</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;">Archive</span></span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1493666438817-866a91353ca9?w=80&amp;q=80" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" /><span style="font-weight:600;">Orbit Table Lamp</span></span><span><span style="font:600 11px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:5px 9px;border-radius:6px;">Lighting</span></span><span style="font:500 12px/1 var(--fm);color:var(--muted);">SKU-ORB-02</span><span style="color:var(--muted);">May 14</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;">Archive</span></span></div>
+            <div style="display:grid;grid-template-columns:2.4fr 1.2fr 1.2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1503602642458-232111445657?w=80&amp;q=80" style="width:40px;height:40px;border-radius:8px;object-fit:cover;" /><span style="font-weight:600;">Acoustic Felt Panel</span></span><span><span style="font:600 11px/1 var(--f);color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Decor</span></span><span style="font:500 12px/1 var(--fm);color:var(--muted);">SKU-AFP-12</span><span style="color:var(--muted);">May 20</span><span style="display:flex;gap:12px;justify-content:flex-end;color:var(--muted);font:600 12px/1 var(--f);"><span style="cursor:pointer;">Edit</span><span style="cursor:pointer;">Archive</span></span></div>
+          </div>
+        </div>
+        <!-- add product drawer -->
+        <div style="position:absolute;inset:0;background:rgba(20,18,40,.32);display:flex;justify-content:flex-end;">
+          <div style="width:420px;height:100%;background:var(--surface);box-shadow:-12px 0 40px rgba(20,18,40,.18);display:flex;flex-direction:column;">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--line);"><span style="font:700 16px/1 var(--f);">Add product</span><span style="width:30px;height:30px;border-radius:8px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--muted);font:600 16px/1 var(--f);cursor:pointer;">×</span></div>
+            <div style="flex:1;overflow:auto;padding:24px;display:flex;flex-direction:column;gap:16px;">
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Name</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Halo Arc Floor Lamp</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Image URL</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 12px/1 var(--fm);color:var(--ink-2);background:var(--surface-2);">…/halo-arc.jpg</div><div style="height:120px;border-radius:10px;overflow:hidden;border:1px solid var(--line);"><img src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=400&amp;q=80" style="width:100%;height:100%;object-fit:cover;" /></div></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Category</span><div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Lighting<span style="color:var(--muted);">▾</span></div></label>
+                <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">External ID</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1 var(--f);background:var(--surface-2);">SKU-HALO-01</div></label>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Dimensions <span style="color:var(--faint);font-weight:500;">(optional)</span></span>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 0.8fr;gap:8px;">
+                  <div style="border:1px solid var(--line);border-radius:10px;padding:10px;font:500 13px/1 var(--f);text-align:center;background:var(--surface-2);">48 W</div>
+                  <div style="border:1px solid var(--line);border-radius:10px;padding:10px;font:500 13px/1 var(--f);text-align:center;background:var(--surface-2);">168 H</div>
+                  <div style="border:1px solid var(--line);border-radius:10px;padding:10px;font:500 13px/1 var(--f);text-align:center;background:var(--surface-2);">40 D</div>
+                  <div style="display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:10px;font:600 13px/1 var(--f);color:var(--ink-2);background:var(--surface-2);">cm</div>
+                </div>
+                <span style="font:500 11px/1.4 var(--f);color:var(--muted);">Dimensions power the coverage-quantity estimate.</span>
+              </div>
+            </div>
+            <div style="display:flex;gap:10px;padding:18px 24px;border-top:1px solid var(--line);"><button style="flex:1;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 14px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;">Cancel</button><button style="flex:1;border:none;background:var(--brand);color:#fff;font:600 14px/1 var(--f);padding:12px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Add product</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ANALYTICS ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Analytics</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Trends over time</span></div>
+    <div style="width:1440px;max-width:100%;height:920px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="analytics" hint-size="264px,920px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;">
+          <div style="display:flex;align-items:center;gap:16px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Analytics</span>
+            <div style="display:flex;gap:3px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;"><span style="padding:7px 13px;border-radius:7px;font:600 12px/1 var(--f);color:var(--muted);cursor:pointer;">7 days</span><span style="padding:7px 13px;border-radius:7px;background:var(--surface);box-shadow:var(--e1);font:600 12px/1 var(--f);color:var(--ink);cursor:pointer;">30 days</span><span style="padding:7px 13px;border-radius:7px;font:600 12px/1 var(--f);color:var(--muted);cursor:pointer;">90 days</span></div>
+            <span style="font:500 12px/1 var(--f);color:var(--muted);">May 20 – Jun 18</span>
+          </div>
+          <span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span>
+        </header>
+        <div style="flex:1;overflow:auto;padding:24px 36px 38px;display:flex;flex-direction:column;gap:18px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Generations</span><span style="font:700 28px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">1,284</span><span style="font:600 11px/1 var(--f);color:var(--success);">▲ 18% vs last period</span></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Success rate</span><span style="font:700 28px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">94.2%</span><span style="font:600 11px/1 var(--f);color:var(--success);">▲ 1.8 pts</span></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">CTA clicks</span><span style="font:700 28px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">318</span><span style="font:600 11px/1 var(--f);color:var(--success);">▲ 12% · 24.8% of results</span></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:6px;box-shadow:var(--e1);"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Credits left</span><span style="font:700 28px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">742</span><span style="font:500 11px/1 var(--f);color:var(--muted);">38% used · resets Jul 1</span></div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--e1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:700 15px/1 var(--f);">Generations &amp; CTA over time</span><div style="display:flex;gap:14px;"><span style="display:flex;align-items:center;gap:6px;font:600 12px/1 var(--f);color:var(--ink-2);"><span style="width:9px;height:9px;border-radius:3px;background:var(--brand);"></span>Generations</span><span style="display:flex;align-items:center;gap:6px;font:600 12px/1 var(--f);color:var(--ink-2);"><span style="width:9px;height:9px;border-radius:3px;background:var(--plum);"></span>CTA clicks</span></div></div>
+            <svg viewBox="0 0 1040 250" width="100%" height="250" preserveAspectRatio="none" style="display:block;">
+              <defs><linearGradient id="an1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A55D6" stop-opacity=".16"/><stop offset="1" stop-color="#5A55D6" stop-opacity="0"/></linearGradient></defs>
+              <line x1="0" y1="50" x2="1040" y2="50" stroke="#EFEEF4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+              <line x1="0" y1="120" x2="1040" y2="120" stroke="#EFEEF4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+              <line x1="0" y1="190" x2="1040" y2="190" stroke="#EFEEF4" stroke-width="1" vector-effect="non-scaling-stroke"/>
+              <path d="M0 170 L87 158 L173 164 L260 130 L347 142 L433 104 L520 116 L607 78 L693 92 L780 60 L867 74 L953 46 L1040 54 L1040 220 L0 220 Z" fill="url(#an1)"/>
+              <path d="M0 170 L87 158 L173 164 L260 130 L347 142 L433 104 L520 116 L607 78 L693 92 L780 60 L867 74 L953 46 L1040 54" fill="none" stroke="#5A55D6" stroke-width="2.6" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+              <path d="M0 205 L87 202 L173 196 L260 199 L347 190 L433 193 L520 184 L607 187 L693 176 L780 180 L867 168 L953 172 L1040 162" fill="none" stroke="#7A3A66" stroke-width="2.2" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+            </svg>
+            <div style="display:flex;justify-content:space-between;font:500 11px/1 var(--fm);color:var(--faint);"><span>May 20</span><span>May 27</span><span>Jun 3</span><span>Jun 10</span><span>Jun 18</span></div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--e1);">
+              <span style="font:700 15px/1 var(--f);">Conversion funnel</span>
+              <div style="display:flex;flex-direction:column;gap:13px;">
+                <div style="display:flex;flex-direction:column;gap:6px;"><div style="display:flex;justify-content:space-between;font:600 12px/1 var(--f);"><span style="color:var(--ink-2);">Impressions</span><span style="font-variant-numeric:tabular-nums;">18,940</span></div><div style="height:13px;border-radius:7px;background:var(--surface-2);"><div style="width:100%;height:100%;border-radius:7px;background:linear-gradient(90deg,#6E69DE,#5A55D6);"></div></div></div>
+                <div style="display:flex;flex-direction:column;gap:6px;"><div style="display:flex;justify-content:space-between;font:600 12px/1 var(--f);"><span style="color:var(--ink-2);">Opens · 22.2%</span><span style="font-variant-numeric:tabular-nums;">4,210</span></div><div style="height:13px;border-radius:7px;background:var(--surface-2);"><div style="width:62%;height:100%;border-radius:7px;background:linear-gradient(90deg,#6E69DE,#5A55D6);"></div></div></div>
+                <div style="display:flex;flex-direction:column;gap:6px;"><div style="display:flex;justify-content:space-between;font:600 12px/1 var(--f);"><span style="color:var(--ink-2);">Generations · 30.5%</span><span style="font-variant-numeric:tabular-nums;">1,284</span></div><div style="height:13px;border-radius:7px;background:var(--surface-2);"><div style="width:40%;height:100%;border-radius:7px;background:linear-gradient(90deg,#6E69DE,#5A55D6);"></div></div></div>
+                <div style="display:flex;flex-direction:column;gap:6px;"><div style="display:flex;justify-content:space-between;font:600 12px/1 var(--f);"><span style="color:var(--ink-2);">CTA clicks · 24.8%</span><span style="font-variant-numeric:tabular-nums;">318</span></div><div style="height:13px;border-radius:7px;background:var(--surface-2);"><div style="width:18%;height:100%;border-radius:7px;background:linear-gradient(90deg,#8A4F77,#7A3A66);"></div></div></div>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+              <span style="font:700 15px/1 var(--f);">Top products</span>
+              <div style="display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1567538096630-e0c55bd6374c?w=80&amp;q=80" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" /><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;font:600 12.5px/1 var(--f);"><span>Halo Arc Floor Lamp</span><span style="color:var(--muted);">312</span></div><div style="height:6px;border-radius:6px;background:var(--surface-2);"><div style="width:100%;height:100%;border-radius:6px;background:var(--brand);"></div></div></div></div>
+                <div style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1540932239986-30128078f3c5?w=80&amp;q=80" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" /><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;font:600 12.5px/1 var(--f);"><span>Lumen Pendant Trio</span><span style="color:var(--muted);">248</span></div><div style="height:6px;border-radius:6px;background:var(--surface-2);"><div style="width:79%;height:100%;border-radius:6px;background:var(--brand);"></div></div></div></div>
+                <div style="display:flex;align-items:center;gap:12px;"><img src="https://images.unsplash.com/photo-1493663284031-b7e3aefcae8e?w=80&amp;q=80" style="width:36px;height:36px;border-radius:8px;object-fit:cover;" /><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div style="display:flex;justify-content:space-between;font:600 12.5px/1 var(--f);"><span>Nordic Wall Sconce</span><span style="color:var(--muted);">176</span></div><div style="height:6px;border-radius:6px;background:var(--surface-2);"><div style="width:56%;height:100%;border-radius:6px;background:var(--brand);"></div></div></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCRIPT & INSTALL — picker ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Script &amp; install</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Platform picker</span></div>
+    <div style="width:1440px;max-width:100%;height:780px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="script" hint-size="264px,780px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Script &amp; install</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:34px 40px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:800 24px/1.1 var(--f);letter-spacing:-.02em;">Where are you installing YuzuView?</span><span style="font:500 14px/1.5 var(--f);color:var(--muted);">Pick your platform. The generic script works anywhere; one-click installers are on the way.</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">
+            <div style="background:var(--surface);border:2px solid var(--brand);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e2);cursor:pointer;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:var(--brand-100);display:flex;align-items:center;justify-content:center;"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#5A55D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 7 4 12l5 5"/><path d="M15 7l5 5-5 5"/></svg></span><span style="font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:5px 9px;border-radius:6px;">Available</span></div>
+              <div style="font:700 16px/1.2 var(--f);">Script — any platform</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">Paste one &lt;script&gt; line. Works on any website or CMS.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;opacity:.62;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:#F0F4F2;display:flex;align-items:center;justify-content:center;font:800 16px/1 var(--f);color:#95BF47;">S</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Coming soon</span></div>
+              <div style="font:700 16px/1.2 var(--f);">Shopify</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">App-store block — add YuzuView from your theme editor.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;opacity:.62;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:#EEF2F7;display:flex;align-items:center;justify-content:center;font:800 16px/1 var(--f);color:#21759B;">W</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Coming soon</span></div>
+              <div style="font:700 16px/1.2 var(--f);">WordPress</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">One-click plugin from the WordPress directory.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;opacity:.62;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:#F3EEF8;display:flex;align-items:center;justify-content:center;font:800 16px/1 var(--f);color:#7F54B3;">W</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Coming soon</span></div>
+              <div style="font:700 16px/1.2 var(--f);">WooCommerce</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">Extension that wires the widget to your product pages.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;opacity:.62;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:#EAF1FB;display:flex;align-items:center;justify-content:center;font:800 16px/1 var(--f);color:#0C6EFC;">W</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Coming soon</span></div>
+              <div style="font:700 16px/1.2 var(--f);">Wix</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">Add the YuzuView app from the Wix App Market.</div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:12px;opacity:.62;">
+              <div style="display:flex;align-items:center;justify-content:space-between;"><span style="width:42px;height:42px;border-radius:11px;background:#EEF0F1;display:flex;align-items:center;justify-content:center;font:800 16px/1 var(--f);color:#1A1A1A;">Sq</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:5px 9px;border-radius:6px;">Coming soon</span></div>
+              <div style="font:700 16px/1.2 var(--f);">Squarespace</div>
+              <div style="font:500 13px/1.5 var(--f);color:var(--muted);">Code-block embed with guided steps.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SCRIPT & INSTALL — guide ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Script &amp; install</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Install guide</span></div>
+    <div style="width:1440px;max-width:100%;height:860px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="script" hint-size="264px,860px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Script &amp; install</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:28px 40px 40px;display:flex;flex-direction:column;gap:22px;max-width:820px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;"><span style="font:600 13px/1 var(--f);color:var(--muted);cursor:pointer;">← All platforms</span><span style="display:flex;align-items:center;gap:8px;"><span style="display:inline-flex;align-items:center;gap:6px;font:600 11px/1 var(--f);color:var(--success);background:var(--success-100);padding:6px 10px;border-radius:999px;"><span style="width:6px;height:6px;border-radius:50%;background:var(--success);"></span>Live</span><span style="font:500 11px/1 var(--fm);color:var(--muted);background:var(--surface);border:1px solid var(--line);padding:6px 10px;border-radius:999px;">pk_live_8f2a…</span></span></div>
+          <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:800 24px/1.1 var(--f);letter-spacing:-.02em;">Install on any website</span><span style="font:500 14px/1.5 var(--f);color:var(--muted);">Three steps. Copy, paste, verify.</span></div>
+
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">1</span><span style="font:700 15px/1 var(--f);">Add the script</span></div>
+            <span style="font:500 13px/1.5 var(--f);color:var(--muted);padding-left:37px;">Paste this just before &lt;/head&gt;. Your publishable key is public by design.</span>
+            <div style="margin-left:37px;background:#15131D;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--e1);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:600 11px/1 var(--fm);color:#8A8698;">HTML</span><button style="border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#E9E8F2;font:600 11px/1 var(--f);padding:6px 11px;border-radius:7px;cursor:pointer;">Copy</button></div><code style="font:500 12.5px/1.6 var(--fm);color:#C9C5E8;white-space:pre-wrap;word-break:break-all;">&lt;script src="https://cdn.yuzuview.com/v1.js"
+  data-key="pk_live_8f2a9c4e"&gt;&lt;/script&gt;</code></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">2</span><span style="font:700 15px/1 var(--f);">Place the button</span></div>
+            <span style="font:500 13px/1.5 var(--f);color:var(--muted);padding-left:37px;">Drop this where you want the launcher, or call window.Lumina.open(...) from your own button.</span>
+            <div style="margin-left:37px;background:#15131D;border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;box-shadow:var(--e1);"><div style="display:flex;justify-content:space-between;align-items:center;"><span style="font:600 11px/1 var(--fm);color:#8A8698;">HTML</span><button style="border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#E9E8F2;font:600 11px/1 var(--f);padding:6px 11px;border-radius:7px;cursor:pointer;">Copy</button></div><code style="font:500 12.5px/1.6 var(--fm);color:#C9C5E8;white-space:pre-wrap;word-break:break-all;">&lt;div data-lumina-product="SKU-HALO-01"&gt;&lt;/div&gt;</code></div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:11px;">
+            <div style="display:flex;align-items:center;gap:11px;"><span style="width:26px;height:26px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">3</span><span style="font:700 15px/1 var(--f);">Verify it’s live</span></div>
+            <div style="margin-left:37px;display:flex;flex-direction:column;gap:9px;">
+              <div style="display:flex;align-items:center;gap:10px;font:500 13.5px/1.4 var(--f);color:var(--ink-2);"><span style="width:20px;height:20px;border-radius:50%;background:var(--success-100);color:var(--success);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Click the button — the modal appears.</div>
+              <div style="display:flex;align-items:center;gap:10px;font:500 13.5px/1.4 var(--f);color:var(--ink-2);"><span style="width:20px;height:20px;border-radius:50%;background:var(--success-100);color:var(--success);display:flex;align-items:center;justify-content:center;flex:none;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></span>Allow-list your domain in Settings → Domains, or requests are blocked.</div>
+              <div style="display:flex;align-items:center;gap:10px;font:500 13.5px/1.4 var(--f);color:var(--ink-2);"><span style="width:20px;height:20px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);flex:none;"></span>Watch runs appear in Generations and metrics in Overview.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ CREDITS & BILLING ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Credits &amp; billing</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Plans · ledger · monthly/annual toggle is live</span></div>
+    <div style="width:1440px;max-width:100%;height:980px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="billing" hint-size="264px,980px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Credits &amp; billing</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:24px 36px 38px;display:flex;flex-direction:column;gap:20px;">
+          <div style="display:flex;align-items:center;gap:12px;background:var(--success-100);border:1px solid #BFE5CF;border-radius:12px;padding:12px 16px;"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#1E8E5A" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg><span style="font:600 13px/1 var(--f);color:#136B41;">Subscription updated — you’re on the Growth plan.</span></div>
+          <!-- credit summary -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;align-items:center;gap:30px;box-shadow:var(--e1);">
+            <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:700 11px/1 var(--f);letter-spacing:.08em;text-transform:uppercase;color:var(--muted);">Credits remaining</span><span style="font:800 40px/1 var(--f);letter-spacing:-.02em;font-variant-numeric:tabular-nums;">742</span><span style="font:500 13px/1 var(--f);color:var(--muted);">458 of 1,200 used this cycle · resets Jul 1</span></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;max-width:420px;"><div style="height:10px;border-radius:10px;background:var(--surface-2);overflow:hidden;"><div style="width:38%;height:100%;background:var(--brand);border-radius:10px;"></div></div><span style="font:500 12px/1 var(--f);color:var(--muted);">38% used — comfortably within plan.</span></div>
+            <button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:12px 18px;border-radius:10px;cursor:pointer;">Manage billing</button>
+          </div>
+          <!-- period toggle -->
+          <div style="display:flex;align-items:center;gap:14px;"><span style="font:700 16px/1 var(--f);">Plans</span><div style="display:flex;gap:3px;padding:4px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;"><button data-val="monthly" onClick="{{ setPeriod }}" style="{{ periodMonthly }}">Monthly</button><button data-val="annual" onClick="{{ setPeriod }}" style="{{ periodAnnual }}">Annual · save 20%</button></div></div>
+          <!-- plan cards -->
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;align-items:start;">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e1);"><span style="font:700 15px/1 var(--f);">Free</span><span style="font:700 24px/1 var(--f);">$0<span style="font:500 12px/1 var(--f);color:var(--muted);">/mo</span></span><span style="font:500 12px/1 var(--f);color:var(--muted);">10 credits / mo</span><div style="height:1px;background:var(--line-2);"></div><span style="font:500 12px/1.5 var(--f);color:var(--ink-2);">For trying things out.</span><button style="margin-top:auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);padding:10px;border-radius:9px;cursor:pointer;">Switch</button></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e1);"><span style="font:700 15px/1 var(--f);">Starter</span><span style="font:700 24px/1 var(--f);">{{ priceStarter }}<span style="font:500 12px/1 var(--f);color:var(--muted);">{{ billNote }}</span></span><span style="font:500 12px/1 var(--f);color:var(--muted);">250 credits / mo</span><div style="height:1px;background:var(--line-2);"></div><span style="font:500 12px/1.5 var(--f);color:var(--ink-2);">For small stores.</span><button style="margin-top:auto;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);font:600 13px/1 var(--f);padding:10px;border-radius:9px;cursor:pointer;">Switch</button></div>
+            <div style="position:relative;background:var(--surface);border:2px solid var(--brand);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e2);"><span style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);font:700 10px/1 var(--f);letter-spacing:.06em;text-transform:uppercase;color:#fff;background:var(--brand);padding:5px 10px;border-radius:999px;white-space:nowrap;">Most popular</span><span style="font:700 15px/1 var(--f);">Growth</span><span style="font:700 24px/1 var(--f);">{{ priceGrowth }}<span style="font:500 12px/1 var(--f);color:var(--muted);">{{ billNote }}</span></span><span style="font:500 12px/1 var(--f);color:var(--muted);">1,200 credits / mo</span><div style="height:1px;background:var(--line-2);"></div><span style="font:500 12px/1.5 var(--f);color:var(--ink-2);">Remove “Powered by”, priority pipeline.</span><button style="margin-top:auto;border:1px solid var(--line);background:var(--surface-2);color:var(--muted);font:600 13px/1 var(--f);padding:10px;border-radius:9px;cursor:not-allowed;">Current plan</button></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e1);"><span style="font:700 15px/1 var(--f);">Scale</span><span style="font:700 24px/1 var(--f);">{{ priceScale }}<span style="font:500 12px/1 var(--f);color:var(--muted);">{{ billNote }}</span></span><span style="font:500 12px/1 var(--f);color:var(--muted);">6,000 credits / mo</span><div style="height:1px;background:var(--line-2);"></div><span style="font:500 12px/1.5 var(--f);color:var(--ink-2);">High-volume catalogs.</span><button style="margin-top:auto;border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:10px;border-radius:9px;box-shadow:var(--e1);cursor:pointer;">Upgrade</button></div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px;display:flex;flex-direction:column;gap:12px;box-shadow:var(--e1);"><span style="font:700 15px/1 var(--f);">Enterprise</span><span style="font:700 24px/1 var(--f);">Custom</span><span style="font:500 12px/1 var(--f);color:var(--muted);">25,000+ credits / mo</span><div style="height:1px;background:var(--line-2);"></div><span style="font:500 12px/1.5 var(--f);color:var(--ink-2);">SLA, SSO, dedicated support.</span><button style="margin-top:auto;border:1px solid var(--brand);background:var(--brand-50);color:var(--brand-700);font:600 13px/1 var(--f);padding:10px;border-radius:9px;cursor:pointer;">Contact sales</button></div>
+          </div>
+          <!-- ledger -->
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:var(--e1);">
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.8fr;gap:12px;padding:13px 22px;background:var(--surface-2);font:700 10px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);"><span>Reason</span><span>Note</span><span>Date</span><span style="text-align:right;">Amount</span></div>
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font-weight:600;">Purchase</span><span style="color:var(--muted);">Growth plan renewal</span><span style="color:var(--muted);">Jun 1</span><span style="text-align:right;font-weight:700;color:var(--success);font-variant-numeric:tabular-nums;">+1,200</span></div>
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font-weight:600;">Generation</span><span style="color:var(--muted);">Halo Arc Floor Lamp · widget</span><span style="color:var(--muted);">Jun 18</span><span style="text-align:right;font-weight:700;color:var(--ink-2);font-variant-numeric:tabular-nums;">−1</span></div>
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font-weight:600;">Refund</span><span style="color:var(--muted);">Failed generation auto-refund</span><span style="color:var(--muted);">Jun 18</span><span style="text-align:right;font-weight:700;color:var(--success);font-variant-numeric:tabular-nums;">+1</span></div>
+            <div style="display:grid;grid-template-columns:1fr 2fr 1fr 0.8fr;gap:12px;padding:12px 22px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font-weight:600;">Grant</span><span style="color:var(--muted);">Onboarding bonus</span><span style="color:var(--muted);">May 2</span><span style="text-align:right;font-weight:700;color:var(--success);font-variant-numeric:tabular-nums;">+10</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Settings</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Account · keys · domains · notifications · team · danger</span></div>
+    <div style="width:1440px;max-width:100%;height:1180px;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e3);overflow:hidden;display:grid;grid-template-columns:264px 1fr;">
+      <dc-import name="Sidebar" active="settings" hint-size="264px,1180px" style="height:100%;min-width:0;"></dc-import>
+      <div style="display:flex;flex-direction:column;min-width:0;background:var(--surface-2);">
+        <header style="height:64px;flex:none;background:var(--surface);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 30px;"><span style="font:700 18px/1 var(--f);letter-spacing:-.01em;">Settings</span><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span></header>
+        <div style="flex:1;overflow:auto;padding:28px 40px 40px;display:flex;flex-direction:column;gap:16px;max-width:860px;">
+          <!-- Account -->
+          <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:16px;box-shadow:var(--e1);">
+            <span style="font:700 15px/1 var(--f);">Account</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Store name</span><div style="display:flex;gap:8px;"><div style="flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Acme Lighting</div><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:0 16px;border-radius:10px;cursor:pointer;">Save</button></div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Workspace</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1 var(--fm);color:var(--muted);background:var(--surface-2);">acme-lighting</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Signed in as</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);color:var(--muted);background:var(--surface-2);">alex@acmelighting.com</div></label>
+              <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Plan</span><div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 14px/1 var(--f);background:var(--surface-2);">Growth <span style="font:600 12px/1 var(--f);color:var(--brand);cursor:pointer;">Manage →</span></div></label>
+            </div>
+          </section>
+          <!-- API keys -->
+          <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font:700 15px/1 var(--f);">API keys</span><span style="font:500 12px/1.5 var(--f);color:var(--muted);">Publishable <span style="font:500 12px/1 var(--fm);">pk_</span> keys go in the widget; secret <span style="font:500 12px/1 var(--fm);">sk_</span> keys are server-only and shown once.</span></div>
+            <div style="display:flex;gap:10px;align-items:flex-end;">
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font:600 11px/1 var(--f);color:var(--ink-2);">Kind</span><div style="display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font:500 13px/1 var(--f);background:var(--surface-2);">Publishable<span style="color:var(--muted);">▾</span></div></label>
+              <label style="display:flex;flex-direction:column;gap:6px;"><span style="font:600 11px/1 var(--f);color:var(--ink-2);">Environment</span><div style="display:flex;align-items:center;justify-content:space-between;gap:14px;border:1px solid var(--line);border-radius:10px;padding:10px 13px;font:500 13px/1 var(--f);background:var(--surface-2);">Live<span style="color:var(--muted);">▾</span></div></label>
+              <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:11px 16px;border-radius:10px;cursor:pointer;">Create key</button>
+            </div>
+            <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 1fr 0.8fr;gap:12px;padding:11px 16px;background:var(--surface-2);font:700 10px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);"><span>Key</span><span>Type</span><span>Env</span><span>Last used</span><span style="text-align:right;">—</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 1fr 0.8fr;gap:12px;padding:12px 16px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font:500 12px/1 var(--fm);color:var(--ink-2);">pk_live_8f2a…9c4e</span><span>Publishable</span><span><span style="font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:4px 8px;border-radius:6px;">Live</span></span><span style="color:var(--muted);">2h ago</span><span style="text-align:right;font:600 12px/1 var(--f);color:var(--danger);cursor:pointer;">Revoke</span></div>
+              <div style="display:grid;grid-template-columns:1.6fr 1fr 0.8fr 1fr 0.8fr;gap:12px;padding:12px 16px;align-items:center;border-top:1px solid var(--line-2);font:500 13px/1 var(--f);"><span style="font:500 12px/1 var(--fm);color:var(--ink-2);">sk_live_••••••••</span><span>Secret</span><span><span style="font:600 10px/1 var(--f);color:var(--success);background:var(--success-100);padding:4px 8px;border-radius:6px;">Live</span></span><span style="color:var(--muted);">5d ago</span><span style="text-align:right;font:600 12px/1 var(--f);color:var(--danger);cursor:pointer;">Revoke</span></div>
+            </div>
+          </section>
+          <!-- Domains -->
+          <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+            <div style="display:flex;flex-direction:column;gap:4px;"><span style="font:700 15px/1 var(--f);">Allowed domains</span><span style="font:500 12px/1.5 var(--f);color:var(--muted);">The widget only runs on these domains. Use <span style="font:500 12px/1 var(--fm);">*.</span> for subdomains.</span></div>
+            <div style="display:flex;gap:8px;"><div style="flex:1;border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1 var(--f);color:var(--faint);background:var(--surface-2);">add a domain, e.g. shop.acme.com</div><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:0 18px;border-radius:10px;cursor:pointer;">Add</button></div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 14px;"><span style="font:500 13px/1 var(--fm);color:var(--ink);">acmelighting.com</span><span style="color:var(--muted);font:600 13px/1 var(--f);cursor:pointer;">×</span></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;border:1px solid var(--line);border-radius:10px;padding:11px 14px;"><span style="font:500 13px/1 var(--fm);color:var(--ink);">*.acmelighting.com</span><span style="color:var(--muted);font:600 13px/1 var(--f);cursor:pointer;">×</span></div>
+            </div>
+          </section>
+          <!-- Notifications -->
+          <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+            <span style="font:700 15px/1 var(--f);">Notifications</span>
+            <div style="border:1px solid var(--line);border-radius:12px;overflow:hidden;">
+              <div style="display:grid;grid-template-columns:2fr 0.7fr 0.7fr;gap:12px;padding:11px 18px;background:var(--surface-2);font:700 10px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);"><span>Alert</span><span style="text-align:center;">In-app</span><span style="text-align:center;">Email</span></div>
+              <div style="display:grid;grid-template-columns:2fr 0.7fr 0.7fr;gap:12px;padding:13px 18px;align-items:center;border-top:1px solid var(--line-2);"><div><div style="font:600 13px/1.3 var(--f);">Failed previews</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">A shopper’s generation failed.</div></div><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:var(--brand);padding:3px;justify-content:flex-end;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:var(--brand);padding:3px;justify-content:flex-end;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span></div>
+              <div style="display:grid;grid-template-columns:2fr 0.7fr 0.7fr;gap:12px;padding:13px 18px;align-items:center;border-top:1px solid var(--line-2);"><div><div style="font:600 13px/1.3 var(--f);">Low credits</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">Balance crosses the warning threshold.</div></div><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:var(--brand);padding:3px;justify-content:flex-end;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:#D8D6E0;padding:3px;justify-content:flex-start;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span></div>
+              <div style="display:grid;grid-template-columns:2fr 0.7fr 0.7fr;gap:12px;padding:13px 18px;align-items:center;border-top:1px solid var(--line-2);"><div><div style="font:600 13px/1.3 var(--f);">Payment problems</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">A charge failed or the card expired.</div></div><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:var(--brand);padding:3px;justify-content:flex-end;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span><span style="justify-self:center;display:inline-flex;align-items:center;width:42px;height:25px;border-radius:999px;background:var(--brand);padding:3px;justify-content:flex-end;"><span style="width:19px;height:19px;border-radius:50%;background:#fff;"></span></span></div>
+            </div>
+            <button style="align-self:flex-start;border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;cursor:pointer;">Save preferences</button>
+          </section>
+          <!-- Team -->
+          <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+            <div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:10px;"><span style="font:700 15px/1 var(--f);">Team</span><span style="font:600 10px/1 var(--f);color:var(--muted);background:var(--surface-2);border:1px solid var(--line);padding:4px 8px;border-radius:6px;">Invites coming soon</span></div><button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;cursor:pointer;">+ Invite member</button></div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 4px;"><span style="width:34px;height:34px;border-radius:50%;background:var(--brand);color:#fff;font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">AM</span><div style="flex:1;"><div style="font:600 13px/1.3 var(--f);">Alex Marin</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">alex@acmelighting.com</div></div><span style="font:600 11px/1 var(--f);color:var(--brand-700);background:var(--brand-100);padding:5px 10px;border-radius:6px;">Owner</span><span style="font:500 12px/1 var(--f);color:var(--muted);width:90px;text-align:right;">Joined May 2</span></div>
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 4px;border-top:1px solid var(--line-2);"><span style="width:34px;height:34px;border-radius:50%;background:#EAD9E5;color:var(--plum);font:700 12px/1 var(--f);display:flex;align-items:center;justify-content:center;">GD</span><div style="flex:1;"><div style="font:600 13px/1.3 var(--f);">Giulia De Santis</div><div style="font:500 11px/1.3 var(--f);color:var(--muted);">giulia@acmelighting.com</div></div><span style="font:600 11px/1 var(--f);color:var(--ink-2);background:var(--surface-2);border:1px solid var(--line);padding:5px 10px;border-radius:6px;">Admin</span><span style="font:500 12px/1 var(--f);color:var(--muted);width:90px;text-align:right;">Joined May 9</span></div>
+            </div>
+          </section>
+          <!-- Danger zone -->
+          <section style="background:var(--surface);border:1px solid #F0CFCD;border-radius:16px;padding:22px;display:flex;flex-direction:column;gap:14px;box-shadow:var(--e1);">
+            <span style="font:700 15px/1 var(--f);color:var(--danger);">Danger zone</span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;"><div><div style="font:600 13px/1.3 var(--f);">Cancel subscription</div><div style="font:500 12px/1.3 var(--f);color:var(--muted);">Downgrade to Free at the end of the cycle.</div></div><button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;cursor:pointer;">Manage billing</button></div>
+            <div style="height:1px;background:#F4DEDD;"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;"><div><div style="font:600 13px/1.3 var(--f);">Delete account &amp; data</div><div style="font:500 12px/1.3 var(--f);color:var(--muted);">Irreversible — erases the workspace, products and renders.</div></div><button style="border:none;background:var(--danger);color:#fff;font:600 13px/1 var(--f);padding:10px 16px;border-radius:10px;cursor:pointer;">Delete account</button></div>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ MODALS & MENUS ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">Overlays</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Modals, dropdowns &amp; dialogs</span></div>
+    <div style="width:1240px;max-width:100%;background:var(--surface);border:1px solid var(--line);border-radius:20px;box-shadow:var(--e2);padding:34px;display:grid;grid-template-columns:repeat(3,1fr);gap:28px;align-items:start;">
+
+      <!-- Notifications dropdown -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Notifications</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);overflow:hidden;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line-2);"><span style="font:700 14px/1 var(--f);">Notifications</span><span style="font:600 12px/1 var(--f);color:var(--brand);cursor:pointer;">Mark all read</span></div>
+          <div style="display:flex;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line-2);"><span style="width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:5px;flex:none;"></span><div style="flex:1;"><div style="font:600 13px/1.3 var(--f);">Preview failed</div><div style="font:500 12px/1.4 var(--f);color:var(--muted);">Halo Arc Floor Lamp — credit refunded.</div></div><span style="font:500 11px/1 var(--f);color:var(--faint);">5m</span></div>
+          <div style="display:flex;gap:10px;padding:13px 16px;border-bottom:1px solid var(--line-2);"><span style="width:8px;height:8px;border-radius:50%;background:var(--brand);margin-top:5px;flex:none;"></span><div style="flex:1;"><div style="font:600 13px/1.3 var(--f);">Credits at 38%</div><div style="font:500 12px/1.4 var(--f);color:var(--muted);">742 of 1,200 remaining this cycle.</div></div><span style="font:500 11px/1 var(--f);color:var(--faint);">3h</span></div>
+          <div style="display:flex;gap:10px;padding:13px 16px;"><span style="width:8px;height:8px;border-radius:50%;background:transparent;margin-top:5px;flex:none;"></span><div style="flex:1;"><div style="font:600 13px/1.3 var(--f);color:var(--ink-2);">Payment received</div><div style="font:500 12px/1.4 var(--f);color:var(--muted);">Growth plan renewed.</div></div><span style="font:500 11px/1 var(--f);color:var(--faint);">2d</span></div>
+        </div>
+      </div>
+
+      <!-- Reveal key modal -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Reveal key (once)</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);padding:22px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;flex-direction:column;gap:5px;"><span style="font:700 16px/1.1 var(--f);">Save your secret key</span><span style="font:500 12.5px/1.5 var(--f);color:var(--muted);">This is the only time the full key is shown. Store it somewhere safe.</span></div>
+          <div style="display:flex;align-items:center;gap:8px;background:#15131D;border-radius:10px;padding:12px 14px;"><span style="flex:1;font:500 12px/1.4 var(--fm);color:#C9C5E8;word-break:break-all;">sk_live_2f9c4e8a1b7d3f6029ac</span><button style="border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);color:#E9E8F2;font:600 11px/1 var(--f);padding:7px 11px;border-radius:7px;cursor:pointer;">Copy</button></div>
+          <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;">Done</button>
+        </div>
+      </div>
+
+      <!-- Env explainer -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Test environment</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);padding:22px;display:flex;flex-direction:column;gap:14px;">
+          <span style="width:40px;height:40px;border-radius:11px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span>
+          <div style="display:flex;flex-direction:column;gap:5px;"><span style="font:700 16px/1.1 var(--f);">Test isn’t available yet</span><span style="font:500 12.5px/1.5 var(--f);color:var(--muted);">A real sandbox with test keys and isolated data is on the way. For now, everything runs on Live.</span></div>
+          <button style="border:1px solid var(--line);background:var(--surface);color:var(--ink);font:600 13px/1 var(--f);padding:11px;border-radius:10px;cursor:pointer;">Got it</button>
+        </div>
+      </div>
+
+      <!-- Import CSV -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Import CSV</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);padding:22px;display:flex;flex-direction:column;gap:13px;">
+          <span style="font:700 16px/1.1 var(--f);">Import products</span>
+          <span style="font:500 12px/1.5 var(--f);color:var(--muted);">Columns: <span style="font:500 11px/1 var(--fm);">name, imageUrl, category, externalId</span>. Rows are upserted by external ID.</span>
+          <div style="border:2px dashed #CFCCDD;border-radius:10px;padding:16px;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--surface-2);"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg><span style="font:600 12.5px/1 var(--f);color:var(--ink-2);">products.csv</span></div>
+          <div style="display:flex;gap:8px;"><span style="font:600 11px/1 var(--f);color:var(--success);background:var(--success-100);padding:6px 10px;border-radius:7px;">46 valid</span><span style="font:600 11px/1 var(--f);color:var(--warning);background:var(--warning-100);padding:6px 10px;border-radius:7px;">2 skipped</span></div>
+          <div style="font:500 11px/1.4 var(--f);color:var(--danger);">Row 12: missing imageUrl · Row 31: unknown category “sofa-bed”.</div>
+          <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;">Import 46</button>
+        </div>
+      </div>
+
+      <!-- Delete confirm -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Delete account</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);padding:22px;display:flex;flex-direction:column;gap:13px;">
+          <div style="display:flex;flex-direction:column;gap:5px;"><span style="font:700 16px/1.1 var(--f);color:var(--danger);">Delete account &amp; data</span><span style="font:500 12.5px/1.5 var(--f);color:var(--muted);">This erases your workspace, products and renders. This cannot be undone.</span></div>
+          <label style="display:flex;flex-direction:column;gap:7px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Type <span style="font:600 12px/1 var(--fm);color:var(--ink);">acme-lighting</span> to confirm</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1 var(--fm);color:var(--faint);background:var(--surface-2);">acme-…</div></label>
+          <button style="border:none;background:var(--danger);opacity:.5;color:#fff;font:600 13px/1 var(--f);padding:12px;border-radius:10px;cursor:not-allowed;">Delete account</button>
+        </div>
+      </div>
+
+      <!-- Invite member -->
+      <div style="display:flex;flex-direction:column;gap:10px;"><span style="font:700 11px/1 var(--f);letter-spacing:.1em;text-transform:uppercase;color:var(--faint);">Invite member</span>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;box-shadow:var(--e3);padding:22px;display:flex;flex-direction:column;gap:13px;">
+          <span style="font:700 16px/1.1 var(--f);">Invite a teammate</span>
+          <label style="display:flex;flex-direction:column;gap:6px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Email</span><div style="border:1px solid var(--line);border-radius:10px;padding:11px 13px;font:500 13px/1 var(--f);color:var(--faint);background:var(--surface-2);">teammate@acmelighting.com</div></label>
+          <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:600 12px/1 var(--f);color:var(--ink-2);">Role</span><div style="display:flex;gap:6px;"><span style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid var(--line);font:600 12px/1 var(--f);color:var(--ink-2);">Owner</span><span style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1.5px solid var(--brand);background:var(--brand-100);font:600 12px/1 var(--f);color:var(--brand-700);">Admin</span><span style="flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid var(--line);font:600 12px/1 var(--f);color:var(--ink-2);">Member</span></div></div>
+          <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:12px;border-radius:10px;cursor:pointer;">Send invite</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ STATES ============ -->
+  <div style="display:flex;flex-direction:column;gap:16px;align-items:flex-start;">
+    <div style="display:flex;align-items:center;gap:10px;"><span style="font:800 12px/1 var(--f);letter-spacing:.04em;color:var(--brand);">States</span><span style="width:4px;height:4px;border-radius:9px;background:#C9C6D4;"></span><span style="font:700 11px/1 var(--f);letter-spacing:.16em;text-transform:uppercase;color:var(--faint);">Empty · skeleton · 404</span></div>
+    <div style="width:1240px;max-width:100%;display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px;">
+      <!-- empty -->
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--e2);padding:40px 28px;display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;min-height:300px;justify-content:center;">
+        <span style="width:54px;height:54px;border-radius:15px;background:var(--brand-100);display:flex;align-items:center;justify-content:center;"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#5A55D6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 13l4-4 4 4 3-3 4 4"/></svg></span>
+        <div style="display:flex;flex-direction:column;gap:6px;"><span style="font:700 17px/1.2 var(--f);">No generations yet</span><span style="font:500 13px/1.5 var(--f);color:var(--muted);max-width:230px;">Runs will appear here as shoppers try products in their space.</span></div>
+        <button style="border:none;background:var(--brand);color:#fff;font:600 13px/1 var(--f);padding:11px 18px;border-radius:10px;box-shadow:var(--e1);cursor:pointer;">Get the script</button>
+      </div>
+      <!-- skeleton -->
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--e2);padding:24px;display:flex;flex-direction:column;gap:16px;min-height:300px;">
+        <div style="display:flex;gap:12px;"><div style="width:52px;height:52px;border-radius:12px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div><div style="flex:1;display:flex;flex-direction:column;gap:9px;justify-content:center;"><div style="height:12px;width:70%;border-radius:6px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div><div style="height:12px;width:45%;border-radius:6px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div></div></div>
+        <div style="height:130px;border-radius:12px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div>
+        <div style="height:12px;width:90%;border-radius:6px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div>
+        <div style="height:12px;width:60%;border-radius:6px;background:linear-gradient(90deg,#EFEEF4 25%,#F8F8FB 37%,#EFEEF4 63%);background-size:200% 100%;animation:yzShim 1.4s infinite;"></div>
+      </div>
+      <!-- 404 -->
+      <div style="background:linear-gradient(160deg,#4A45B8,#5A55D6 60%,#7A3A66);border-radius:18px;box-shadow:var(--e2);padding:40px 28px;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;min-height:300px;justify-content:center;position:relative;overflow:hidden;">
+        <span style="width:46px;height:46px;border-radius:13px;background:#fff;display:flex;align-items:center;justify-content:center;"><img src="assets/yuzuview-mark.png" style="width:32px;height:32px;object-fit:contain;" /></span>
+        <span style="font:800 52px/1 var(--f);color:#fff;letter-spacing:-.03em;">404</span>
+        <span style="font:500 14px/1.5 var(--f);color:rgba(255,255,255,.85);max-width:230px;">This page wandered off. Let’s get you back to the overview.</span>
+        <button style="border:none;background:#fff;color:var(--brand-700);font:600 13px/1 var(--f);padding:11px 18px;border-radius:10px;cursor:pointer;">Back to Overview</button>
+      </div>
+    </div>
+  </div>
+
+  <!--SECTIONS-->
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1392,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { pct:{ studio:54, gen:48 }, studioTab:'overview', period:'monthly', qty:12, voted:null };
+  _drag(id,e){
+    const track=e.currentTarget.closest('[data-track]'); if(!track) return; if(e.cancelable)e.preventDefault();
+    const upd=(x)=>{const r=track.getBoundingClientRect();let p=((x-r.left)/r.width)*100;p=Math.max(0,Math.min(100,p));this.setState(s=>({pct:{...s.pct,[id]:p}}));};
+    const mv=(ev)=>upd(ev.touches?ev.touches[0].clientX:ev.clientX); mv(e);
+    const up=()=>{window.removeEventListener('pointermove',mv);window.removeEventListener('pointerup',up);window.removeEventListener('touchmove',mv);window.removeEventListener('touchend',up);};
+    window.addEventListener('pointermove',mv);window.addEventListener('pointerup',up);window.addEventListener('touchmove',mv,{passive:false});window.addEventListener('touchend',up);
+  }
+  _sl(id){const p=this.state.pct[id];return{clip:'inset(0 '+(100-p)+'% 0 0)',left:'calc('+p+'% - 1px)',handle:'calc('+p+'% - 17px)'};}
+  renderVals(){
+    const st=this.state.studioTab, pr=this.state.period;
+    const tabOn='display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;background:var(--surface);box-shadow:var(--e1);font:600 13px/1 var(--f);color:var(--ink);cursor:pointer;border:none;';
+    const tabOff='display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:9px;background:transparent;font:600 13px/1 var(--f);color:var(--muted);cursor:pointer;border:none;';
+    const segOn='padding:8px 16px;border-radius:8px;background:var(--surface);box-shadow:var(--e1);font:600 13px/1 var(--f);color:var(--ink);cursor:pointer;border:none;';
+    const segOff='padding:8px 16px;border-radius:8px;background:transparent;font:600 13px/1 var(--f);color:var(--muted);cursor:pointer;border:none;';
+    return {
+      sliderStudio:this._sl('studio'), sliderGen:this._sl('gen'),
+      dragStudio:(e)=>this._drag('studio',e), dragGen:(e)=>this._drag('gen',e),
+      studioOverview: st==='overview'?tabOn:tabOff, studioNew: st==='new'?tabOn:tabOff, studioClients: st==='clients'?tabOn:tabOff,
+      setStudio:(e)=>this.setState({studioTab:e.currentTarget.dataset.val}),
+      showStudioOverview: st==='overview', showStudioNew: st==='new', showStudioClients: st==='clients',
+      periodMonthly: pr==='monthly'?segOn:segOff, periodAnnual: pr==='annual'?segOn:segOff,
+      setPeriod:(e)=>this.setState({period:e.currentTarget.dataset.val}),
+      priceStarter: pr==='annual'?'$39':'$49', priceGrowth: pr==='annual'?'$159':'$199', priceScale: pr==='annual'?'$639':'$799',
+      billNote: pr==='annual'?'/mo · billed yearly':'/mo',
+      qty:this.state.qty, inc:()=>this.setState(s=>({qty:s.qty+1})), dec:()=>this.setState(s=>({qty:Math.max(1,s.qty-1)})),
+      imgFallback:(e)=>{ e.target.style.opacity=0; },
+    };
+  }
+}
+</script>
+</body>
+</html>
