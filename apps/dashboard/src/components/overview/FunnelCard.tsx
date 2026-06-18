@@ -8,8 +8,8 @@ const STEP_ICON: Record<string, string> = {
   generations: 'overview',
   ctaClicks: 'billing',
 };
-// A cool→accent ramp down the funnel.
-const STEP_FILL = ['var(--viz-1)', '#2f7bf0', '#4f8bf2', 'var(--viz-3)'];
+// An indigo→fruit→plum ramp down the funnel.
+const STEP_FILL = ['var(--viz-1)', 'var(--accent-300)', 'var(--viz-2)', 'var(--viz-3)'];
 
 export function FunnelCard({ summary }: { summary: FunnelInput }) {
   const steps = buildFunnel(summary);
