@@ -48,6 +48,6 @@ export function emailSenderFromEnv(env: NodeJS.ProcessEnv = process.env): EmailS
   if (!apiKey) {
     return NOOP_EMAIL_SENDER;
   }
-  const from = env.RESEND_FROM ?? 'YuzuView <notifications@lumina.app>';
+  const from = env.RESEND_FROM ?? 'YuzuView <notifications@rdlabs.digital>';
   return createResendSender(apiKey, from);
 }

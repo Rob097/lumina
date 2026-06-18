@@ -125,7 +125,7 @@ export function BillingView({
                   Current plan
                 </button>
               ) : cta === 'contact' ? (
-                <a className="btn btn-secondary" href="mailto:sales@lumina.app?subject=Enterprise%20plan">
+                <a className="btn btn-secondary" href="mailto:sales@rdlabs.digital?subject=Enterprise%20plan">
                   Contact sales
                 </a>
               ) : (
