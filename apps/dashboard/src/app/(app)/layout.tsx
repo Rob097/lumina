@@ -40,9 +40,9 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         merchant={{
           name: merchant?.name ?? 'Your store',
           plan: merchant ? PLAN_CATALOG[merchant.plan].label : 'Free',
-          initials: initials(merchant?.name ?? 'LU'),
+          initials: initials(merchant?.name ?? 'YV'),
         }}
-        credits={{ balance, usedPct: meter.usedPct, level: meter.level }}
+        credits={{ balance, included, usedPct: meter.usedPct, level: meter.level }}
         account={{ name: accountName, email, initials: initials(accountName) }}
       />
       <div className="main">

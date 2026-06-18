@@ -5,13 +5,14 @@ import { usePathname } from 'next/navigation';
 import { NAV_GROUPS, NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
+import { BrandGlyph } from '@/components/ui/BrandMark';
 import { useNav } from '@/lib/providers';
 import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
 
 export interface SidebarProps {
   merchant: { name: string; plan: string; initials: string };
-  credits: { balance: number; usedPct: number; level: CreditLevel };
+  credits: { balance: number; included: number; usedPct: number; level: CreditLevel };
   account: { name: string; email: string; initials: string };
   counts?: Record<string, number>;
 }
@@ -35,7 +36,7 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
           panelClassName="menu-pop-wide"
           trigger={
             <>
-              <span className="merchant-logo">{merchant.initials}</span>
+              <BrandGlyph size={30} className="merchant-mark" />
               <span>
                 <span className="nm">{merchant.name}</span>
                 <br />
@@ -85,12 +86,14 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
       <div className="side-foot">
         <Link className="credit-pill" href="/billing" aria-label="Credits and billing">
           <div className="row1">
-            <span className="lab">Credits remaining</span>
+            <span className="lab">Credits left</span>
             <span className={`badge ${BADGE[credits.level]}`} style={{ height: 18, padding: '0 6px' }}>
               {credits.usedPct}% used
             </span>
           </div>
-          <div className="val tnum">{compact(credits.balance)}</div>
+          <div className="val tnum">
+            {compact(credits.balance)} <span className="val-total">/ {compact(credits.included)}</span>
+          </div>
           <div className="meter">
             <div className={`meter-fill${FILL[credits.level]}`} style={{ width: `${credits.usedPct}%` }} />
           </div>
