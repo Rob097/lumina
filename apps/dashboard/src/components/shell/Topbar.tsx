@@ -20,7 +20,7 @@ export function Topbar({
   notifications: NotificationListResponse;
 }) {
   const key = activeNavKey(usePathname());
-  const title = NAV_ITEMS.find((i) => i.key === key)?.label ?? 'LUMINA';
+  const title = NAV_ITEMS.find((i) => i.key === key)?.label ?? 'YuzuView';
   const { setOpen } = useNav();
 
   return (

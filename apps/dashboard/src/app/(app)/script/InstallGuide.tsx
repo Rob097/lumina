@@ -42,7 +42,7 @@ export function InstallGuide({
       )}
       <div className="install-head">
         <p className="t-secondary">
-          Add LUMINA to your storefront in two snippets. You're viewing the{' '}
+          Add YuzuView to your storefront in two snippets. You're viewing the{' '}
           <strong>{env === 'live' ? 'Live' : 'Test'}</strong> environment — switch it from the top bar.
         </p>
         <span className={`badge ${env === 'live' ? 'badge-live' : 'badge-test'}`}>
@@ -96,7 +96,7 @@ export function InstallGuide({
         </div>
         <div className="card-pad">
           <p className="t-secondary install-p">
-            Drop this placeholder where you want the button on each product page — LUMINA renders its
+            Drop this placeholder where you want the button on each product page — YuzuView renders its
             styled button into it. Set <span className="code-inline">data-lumina-product</span> to that
             product&apos;s ID so the widget opens scoped to it.
           </p>

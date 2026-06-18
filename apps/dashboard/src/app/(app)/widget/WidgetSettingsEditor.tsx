@@ -8,10 +8,10 @@ import { BrandIcon } from '@/components/ui/BrandIcon';
 import { WidgetPreview } from './WidgetPreview';
 import { saveWidgetSettingsAction } from './actions';
 
-const SWATCHES = ['#0f62fe', '#111317', '#0b7d83', '#6a5be2', '#c2410c', '#be185d'];
+const SWATCHES = ['#5a55d6', '#111317', '#0b7d83', '#7a3a66', '#c2410c', '#be185d'];
 
 const FONTS: { value: string; label: string }[] = [
-  { value: 'var(--font-ui)', label: 'Geist (LUMINA default)' },
+  { value: 'var(--font-ui)', label: 'YuzuView default' },
   { value: 'Georgia, serif', label: 'Inherit · Serif host' },
   { value: 'ui-monospace, monospace', label: 'Monospace' },
 ];
@@ -88,7 +88,7 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
 
   const radius = s.theme.radius ?? 16;
   const mode = s.theme.mode ?? 'auto';
-  const accent = s.theme.accent ?? '#0f62fe';
+  const accent = s.theme.accent ?? '#5a55d6';
 
   return (
     <>
@@ -353,7 +353,7 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
             <div className="card-pad" style={{ paddingTop: '6px' }}>
               <div className="set-row">
                 <div className="set-label">
-                  Show "Powered by LUMINA"
+                  Show "Powered by YuzuView"
                   <div className="sub">Removable on Growth &amp; above.</div>
                 </div>
                 <div className="set-control">

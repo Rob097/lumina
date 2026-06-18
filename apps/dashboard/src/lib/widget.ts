@@ -1,7 +1,7 @@
 import type { ThemeMode, WidgetSettings } from '@lumina/shared';
 
-/** LUMINA defaults mirrored from the design tokens — used when a theme field is unset. */
-const DEFAULT_ACCENT = '#0f62fe';
+/** YuzuView defaults mirrored from the design tokens — used when a theme field is unset. */
+const DEFAULT_ACCENT = '#5a55d6';
 const DEFAULT_RADIUS = 16;
 const DEFAULT_FONT = 'var(--font-ui)';
 

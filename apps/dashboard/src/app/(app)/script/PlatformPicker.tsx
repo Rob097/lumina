@@ -13,7 +13,7 @@ export function PlatformPicker({ onSelectScript }: { onSelectScript: () => void 
     <div className="install-guide">
       <div className="install-head">
         <p className="t-secondary">
-          Choose where you&apos;re installing LUMINA. The generic script works on any website today —
+          Choose where you&apos;re installing YuzuView. The generic script works on any website today —
           native plugins for the major platforms are on the way.
         </p>
       </div>

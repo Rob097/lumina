@@ -198,19 +198,19 @@
   --wp-border: #272c33;
   --wp-inset: #1b1f25;
   background:
-    radial-gradient(120% 80% at 80% -5%, var(--wp-accent-weak) 0%, transparent 50%), #0c0e11;
+    radial-gradient(120% 80% at 80% -5%, var(--wp-accent-weak) 0%, transparent 50%), #100e17;
 }
 
 /* the widget itself — driven by --wp-* vars */
 .wp {
-  --wp-accent: #0f62fe;
-  --wp-accent-weak: rgba(15, 98, 254, 0.1);
+  --wp-accent: #5a55d6;
+  --wp-accent-weak: rgba(90, 85, 214, 0.1);
   --wp-radius: 16px;
   --wp-font: var(--font-ui);
   --wp-surface: #fff;
-  --wp-text: #181c22;
-  --wp-muted: #767d8a;
-  --wp-border: #e4e7ec;
+  --wp-text: #181621;
+  --wp-muted: #76727f;
+  --wp-border: #e7e5ee;
   --wp-inset: #f5f6f8;
   font-family: var(--wp-font);
 }

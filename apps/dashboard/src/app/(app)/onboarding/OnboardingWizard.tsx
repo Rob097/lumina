@@ -19,7 +19,7 @@ export function OnboardingWizard({ onboarding }: { onboarding: Onboarding }) {
     <div className="onboard">
       <header className="onboard-head">
         <div>
-          <h2 className="onboard-title">{allDone ? "You're all set" : 'Get LUMINA live'}</h2>
+          <h2 className="onboard-title">{allDone ? "You're all set" : 'Get YuzuView live'}</h2>
           <p className="t-secondary onboard-sub">
             {allDone
               ? 'Setup is complete — your storefront is ready for shoppers.'

@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useEnv } from '@/lib/providers';
 
 /**
- * Test/Live environment toggle (topbar). LUMINA runs a single live environment across all services
+ * Test/Live environment toggle (topbar). YuzuView runs a single live environment across all services
  * today, so Live is locked on and Test opens an explainer dialog instead of switching. Any stale
  * `test` cookie is migrated back to `live`.
  */
@@ -58,7 +58,7 @@ export function EnvToggle() {
             </div>
             <div className="drawer-body">
               <p className="t-secondary">
-                A separate test environment isn&apos;t available yet. LUMINA currently runs a single
+                A separate test environment isn&apos;t available yet. YuzuView currently runs a single
                 <strong> live</strong> environment across every service — your keys, products, and
                 generations are all live.
               </p>

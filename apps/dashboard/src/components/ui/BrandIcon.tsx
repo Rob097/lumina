@@ -6,7 +6,7 @@ import type { BrandIconName } from '@/lib/platforms';
  * recognisable (colour + mark) without shipping forged vector art, and scales cleanly at any size.
  */
 const BRAND: Record<BrandIconName, { color: string; label: string }> = {
-  script: { color: '#0f62fe', label: '</>' },
+  script: { color: '#5a55d6', label: '</>' },
   wordpress: { color: '#21759b', label: 'W' },
   shopify: { color: '#008060', label: 'S' },
   woocommerce: { color: '#7f54b3', label: 'Woo' },
