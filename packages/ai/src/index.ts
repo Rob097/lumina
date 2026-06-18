@@ -8,6 +8,7 @@ export * from './types.js';
 export * from './prompt.js';
 export * from './quantity.js';
 export * from './orchestrator.js';
+export * from './routing.js';
 export * from './moderation.js';
 export * from './eval.js';
 export { createOrchestratorFromEnv } from './factory.js';

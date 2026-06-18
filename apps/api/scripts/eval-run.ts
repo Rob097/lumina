@@ -18,6 +18,7 @@ import sharp from 'sharp';
 import {
   createOrchestratorFromEnv,
   planToSceneAnalysis,
+  resolvePolicy,
   scoreEval,
   type EvalCaseResult,
   type ImageRef,
@@ -131,7 +132,8 @@ async function main(): Promise<void> {
         // The mode-specific task (§4.2) is what makes covering work without a hint — drive it from the plan.
         ...(plan ? { mode: plan.mode, target: plan.target, repetition: plan.repetition } : {}),
         ...(room.aspectRatio ? { aspectRatio: room.aspectRatio } : {}),
-        policy,
+        // Phase 3 routing: derive fast/quality from the plan (fast common path, escalate on difficulty).
+        policy: plan ? resolvePolicy(process.env.GW_MERCHANT_PLAN ?? 'starter', plan) : policy,
       });
       const ext = (r.contentType.split('/')[1] ?? 'png').replace('jpeg', 'jpg');
       writeFileSync(`${outDir}${c.id}.${ext}`, r.bytes);

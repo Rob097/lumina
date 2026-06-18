@@ -2,12 +2,12 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
   planToSceneAnalysis,
+  resolvePolicy,
   type AIOrchestrator,
   type ImageRef,
   type ModerationProvider,
   type ModerationReason,
   type QuantityEstimate,
-  type RoutingPolicy,
 } from '@lumina/ai';
 import {
   generationAssets,
@@ -90,13 +90,6 @@ function moderationErrorCode(reason: ModerationReason): string {
     default:
       return 'unsafe_content';
   }
-}
-
-/** Map a merchant plan to a routing policy (free → fast/watermark, top tiers → quality). */
-export function planToPolicy(plan: string): RoutingPolicy {
-  if (plan === 'free') return 'fast';
-  if (plan === 'scale' || plan === 'enterprise') return 'quality';
-  return 'balanced';
 }
 
 function errorCodeFor(_err: unknown): string {
@@ -438,25 +431,23 @@ export async function processGeneration(
     // Feed the plan's per-image facts into the compositor through the SceneAnalysis it consumes.
     const scene = planToSceneAnalysis(genPlan);
 
-    // Mode-dependent cutout (§4.3): object placement/replacement get a fidelity-preserving cutout (matting,
-    // cached per product); surface_covering passes the ORIGINAL product image — the model needs the
-    // texture/pattern of the repeating unit, and a cutout would strip it.
-    const productImage: ImageRef =
+    // Run the independent post-plan pre-passes in parallel (Phase 3 speed): the mode-dependent product
+    // cutout (§4.3 — object modes get a cached, fidelity-preserving cutout; surface_covering passes the
+    // ORIGINAL product texture, since the model needs the repeating pattern) and the room normalization
+    // (D65 — a gentle clamped deskew + conditional auto-level, best-effort). Neither depends on the other.
+    const [productImage, normalized] = await Promise.all([
       genPlan.mode === 'surface_covering'
-        ? { url: gen.productSnapshot.imageUrl }
-        : await resolveProductImage(deps, gen);
-
-    // Normalize the room before compose (Phase 3 / D65): a gentle, clamped deskew using the scene's tilt
-    // plus a conditional auto-level when the photo is dark, cropped to the inscribed rectangle. Best-effort
-    // — a level photo or a sharp miss returns it unchanged. The normalized room is stored back so the
-    // model composes against it, and it becomes the pixel-perfect base, so the result may be slightly
-    // straightened vs the raw upload (intended).
-    const normalized = await normalizeRoom(sanitized, {
-      tiltDegrees: scene.tiltDegrees,
-      dark: scene.quality.dark,
-      maxDeskewDegrees: DESKEW_MAX_DEGREES,
-      autoLevelEnabled: AUTOLEVEL_ENABLED,
-    });
+        ? Promise.resolve<ImageRef>({ url: gen.productSnapshot.imageUrl })
+        : resolveProductImage(deps, gen),
+      normalizeRoom(sanitized, {
+        tiltDegrees: scene.tiltDegrees,
+        dark: scene.quality.dark,
+        maxDeskewDegrees: DESKEW_MAX_DEGREES,
+        autoLevelEnabled: AUTOLEVEL_ENABLED,
+      }),
+    ]);
+    // The normalized room is stored back so the model composes against it and it becomes the pixel-perfect
+    // base, so the result may be slightly straightened vs the raw upload (intended).
     if (normalized !== sanitized) {
       await deps.storage.putObject(gen.roomKey, normalized, contentTypeForKey(gen.roomKey));
     }
@@ -499,7 +490,8 @@ export async function processGeneration(
       target: genPlan.target,
       repetition: genPlan.repetition,
       aspectRatio,
-      policy: planToPolicy(plan),
+      // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
+      policy: resolvePolicy(plan, genPlan),
       watermark: plan === 'free',
     });
 

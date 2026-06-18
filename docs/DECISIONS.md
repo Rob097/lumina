@@ -685,3 +685,20 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
     success criterion). 7/7 success, no visual regression on the 5 placement cases; avg latency ~40s
     (Phase 3 target). The earlier failure was never an inability to cover — it was the model not *deciding*
     to cover when unprompted; the planner + mode-specific compose supplies that decision.
+
+- **D70 — Difficulty-aware routing: fast common path, quality on escalation (Phase 3).** The common path now
+  defaults to the **fast** image model at **1K**; it escalates to the **quality** model at **2K** when the
+  planner flags a difficult scene (`sceneFacts.quality` blurry/dark/cluttered, or a low-confidence plan) and
+  for the top plan tiers. Free stays fast (watermarked, cost-controlled). `resolvePolicy(merchantPlan, plan)`
+  + `resolveImageSizes(env)` are pure, unit-tested helpers in `packages/ai/src/routing.ts`; the orchestrator
+  keeps the fast→quality fallback chain so an escalation is a starting point, not a guarantee. Per-policy
+  resolution is env-tunable (`GATEWAY_IMAGE_SIZE` = 2K quality, `GATEWAY_IMAGE_SIZE_FAST` = 1K fast). The
+  workflow also **parallelizes the independent post-plan pre-passes** (the mode-dependent cutout ‖ room
+  normalization). **Latency regression undone:** the Inngest route `maxDuration` is brought back **300s → 120s**
+  (`apps/api/vercel.json`) now that the silent-`sharp` retries and redundant passes are gone — the owner should
+  confirm p50/p95 in Axiom on real traffic. **Eval gate (real Gateway):** routing behaved exactly as designed —
+  the 5 easy cases (standard/tilted/exterior + both coverage) ran on the fast model at 1K (~12–14s, 6¢), the 2
+  genuinely-hard cases (dark, blurry) escalated to quality at 2K (~40s, 13¢). **Avg latency 43.5s → 21.3s
+  (−51%), avg cost 13¢ → 8¢; the common path is ~13s (p50 < 15s, fast-case p95 < 30s — target met).** No quality
+  regression: at 1K on the fast model the placements still read correctly AND both coverage cases still rendered
+  a clad / tiled wall (the §3.1 criterion holds on the fast path).
