@@ -103,13 +103,13 @@ function errorCodeFor(_err: unknown): string {
   return 'generation_failed';
 }
 
-/** Below this model confidence a coverage estimate is dropped (not shown, and no layout guide built). */
+/** Below this model confidence a coverage estimate is dropped (not shown in the dashboard). */
 const QUANTITY_CONFIDENCE_MIN = 0.5;
 
 /**
  * Best-effort coverage-quantity estimate (#7). Returns null (never throws) so a flaky vision call can never
- * fail an otherwise-successful generation. Runs in the pre-compose pass so its result can both feed the
- * stored estimate AND drive the Phase 5 layout guide (it only needs the room + category + dimensions).
+ * fail an otherwise-successful generation. Informational only — the estimate is stored + surfaced in the
+ * dashboard (D67); it never changes how the image is generated.
  */
 async function estimateCoverageSafe(
   deps: WorkflowDeps,
@@ -428,17 +428,23 @@ export async function processGeneration(
       return 'failed';
     }
 
-    // Run the independent pre-passes in parallel: the product cutout (cached per product, else the raw
-    // image), the planner (§4.1 — one reasoning pass over both images → the operation + per-image facts,
-    // replacing the separate scene pass), and the coverage estimate (best-effort).
-    const [productImage, genPlan, estimate] = await Promise.all([
-      resolveProductImage(deps, gen),
+    // The planner (§4.1) and the coverage estimate run in parallel (both best-effort). The product cutout
+    // depends on the operation the planner decides, so it follows. (Phase 3 re-parallelizes the independent
+    // pre-passes once routing lands.)
+    const [genPlan, estimate] = await Promise.all([
       planSafe(deps, gen, roomUrl),
       estimateCoverageSafe(deps, gen, category, roomUrl),
     ]);
-    // Phase 1: feed the plan's per-image facts into the (unchanged) compositor through the SceneAnalysis it
-    // already consumes. The new mode/target/repetition fields drive the mode-specific compose in Phase 2.
+    // Feed the plan's per-image facts into the compositor through the SceneAnalysis it consumes.
     const scene = planToSceneAnalysis(genPlan);
+
+    // Mode-dependent cutout (§4.3): object placement/replacement get a fidelity-preserving cutout (matting,
+    // cached per product); surface_covering passes the ORIGINAL product image — the model needs the
+    // texture/pattern of the repeating unit, and a cutout would strip it.
+    const productImage: ImageRef =
+      genPlan.mode === 'surface_covering'
+        ? { url: gen.productSnapshot.imageUrl }
+        : await resolveProductImage(deps, gen);
 
     // Normalize the room before compose (Phase 3 / D65): a gentle, clamped deskew using the scene's tilt
     // plus a conditional auto-level when the photo is dark, cropped to the inscribed rectangle. Best-effort
@@ -477,9 +483,10 @@ export async function processGeneration(
       }),
     );
 
-    // One from-scratch AI compose for EVERY product, coverage included (D67). We deliberately do NOT tile N
-    // product copies into the image — that read as a flat cut-and-paste; the model produces a clean,
-    // photorealistic render and the coverage QUANTITY is surfaced separately in the dashboard.
+    // Mode-specific compose (§4.2): the compositor's task is assembled per operation — re-surfacing for
+    // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
+    // always-true system instruction. One generative compose per product (no deterministic tiling); the
+    // coverage QUANTITY is surfaced separately in the dashboard (D67).
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: productImage,
@@ -488,16 +495,23 @@ export async function processGeneration(
       customInstructions: gen.customInstructions ?? undefined,
       dimensions: snapshot.dimensions,
       scene,
+      mode: genPlan.mode,
+      target: genPlan.target,
+      repetition: genPlan.repetition,
       aspectRatio,
       policy: planToPolicy(plan),
       watermark: plan === 'free',
     });
 
-    // Pixel-perfect step (#AI-gen v2): the model inserts the product but re-renders the whole frame. Detect
-    // where it actually changed the scene and composite only that region back over the ORIGINAL, so everything
-    // outside the product stays byte-identical to the upload (no re-frame/rotation/drift). A too-small or
-    // too-large change means the diff is untrustworthy → keep the full (aspect-pinned) render.
-    const finalImage = await keepOnlyProductChange(normalized, composed);
+    // Mode-aware pixel-perfect composite (§4.4). Object modes are a localized change → keep only the region
+    // the model actually changed (product + shadows) and composite it back over the ORIGINAL, so everything
+    // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
+    // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
+    // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
+    const finalImage =
+      genPlan.mode === 'surface_covering'
+        ? { bytes: composed.bytes, contentType: composed.contentType }
+        : await keepOnlyProductChange(normalized, composed);
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

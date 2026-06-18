@@ -541,50 +541,73 @@ describe('processGeneration — room normalization (Phase 3)', () => {
   });
 });
 
-// Coverage products (D67): NO product tiling in the image. Every product — coverage or not — gets ONE
-// from-scratch AI compose (no layout guide passed to the model). The coverage QUANTITY is still estimated
-// and stored (and surfaced in the dashboard); it never changes how the image is generated.
-describe('processGeneration — coverage composes from scratch, quantity kept (D67)', () => {
-  async function realJpeg(w: number, h: number): Promise<Uint8Array> {
-    return new Uint8Array(
-      await sharp({ create: { width: w, height: h, channels: 3, background: { r: 200, g: 200, b: 200 } } }).jpeg().toBuffer(),
-    );
-  }
+// Mode-specific compose (Phase 2): the workflow assembles a mode-specific task from the plan. A
+// surface_covering product passes the ORIGINAL product texture (no cutout, §4.3) and accepts the model's
+// full render (the target surface changes by design, §4.4); the coverage QUANTITY is still stored (D67).
+describe('processGeneration — mode-specific surface_covering (Phase 2)', () => {
+  const coveringPlan: GenerationPlan = {
+    mode: 'surface_covering',
+    target: { description: 'the wall behind the bed' },
+    repetition: { kind: 'grid', estimatedCount: 8 },
+    scale: { productDimensionsCm: { w: 60, h: 60 } },
+    sceneFacts: {
+      isExterior: false,
+      lighting: { direction: 'top-left', intensity: 'medium' },
+      surfaces: [{ kind: 'wall' }],
+      tiltDegrees: 0,
+      quality: { blurry: false, dark: false, cluttered: false },
+    },
+    confidence: 0.85,
+  };
 
-  /** Orchestrator whose compose records the layout it received (must be undefined — we never tile). */
-  function orchestratorCapturing(
-    captured: { composeCalls: number; layout?: ImageRef },
-    quantity: QuantityProvider,
-  ): AIOrchestrator {
+  it('passes mode to compose, skips the cutout (original texture), and keeps the full render', async () => {
+    const render = new Uint8Array(
+      await sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 9, g: 9, b: 9 } } }).png().toBuffer(),
+    );
+    const room = new Uint8Array(
+      await sharp({ create: { width: 400, height: 300, channels: 3, background: { r: 200, g: 200, b: 200 } } }).jpeg().toBuffer(),
+    );
+    const captured: { mode?: string; product?: ImageRef } = {};
+    const removeBackground = vi.fn(async () => ({ bytes: new Uint8Array([1]), contentType: 'image/png' }));
+    let stored: Uint8Array | null = null;
+    const storageReal: StoragePort = {
+      getObject: async () => room,
+      presignDownload: async (k) => `https://signed/${k}`,
+      putObject: async (k, b) => {
+        if (k.includes('results/')) stored = b;
+      },
+    };
     const provider: AIProvider = {
       name: 'cap',
       compose: async (input) => {
-        captured.composeCalls += 1;
-        captured.layout = input.layout;
-        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 400, height: 300 };
+        captured.mode = input.mode;
+        captured.product = input.product;
+        return { bytes: render, contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 400, height: 300 };
       },
     };
-    return new AIOrchestrator({
+    const quantity = new MockQuantityProvider({ suggestedQuantity: 7, unit: 'panels', rationale: '~7 panels to cover the wall', confidence: 0.85 });
+    const orch = new AIOrchestrator({
       chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      planner: { plan: async () => coveringPlan },
+      bgRemoval: { removeBackground },
       quantity,
     });
-  }
 
-  it('composes a coverage product from scratch (no tiling) and still stores the quantity estimate', async () => {
-    const room = await realJpeg(400, 300);
-    const captured: { composeCalls: number; layout?: ImageRef } = { composeCalls: 0 };
-    const quantity = new MockQuantityProvider({ suggestedQuantity: 7, unit: 'panels', rationale: '~7 panels to cover the wall', confidence: 0.85 });
-    const orch = orchestratorCapturing(captured, quantity);
-    const storageReal: StoragePort = { getObject: async () => room, presignDownload: async (k) => `https://signed/${k}`, putObject: async () => {} };
-
-    const { generationId } = await queued(4, { category: 'decor', dimensions: { w: 60, h: 60, unit: 'cm' } });
+    const { generationId } = await queued(4, {
+      category: 'decor',
+      imageUrl: 'https://shop.test/panel.png',
+      dimensions: { w: 60, h: 60, unit: 'cm' },
+    });
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: storageReal }, generationId)).toBe('succeeded');
-    expect(captured.composeCalls).toBe(1);
-    expect(captured.layout).toBeUndefined(); // never tile N copies into the image
+
+    expect(captured.mode).toBe('surface_covering');
+    expect(captured.product).toEqual({ url: 'https://shop.test/panel.png' }); // original texture, NOT a cutout
+    expect(removeBackground).not.toHaveBeenCalled(); // surface_covering never cuts out
+    expect(stored).not.toBeNull();
+    expect(new Uint8Array(stored!)).toEqual(render); // full render accepted (no localized diff composite)
 
     const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
-    expect(gen.model).toBe('mock-compose'); // a normal AI compose, like any product
-    expect(gen.suggestedQuantity).toBe(7); // the coverage quantity is still computed + stored
+    expect(gen.suggestedQuantity).toBe(7); // coverage quantity still computed + stored
   });
 });
 

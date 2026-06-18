@@ -114,27 +114,22 @@ async function main(): Promise<void> {
       // facts feed compose via the SceneAnalysis it consumes. Best-effort — a planner failure falls back to
       // composing without facts (a neutral plan), exactly like the durable pipeline.
       let scene: ReturnType<typeof planToSceneAnalysis> | undefined;
-      let mode = 'n/a';
+      let plan: Awaited<ReturnType<typeof orchestrator.plan>> = null;
       try {
-        const plan = await orchestrator.plan({
-          room: room.ref,
-          product,
-          productName: c.id,
-          category: c.category,
-        });
-        if (plan) {
-          scene = planToSceneAnalysis(plan);
-          mode = plan.mode;
-        }
+        plan = await orchestrator.plan({ room: room.ref, product, productName: c.id, category: c.category });
+        if (plan) scene = planToSceneAnalysis(plan);
       } catch {
-        scene = undefined;
+        plan = null;
       }
+      const mode = plan?.mode ?? 'n/a';
       const r = await orchestrator.compose({
         room: room.ref,
         product,
         category: c.category,
         placementHint: c.placementHint,
         ...(scene ? { scene } : {}),
+        // The mode-specific task (§4.2) is what makes covering work without a hint — drive it from the plan.
+        ...(plan ? { mode: plan.mode, target: plan.target, repetition: plan.repetition } : {}),
         ...(room.aspectRatio ? { aspectRatio: room.aspectRatio } : {}),
         policy,
       });

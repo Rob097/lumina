@@ -104,22 +104,6 @@ describe('GatewayProvider.compose', () => {
     expect(result.bytes).toEqual(new Uint8Array([7]));
   });
 
-  it('sends the LAYOUT guide first + PRODUCT second when a layout is present (refine mode)', async () => {
-    const run = vi.fn(async () => ({ bytes: new Uint8Array([2]), contentType: 'image/jpeg' }));
-    const provider = new GatewayProvider({
-      name: 'gateway-quality',
-      model: 'google/gemini-3-pro-image',
-      costCents: 13,
-      run,
-    });
-    await provider.compose({ ...baseInput(), layout: { url: 'https://x/layout.jpg' } }, 'PROMPT');
-    expect(run).toHaveBeenCalledWith(
-      expect.objectContaining({
-        images: [{ url: 'https://x/layout.jpg' }, { url: 'https://x/product.png' }],
-      }),
-    );
-  });
-
   it('forwards the pinned aspect ratio + image size to the runner', async () => {
     const run = vi.fn(async () => ({ bytes: new Uint8Array([1]), contentType: 'image/jpeg' }));
     const provider = new GatewayProvider({

@@ -659,3 +659,29 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   `object_placement`, both coverage cases (slatted acoustic panel + discrete tile) `surface_covering`; 7/7
   success, no visual regression vs the Phase 0 baseline (avg latency 43.5s → 46.5s — the +3s planner call,
   addressed in Phase 3).
+
+- **D69 — Mode-specific compose, the covering correction (Phase 2).** The compositor's task is now assembled
+  **per operation**, layered on the always-true `COMPOSE_SYSTEM_INSTRUCTION`, selected by `plan.mode`
+  (`buildComposePrompt` → `buildCoveringTask` | `buildReplacementTask` | `buildComposeTask`):
+  - **`surface_covering`** is rendered as **generative re-surfacing** — the product treated as a *repeating
+    unit* clad over the target surface in perspective, explicitly rejecting BOTH deterministic tiling (the v2
+    "paste N copies" that produced raw pasted panels) AND single-object placement. A scoped exception lets it
+    cover the target surface while keeping everything else (and the framing/aspect ratio) byte-exact.
+  - **`object_replacement`** swaps an existing element matching its position/scale/perspective; **`object_placement`**
+    is the prior single-placement behaviour (the default when no mode).
+  - `mode`/`target`/`repetition` are plumbed `GenerationPlan → ComposeInput → prompt`.
+  - **Mode-dependent cutout (§4.3):** object modes use the cached cutout (matting recommended for fidelity,
+    behind the existing `BG_REMOVAL_PROVIDER` seam); `surface_covering` **skips the cutout** and passes the
+    original product texture (the model needs the repeating pattern).
+  - **Mode-aware pixel-perfect composite (§4.4):** object modes keep the localized diff-mask blend over the
+    original; `surface_covering` accepts the **full render** + the aspect-ratio pin (the target surface
+    changes by design). Explicit, mode-driven branch.
+  - **Dead tiling code removed** (superseded): `images/layout.ts` (+ test), `prompts/refine.ts` (+ test),
+    `ComposeInput.layout`, the gateway `[layout, product]` branch, and the refine switch in `prompt.ts`.
+  - **Eval gate (real Gateway, the 2 coverage cases run with NO placement hint):** the planner inferred
+    `surface_covering` from the product image and the mode-specific compose **clad the wall autonomously** —
+    `coverage-slats-wall` → a wood-slat clad wall, `coverage-discrete-tile` → a tiled wall, both in correct
+    perspective, portrait preserved, **not rotated, not a single panel, not raw pasted copies** (the §3.1
+    success criterion). 7/7 success, no visual regression on the 5 placement cases; avg latency ~40s
+    (Phase 3 target). The earlier failure was never an inability to cover — it was the model not *deciding*
+    to cover when unprompted; the planner + mode-specific compose supplies that decision.

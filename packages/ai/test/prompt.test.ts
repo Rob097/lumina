@@ -127,3 +127,47 @@ describe('buildComposePrompt', () => {
     expect(buildComposePrompt(base)).not.toMatch(/ADDITIONAL USER PREFERENCE/i);
   });
 });
+
+describe('buildComposePrompt — mode-specific compose (Gen v3 Phase 2)', () => {
+  it('always layers the task on the always-true COMPOSE_SYSTEM_INSTRUCTION', () => {
+    for (const mode of ['object_placement', 'surface_covering', 'object_replacement'] as const) {
+      expect(buildComposePrompt({ ...base, mode })).toContain('photorealistic environment compositor');
+    }
+  });
+
+  it('object_placement (and no mode) places the product once at the natural/target location', () => {
+    expect(buildComposePrompt(base)).toMatch(/most natural, functional location/i);
+    expect(buildComposePrompt({ ...base, mode: 'object_placement' })).toMatch(/place the (supplied )?product once/i);
+  });
+
+  it('surface_covering re-surfaces the target as a REPEATING unit — not a single object, not pasted copies', () => {
+    const p = buildComposePrompt({
+      ...base,
+      mode: 'surface_covering',
+      target: { description: 'the back wall' },
+      repetition: { kind: 'grid', estimatedCount: 12 },
+    });
+    expect(p).toMatch(/re-?surface|clad|cover the/i);
+    expect(p).toContain('the back wall');
+    expect(p).toMatch(/repeat/i);
+    expect(p).toMatch(/grid/i);
+    expect(p).toMatch(/not.*(a )?single (isolated )?unit/i);
+  });
+
+  it('surface_covering changes ONLY the target surface and never re-frames/rotates the photo', () => {
+    const p = buildComposePrompt({ ...base, mode: 'surface_covering', target: { description: 'the left wall' } });
+    expect(p).toMatch(/only|everything (else|other)/i);
+    expect(p).toMatch(/do not.*(rotate|crop|re-?frame)/i);
+  });
+
+  it('object_replacement replaces the existing element matching its position/scale/perspective', () => {
+    const p = buildComposePrompt({
+      ...base,
+      mode: 'object_replacement',
+      target: { description: 'the existing wardrobe' },
+    });
+    expect(p).toMatch(/replace/i);
+    expect(p).toContain('the existing wardrobe');
+    expect(p).toMatch(/position|scale|perspective/i);
+  });
+});

@@ -97,13 +97,11 @@ export class GatewayProvider implements AIProvider {
   }
 
   async compose(input: ComposeInput, prompt: string): Promise<ProviderResult> {
-    // REFINE mode (Phase 5): when a layout guide is present, send it in place of the raw room so the model
-    // polishes the laid-out composite (placement/coverage already fixed) instead of placing from scratch.
-    const base = input.layout ?? input.room;
+    // Always SCENE first, PRODUCT second — the order the prompt contract relies on.
     const image = await this.run({
       model: this.opts.model,
       prompt,
-      images: [base, input.product],
+      images: [input.room, input.product],
       ...(input.aspectRatio ? { aspectRatio: input.aspectRatio } : {}),
       ...(this.opts.imageSize ? { imageSize: this.opts.imageSize } : {}),
     });

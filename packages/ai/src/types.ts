@@ -1,4 +1,11 @@
-import type { GenerationPlan, ProductCategory, SceneAnalysis } from '@lumina/shared';
+import type {
+  GenerationMode,
+  GenerationPlan,
+  PlanRepetition,
+  PlanTarget,
+  ProductCategory,
+  SceneAnalysis,
+} from '@lumina/shared';
 
 /**
  * The scene-analysis output (per-image facts) is the shared wire contract (`SceneAnalysisSchema`).
@@ -32,11 +39,14 @@ export interface ComposeInput {
   dimensions?: Dimensions;
   scene?: SceneAnalysis;
   /**
-   * Rough layout guide (Generation Engine v2 / Phase 5): the product already placed/tiled into the room.
-   * When present, compose switches to a REFINE pass (keep the placement/coverage, fix lighting/perspective)
-   * and the provider sends `[layout, product]` instead of `[room, product]`.
+   * The operation to perform (Generation Engine v3 §4.2), from the planner. Drives the mode-specific
+   * compose task; absent ⇒ `object_placement` (today's behaviour).
    */
-  layout?: ImageRef;
+  mode?: GenerationMode;
+  /** The target surface/element the operation acts on (planner `target`). */
+  target?: PlanTarget;
+  /** How the product repeats over the target (planner `repetition`) — used by `surface_covering`. */
+  repetition?: PlanRepetition;
   /** Indoor vs outdoor — adds exterior-aware guidance to the prompt (facades, gardens, entrances). */
   sceneType?: SceneType;
   /** Output aspect ratio pinned to the room photo (e.g. '4:3') so the model can't re-frame/rotate it. */

@@ -67,8 +67,13 @@ function describeScene(scene: SceneAnalysis): string[] {
   return lines;
 }
 
-export function buildComposeTask(input: ComposeInput): string {
-  const lines: string[] = ['REQUEST DETAILS for this generation:'];
+/**
+ * The per-request facts shared by every mode: the soft category hint, real-world dimensions, the confident
+ * scene facts, the exterior note, and the (untrusted, subordinated) shopper free-text. These feed whichever
+ * mode-specific task is assembled — the master prompt in `system.ts` still decides the rendering.
+ */
+function requestFacts(input: ComposeInput): string[] {
+  const lines: string[] = [];
 
   // Category is a soft, possibly-wrong hint — never a switch. The model still decides the archetype.
   lines.push(`- Product category (approximate merchant hint, may be inaccurate): ${input.category}.`);
@@ -78,13 +83,7 @@ export function buildComposeTask(input: ComposeInput): string {
     lines.push(`- Real-world product dimensions: ${dims}. Match scale to these relative to visible references.`);
   }
 
-  lines.push(
-    input.placementHint
-      ? `- Shopper placement hint: place the product ${input.placementHint}.`
-      : '- No placement hint: choose the most natural, functional location from your analysis.',
-  );
-
-  // Scene facts come from the per-image analysis pass; a low-confidence analysis is dropped entirely.
+  // Scene facts come from the planner; a low-confidence read is dropped entirely.
   const scene = input.scene && input.scene.confidence >= MIN_SCENE_CONFIDENCE ? input.scene : undefined;
   if (scene) {
     lines.push(...describeScene(scene));
@@ -106,5 +105,66 @@ export function buildComposeTask(input: ComposeInput): string {
     );
   }
 
-  return lines.join('\n');
+  return lines;
+}
+
+/**
+ * `object_placement` task (the default / today's behaviour): place the product once at the shopper hint, the
+ * planner's target, or the most natural location.
+ */
+export function buildComposeTask(input: ComposeInput): string {
+  const where = input.placementHint
+    ? `place the supplied product once ${input.placementHint}`
+    : input.target?.description
+      ? `place the supplied product once at ${input.target.description} (or the most natural, functional location)`
+      : 'place the supplied product once at the most natural, functional location from your analysis';
+  return [
+    `OPERATION: object placement. Task: ${where} at correct real-world scale given its dimensions, with` +
+      " physically correct contact shadows and lighting consistent with the scene. Preserve the product's" +
+      ' exact identity. Keep the room and the original framing/aspect ratio exactly.',
+    '',
+    'REQUEST DETAILS for this generation:',
+    ...requestFacts(input),
+  ].join('\n');
+}
+
+/**
+ * `surface_covering` task (the §4.2 mental-model fix): treat the product as a REPEATING surfacing unit and
+ * render the target surface generatively re-clad — NOT a single placement and NOT flat pasted copies. The
+ * scoped exception lets it cover the target surface while keeping everything else (and the framing) exact.
+ */
+export function buildCoveringTask(input: ComposeInput): string {
+  const target = input.target?.description ?? input.placementHint ?? 'the main surface in the scene';
+  const kind = input.repetition?.kind ?? 'grid';
+  return [
+    'OPERATION: surface covering. The product is a repeating surfacing unit, NOT a single object.',
+    `Task: re-surface ${target} with the supplied product, treating it as a repeating unit. Cover the whole` +
+      ` surface, repeating the product (${kind}) to fill the area, in correct perspective relative to the` +
+      " surface and matching the scene's lighting and shadows. Preserve the product's exact material, color," +
+      ' texture, proportions, and the gaps/edges between repeated units. Do NOT place a single isolated unit,' +
+      ' and do NOT paste flat copies — render it as one real, installed surface.',
+    `Change ONLY ${target}. Keep the room, all other objects, and the original framing and aspect ratio` +
+      ` exactly — do not rotate, crop, or re-frame. (Repeating the unit across ${target} is the intended edit` +
+      ' here, NOT the forbidden "duplicated product".)',
+    '',
+    'REQUEST DETAILS for this generation:',
+    ...requestFacts(input),
+  ].join('\n');
+}
+
+/**
+ * `object_replacement` task (§4.2): swap an existing element in the scene for the product, matching its
+ * position, scale and perspective, keeping the rest of the room exact.
+ */
+export function buildReplacementTask(input: ComposeInput): string {
+  const target = input.target?.description ?? input.placementHint ?? 'the matching existing element in the scene';
+  return [
+    `OPERATION: object replacement. Task: replace ${target} in the scene with the supplied product, matching` +
+      " its position, scale, and perspective. Preserve the product's exact identity (geometry, material," +
+      ' color, branding). Keep the rest of the room and the original framing/aspect ratio exactly — do not' +
+      ' rotate, crop, or re-frame.',
+    '',
+    'REQUEST DETAILS for this generation:',
+    ...requestFacts(input),
+  ].join('\n');
 }

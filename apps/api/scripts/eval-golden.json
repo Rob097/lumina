@@ -44,15 +44,13 @@
     "category": "decor",
     "inputClass": "coverage",
     "room": "coverage-slats-wall.room.jpg",
-    "product": "coverage-slats-wall.product.jpg",
-    "placementHint": "cover the wall behind the bed"
+    "product": "coverage-slats-wall.product.jpg"
   },
   {
     "id": "coverage-discrete-tile",
     "category": "tiles",
     "inputClass": "coverage-discrete",
     "room": "coverage-slats-wall.room.jpg",
-    "product": "product-tile.jpg",
-    "placementHint": "tile the wall behind the bed"
+    "product": "product-tile.jpg"
   }
 ]
