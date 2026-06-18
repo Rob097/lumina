@@ -7,12 +7,11 @@ import { latencyLabel, statusBadge } from '@/lib/generation-format';
 import { BeforeAfter } from './BeforeAfter';
 import { getGenerationDetailAction } from './actions';
 
-function Meta({ label, value }: { label: string; value: string | null | undefined }) {
-  if (!value) return null;
+function Row({ label, value }: { label: string; value: string | null | undefined }) {
   return (
-    <div className="gen-meta-item">
+    <div className="gen-meta-row">
       <span className="gen-meta-k">{label}</span>
-      <span className="gen-meta-v">{value}</span>
+      <span className="gen-meta-v">{value ?? '—'}</span>
     </div>
   );
 }
@@ -39,36 +38,48 @@ export function GenerationDetailModal({
 
   const before = detail?.roomUrl ?? summary.roomUrl;
   const after = detail?.resultUrl ?? summary.resultUrl;
+  const cost =
+    detail?.costCents != null
+      ? `${summary.creditsSpent} · $${(detail.costCents / 100).toFixed(2)}`
+      : String(summary.creditsSpent);
 
   return (
     <div className="drawer-scrim" onClick={onClose}>
-      <div className="modal modal-lg" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <header className="drawer-head">
-          <div className="gen-modal-title">
-            <h3>{summary.productName}</h3>
-            <span className={`badge ${badge.cls}`}>{badge.label}</span>
-          </div>
-          <button className="icon-btn" type="button" onClick={onClose} aria-label="Close">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
-              <path d="M18 6L6 18M6 6l12 12" />
-            </svg>
-          </button>
-        </header>
-
-        <div className="gen-modal-body">
+      <div className="modal gen-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+        <div className="gen-modal-media">
           <BeforeAfter beforeUrl={before} afterUrl={after} />
+        </div>
 
-          <div className="gen-meta">
-            <Meta label="Category" value={categoryLabel(summary.productCategory)} />
-            <Meta label="Model" value={summary.model ?? '—'} />
-            <Meta label="Latency" value={latencyLabel(summary.latencyMs) ?? '—'} />
-            <Meta label="Credits" value={String(summary.creditsSpent)} />
-            <Meta label="Cost" value={detail?.costCents != null ? `${detail.costCents}¢` : null} />
-            <Meta label="Placement" value={detail?.placementHint ?? null} />
-            <Meta label="Created" value={new Date(summary.createdAt).toLocaleString()} />
-            {summary.errorCode && <Meta label="Error" value={summary.errorCode} />}
-            {summary.pageUrl && <Meta label="Page" value={summary.pageUrl} />}
+        <div className="gen-modal-panel">
+          <div className="gen-modal-phead">
+            <h3>{summary.productName}</h3>
+            <button className="icon-btn" type="button" onClick={onClose} aria-label="Close">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="18" height="18">
+                <path d="M18 6L6 18M6 6l12 12" />
+              </svg>
+            </button>
           </div>
+
+          <span className={`badge ${badge.cls}`} style={{ width: 'max-content' }}>
+            {badge.label}
+          </span>
+
+          <div className="gen-meta-list">
+            <Row label="Category" value={categoryLabel(summary.productCategory)} />
+            <Row label="Model" value={summary.model} />
+            <Row label="Latency" value={latencyLabel(summary.latencyMs)} />
+            <Row label="Credits · cost" value={cost} />
+            <Row label="Placement" value={detail?.placementHint} />
+            <Row label="Created" value={new Date(summary.createdAt).toLocaleString()} />
+            {summary.errorCode ? <Row label="Error" value={summary.errorCode} /> : null}
+          </div>
+
+          {summary.pageUrl ? (
+            <div className="gen-pageurl">
+              <span className="gen-meta-k">Page URL</span>
+              <span className="gen-pageurl-v">{summary.pageUrl}</span>
+            </div>
+          ) : null}
         </div>
       </div>
     </div>

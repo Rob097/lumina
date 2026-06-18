@@ -108,45 +108,80 @@
   padding: 6px 0 4px;
 }
 
-/* ---- detail modal ---- */
-.gen-modal-title {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.gen-modal-title h3 {
-  font-size: var(--fs-title);
-  font-weight: 600;
-}
-.gen-modal-body {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-  overflow-y: auto;
-}
-.gen-meta {
+/* ---- detail modal (two-column: before/after slider + meta panel) ---- */
+.gen-modal {
+  width: 880px;
+  max-width: 94vw;
+  max-height: 88vh;
+  padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-  gap: 14px 20px;
+  grid-template-columns: 1.4fr 1fr;
+  overflow: hidden;
 }
-.gen-meta-item {
+.gen-modal-media {
+  position: relative;
+  display: flex;
+  min-height: 360px;
+  background: #100e17;
+}
+.gen-modal-panel {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 14px;
+  padding: 22px;
+  overflow-y: auto;
   min-width: 0;
 }
+.gen-modal-phead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.gen-modal-phead h3 {
+  font-size: var(--fs-title);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.gen-meta-list {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+.gen-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 14px;
+  font-size: var(--fs-sm);
+}
+.gen-meta-row + .gen-meta-row {
+  border-top: 1px solid var(--hairline);
+}
 .gen-meta-k {
-  font-size: var(--fs-micro);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
   color: var(--text-muted);
+  flex: none;
 }
 .gen-meta-v {
-  font-size: var(--fs-sm);
   color: var(--text);
+  text-align: right;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gen-pageurl {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.gen-pageurl-v {
+  font-family: var(--font-mono);
+  font-size: var(--fs-caption);
+  color: var(--accent);
+  word-break: break-all;
 }
 
 /* ---- before/after wipe ---- */
@@ -160,19 +195,20 @@
   touch-action: none;
   cursor: ew-resize;
   box-shadow: var(--e-2);
-  background: var(--surface-3);
+  background: #100e17;
 }
 .ba2-layer {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
+/* `contain` so the whole frame is visible (no cropping); before + after share dimensions so they align. */
 .ba2-layer img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 /* `.ba2-before` is the full-box clipped layer; the wipe edge is drawn by `.ba2-handle`. */
 .ba2-fallback {
@@ -180,26 +216,45 @@
   inset: 0;
 }
 .ba2-fallback-after {
-  background: linear-gradient(150deg, #14223c, #1d3a6b 55%, var(--accent) 130%);
+  background: linear-gradient(150deg, #2a2540, #3f39a8 55%, var(--accent) 130%);
 }
 .ba2-fallback-before {
   background: linear-gradient(150deg, #34383f, #232730 60%, #15181d 100%);
 }
 .ba2-cap {
   position: absolute;
-  bottom: 12px;
-  left: 12px;
-  font-family: var(--font-mono);
-  font-size: 10px;
-  letter-spacing: 0.08em;
+  top: 11px;
+  font: 600 11px/1 var(--font-ui);
   color: #fff;
-  background: rgba(0, 0, 0, 0.42);
-  padding: 4px 8px;
+  padding: 5px 9px;
   border-radius: var(--r-sm);
 }
 .ba2-cap-before {
-  left: auto;
-  right: 12px;
+  left: 11px;
+  background: rgba(0, 0, 0, 0.5);
+}
+.ba2-cap-after {
+  right: 11px;
+  background: var(--accent);
+}
+.ba2-fs-btn {
+  position: absolute;
+  bottom: 11px;
+  right: 11px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--r-md);
+  background: rgba(0, 0, 0, 0.5);
+  color: #fff;
+  cursor: pointer;
+  transition: background var(--dur-fast);
+}
+.ba2-fs-btn:hover {
+  background: rgba(0, 0, 0, 0.72);
 }
 .ba2-handle {
   position: absolute;
@@ -224,4 +279,67 @@
   align-items: center;
   justify-content: center;
   color: var(--n-700);
+}
+
+/* In the detail modal the slider stretches to the panel's height (no fixed aspect). */
+.gen-modal-media .ba2 {
+  aspect-ratio: auto;
+  flex: 1;
+  height: 100%;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/* Fullscreen result lightbox */
+.ba2-fs {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-toast);
+  background: rgba(8, 7, 14, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  cursor: zoom-out;
+  animation: scrim-in var(--dur-fast) var(--ease-out);
+}
+.ba2-fs img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: var(--r-md);
+  cursor: default;
+}
+.ba2-fs-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  cursor: pointer;
+}
+.ba2-fs-close:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@media (max-width: 720px) {
+  .gen-modal {
+    grid-template-columns: 1fr;
+    max-height: 92vh;
+  }
+  .gen-modal-media {
+    min-height: 0;
+  }
+  .gen-modal-media .ba2 {
+    aspect-ratio: 4 / 3;
+    height: auto;
+    flex: none;
+  }
 }
