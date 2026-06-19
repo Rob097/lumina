@@ -3,9 +3,10 @@ import type { WidgetLimits } from '@lumina/shared';
 import type { Translate } from '../../core/i18n.js';
 
 /**
- * Step 1 — room photo (§3): drag/drop + file picker + camera (getUserMedia with a mobile `capture`
- * fallback) with client-side validation against the merchant's limits. Valid files are handed to
- * `onSelectRoom`; the controller does the downscale/EXIF/re-encode.
+ * Step 1 — room photo (§3): drag/drop + file picker, with a separate opt-in camera (getUserMedia
+ * viewfinder via the "Use camera" button — the file input must NOT force the camera). Client-side
+ * validation against the merchant's limits; valid files are handed to `onSelectRoom`; the controller
+ * does the downscale/EXIF/re-encode.
  */
 export interface UploadRejection {
   reason: 'too_large' | 'not_image';
@@ -35,6 +36,7 @@ export interface UploadStepProps {
 export function UploadStep({ t, limits, onSelectRoom }: UploadStepProps) {
   const [error, setError] = useState<string | null>(null);
   const [camera, setCamera] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const accept = (file: File | undefined, source: 'file' | 'camera'): void => {
@@ -66,27 +68,47 @@ export function UploadStep({ t, limits, onSelectRoom }: UploadStepProps) {
   return (
     <div
       class="lumina-state lumina-upload"
-      onDragOver={(e) => e.preventDefault()}
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (!dragging) setDragging(true);
+      }}
+      onDragLeave={(e) => {
+        if (e.currentTarget === e.target) setDragging(false);
+      }}
       onDrop={(e) => {
         e.preventDefault();
+        setDragging(false);
         accept(e.dataTransfer?.files?.[0], 'file');
       }}
     >
       <h2 class="lumina-title">{t('upload.title')}</h2>
-      <button class="lumina-dropzone" type="button" onClick={() => inputRef.current?.click()}>
-        <p>
+      <button
+        class={`lumina-dropzone${dragging ? ' is-dragging' : ''}`}
+        type="button"
+        onClick={() => inputRef.current?.click()}
+      >
+        <span class="lumina-dropzone-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 16V4M7 9l5-5 5 5" />
+            <path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+          </svg>
+        </span>
+        <p class="lumina-dropzone-text">
           {t('upload.drop')} <span class="lumina-link">{t('upload.browse')}</span>
         </p>
         <p class="lumina-muted">{t('upload.hint', { max: formatBytes(limits.maxUploadBytes) })}</p>
       </button>
-      <button class="lumina-btn" type="button" onClick={() => setCamera(true)}>
+      <button class="lumina-btn lumina-btn-camera" type="button" onClick={() => setCamera(true)}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+          <circle cx="12" cy="13" r="3.5" />
+        </svg>
         {t('upload.camera')}
       </button>
       <input
         ref={inputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         hidden
         onChange={(e) => accept((e.target as HTMLInputElement).files?.[0], 'file')}
       />

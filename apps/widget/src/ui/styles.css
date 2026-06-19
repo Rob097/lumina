@@ -1,5 +1,7 @@
 /* Shadow-DOM-scoped widget styles (HARD RULE #7). Everything is namespaced and reads only from the
-   --lumina-* custom properties set on [data-lumina-container]; nothing leaks to/from the host page. */
+   --lumina-* custom properties set on [data-lumina-container]; nothing leaks to/from the host page.
+   Visual language follows the YuzuView v2 "Widget Flow" design: a mobile-first bottom sheet with a
+   grabber, brand-tinted controls, and a polished before/after. */
 
 [data-lumina-container] {
   --lumina-accent: #5a55d6;
@@ -11,6 +13,12 @@
   --lumina-surface: #f4f3f8;
   --lumina-font:
     system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  /* Derived tokens (adapt to light/dark via the base vars above). */
+  --lumina-line: color-mix(in srgb, var(--lumina-muted) 32%, transparent);
+  --lumina-tint: color-mix(in srgb, var(--lumina-accent) 14%, var(--lumina-bg));
+  --lumina-success: #1e8e5a;
+  --lumina-danger: #d2453e;
+  --lumina-warning: #b97309;
 }
 
 .lumina-overlay {
@@ -35,13 +43,26 @@
 .lumina-modal {
   position: relative;
   width: 100%;
-  max-width: 520px;
+  max-width: 460px;
   max-height: 92vh;
   overflow-y: auto;
   background: var(--lumina-bg);
-  border-radius: var(--lumina-radius) var(--lumina-radius) 0 0;
-  box-shadow: 0 -8px 40px rgba(24, 22, 40, 0.2);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -12px 40px rgba(24, 22, 40, 0.25);
   outline: none;
+}
+
+/* Bottom-sheet grabber — only when docked to the bottom (mobile). */
+.lumina-modal::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 34px;
+  height: 4px;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--lumina-muted) 45%, transparent);
 }
 
 @media (min-width: 640px) {
@@ -51,6 +72,9 @@
       0 24px 60px rgba(24, 22, 40, 0.18),
       0 6px 16px rgba(24, 22, 40, 0.08);
   }
+  .lumina-modal::before {
+    display: none;
+  }
   /* Result step: give the before/after room to breathe so the composite isn't tiny. */
   .lumina-modal-wide {
     max-width: 860px;
@@ -59,182 +83,196 @@
 
 .lumina-close {
   position: absolute;
-  top: 10px;
-  right: 12px;
-  width: 40px;
-  height: 40px;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border: none;
-  border-radius: 50%;
+  border-radius: 9px;
   background: var(--lumina-surface);
-  color: var(--lumina-fg);
-  font-size: 22px;
+  color: var(--lumina-muted);
+  font-size: 18px;
   line-height: 1;
   cursor: pointer;
   transition:
     background 0.14s ease,
-    transform 0.14s ease;
+    color 0.14s ease;
+  z-index: 1;
 }
 .lumina-close:hover {
   background: color-mix(in srgb, var(--lumina-muted) 18%, var(--lumina-surface));
+  color: var(--lumina-fg);
 }
 
 .lumina-body {
-  padding: 28px 22px 16px;
+  padding: 22px 18px 16px;
 }
 
 .lumina-powered {
-  padding: 8px 22px 16px;
-  font-size: 11px;
-  color: var(--lumina-muted);
+  padding: 6px 18px 16px;
+  font-size: 10px;
+  color: color-mix(in srgb, var(--lumina-muted) 75%, transparent);
   text-align: center;
 }
 
 .lumina-state {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  text-align: center;
+  gap: 13px;
+  text-align: left;
 }
 
 .lumina-title {
   margin: 0;
-  font-size: 19px;
-  font-weight: 650;
+  padding-right: 34px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .lumina-muted {
   margin: 0;
   color: var(--lumina-muted);
   font-size: 13px;
+  line-height: 1.4;
 }
 
 .lumina-link {
   color: var(--lumina-accent);
-  text-decoration: underline;
+  font-weight: 700;
 }
 
+/* ---- buttons ---- */
 .lumina-btn {
   appearance: none;
-  border: 1px solid var(--lumina-surface);
-  background: var(--lumina-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px solid var(--lumina-line);
+  background: var(--lumina-bg);
   color: var(--lumina-fg);
   padding: 12px 16px;
-  border-radius: calc(var(--lumina-radius) * 0.6);
+  border-radius: 12px;
   font: inherit;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
+}
+.lumina-btn svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
 }
 
 .lumina-btn-primary {
   background: var(--lumina-accent);
   border-color: var(--lumina-accent);
   color: #fff;
-  box-shadow: 0 1px 2px rgba(24, 22, 40, 0.12);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 14px 16px;
+  box-shadow: 0 4px 14px rgba(24, 22, 40, 0.16);
 }
 .lumina-btn-primary:hover {
   filter: brightness(0.96);
 }
 
+/* ---- upload ---- */
 .lumina-dropzone {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 9px;
   width: 100%;
-  border: 2px dashed color-mix(in srgb, var(--lumina-muted) 50%, transparent);
-  border-radius: var(--lumina-radius);
+  box-sizing: border-box;
+  border: 2px dashed color-mix(in srgb, var(--lumina-muted) 45%, transparent);
+  border-radius: 14px;
   background: var(--lumina-surface);
-  padding: 32px 16px;
+  padding: 28px 18px;
   cursor: pointer;
   color: inherit;
   font: inherit;
-}
-
-.lumina-actions {
-  display: flex;
-  gap: 8px;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-/* AI coverage estimate (#7): a one-line headline + stepper, shown only for coverage products. */
-.lumina-estimate {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  width: 100%;
-  padding: 10px 12px;
-  box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--lumina-accent) 30%, transparent);
-  border-radius: calc(var(--lumina-radius) * 0.6);
-  background: color-mix(in srgb, var(--lumina-accent) 7%, transparent);
-}
-.lumina-estimate-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.lumina-estimate-label {
-  font-size: 14px;
-  font-weight: 600;
-}
-.lumina-estimate-note {
-  margin: 0;
-  font-size: 12px;
-  color: var(--lumina-muted);
-}
-.lumina-stepper {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  flex: none;
-}
-.lumina-step {
-  width: 30px;
-  height: 30px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
-  line-height: 1;
-  border: 1px solid color-mix(in srgb, var(--lumina-muted) 40%, transparent);
-  border-radius: calc(var(--lumina-radius) * 0.45);
-  background: var(--lumina-bg);
-  color: inherit;
-  cursor: pointer;
-}
-.lumina-step:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-.lumina-step-val {
-  min-width: 32px;
   text-align: center;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease;
+}
+.lumina-dropzone.is-dragging {
+  border-color: var(--lumina-accent);
+  background: var(--lumina-tint);
+}
+.lumina-dropzone-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: var(--lumina-accent);
+  color: #fff;
+}
+.lumina-dropzone-icon svg {
+  width: 21px;
+  height: 21px;
+}
+.lumina-dropzone-text {
+  margin: 0;
+  font-size: 13px;
   font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+.lumina-btn-camera {
+  width: 100%;
+}
+
+.lumina-error-text {
+  margin: 0;
+  color: var(--lumina-danger);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---- confirm ---- */
+.lumina-preview,
+.lumina-camera-video {
+  width: 100%;
+  border-radius: 12px;
+  background: #000;
+  object-fit: cover;
+}
+.lumina-preview {
+  max-height: 150px;
 }
 
 .lumina-chips {
   display: flex;
-  gap: 8px;
-  justify-content: center;
+  gap: 7px;
   flex-wrap: wrap;
 }
-
 .lumina-chip {
-  border: 1px solid color-mix(in srgb, var(--lumina-muted) 40%, transparent);
-  background: transparent;
-  color: inherit;
-  padding: 8px 12px;
+  border: 1.5px solid var(--lumina-line);
+  background: var(--lumina-bg);
+  color: var(--lumina-muted);
+  padding: 8px 13px;
   border-radius: 999px;
   font: inherit;
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 600;
   cursor: pointer;
+  transition:
+    border-color 0.14s ease,
+    background 0.14s ease,
+    color 0.14s ease;
 }
-
 .lumina-chip.is-active {
   border-color: var(--lumina-accent);
-  color: var(--lumina-accent);
-  background: color-mix(in srgb, var(--lumina-accent) 9%, transparent);
-  font-weight: 600;
+  color: color-mix(in srgb, var(--lumina-accent) 78%, var(--lumina-fg));
+  background: var(--lumina-tint);
 }
 
 .lumina-instructions {
@@ -244,46 +282,40 @@
 }
 .lumina-instructions-label {
   display: block;
-  font-size: 13px;
-  color: var(--lumina-muted);
+  margin-bottom: 7px;
+  font-size: 12px;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--lumina-muted) 80%, var(--lumina-fg));
 }
 .lumina-instructions-input {
-  margin-top: 8px;
   width: 100%;
   box-sizing: border-box;
   resize: vertical;
-  border: 1px solid color-mix(in srgb, var(--lumina-muted) 40%, transparent);
-  border-radius: calc(var(--lumina-radius) * 0.5);
-  background: transparent;
+  border: 1px solid var(--lumina-line);
+  border-radius: 11px;
+  background: var(--lumina-surface);
   color: inherit;
   font: inherit;
-  font-size: 13px;
-  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 11px 12px;
+}
+.lumina-instructions-input::placeholder {
+  color: color-mix(in srgb, var(--lumina-muted) 75%, transparent);
 }
 .lumina-instructions-input:focus {
   outline: none;
   border-color: var(--lumina-accent);
 }
 
-.lumina-preview,
-.lumina-camera-video {
-  width: 100%;
-  border-radius: calc(var(--lumina-radius) * 0.7);
-  background: #000;
-}
-
-.lumina-error-text {
-  margin: 0;
-  color: #d2453e;
-  font-size: 13px;
-}
-
-/* Generating: the room sits dimmed behind a centered loader overlay. */
+/* ---- generating ---- */
 .lumina-generating {
   position: relative;
-  min-height: 220px;
+  min-height: 300px;
+  align-items: center;
   justify-content: center;
-  border-radius: calc(var(--lumina-radius) * 0.7);
+  text-align: center;
+  border-radius: 14px;
   overflow: hidden;
 }
 .lumina-generating-bg {
@@ -292,78 +324,212 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  filter: brightness(0.5) saturate(0.9);
+  filter: brightness(0.42) saturate(0.85);
 }
 .lumina-generating-fg {
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
   align-items: center;
-  padding: 28px 16px;
+  padding: 30px 18px;
 }
-.lumina-generating-bg ~ .lumina-generating-fg .lumina-title,
-.lumina-generating-bg ~ .lumina-generating-fg .lumina-muted {
+.lumina-generating-bg ~ .lumina-generating-fg .lumina-title {
   color: #fff;
+  font-size: 19px;
+  padding-right: 0;
+}
+/* Stage line → a frosted status pill (the room shows through). */
+.lumina-generating-bg ~ .lumina-generating-fg .lumina-muted:not(.lumina-generating-sub) {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  padding: 7px 13px;
+  border-radius: 999px;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
 }
 .lumina-generating-sub {
-  margin-top: -4px;
+  margin-top: 2px;
   font-size: 12px;
-  opacity: 0.8;
+}
+.lumina-generating-bg ~ .lumina-generating-fg .lumina-generating-sub {
+  color: rgba(255, 255, 255, 0.72);
 }
 
 .lumina-spinner {
-  width: 42px;
-  height: 42px;
-  margin: 6px auto 0;
+  width: 64px;
+  height: 64px;
+  margin: 4px auto 0;
   border-radius: 50%;
-  border: 3px solid rgba(255, 255, 255, 0.4);
-  border-top-color: var(--lumina-accent);
+  border: 5px solid rgba(255, 255, 255, 0.22);
+  border-top-color: #fff;
   animation: lumina-spin 0.9s linear infinite;
 }
-
 @keyframes lumina-spin {
   to {
     transform: rotate(360deg);
   }
 }
 
+/* ---- result ---- */
 .lumina-feedback {
   display: flex;
-  gap: 8px;
-  justify-content: center;
+  gap: 9px;
   align-items: center;
-  min-height: 36px;
+  min-height: 40px;
+}
+.lumina-vote {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  border: 1px solid var(--lumina-line);
+  background: var(--lumina-bg);
+  color: var(--lumina-fg);
+  padding: 10px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lumina-vote:hover {
+  border-color: color-mix(in srgb, var(--lumina-accent) 50%, var(--lumina-line));
 }
 .lumina-feedback-thanks {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--lumina-accent);
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--lumina-success) 14%, var(--lumina-bg));
+  color: var(--lumina-success);
+  font-size: 13px;
+  font-weight: 600;
 }
 
-/* Before/after comparison slider */
+.lumina-actions {
+  display: flex;
+  gap: 9px;
+}
+.lumina-act {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid var(--lumina-line);
+  background: var(--lumina-bg);
+  color: color-mix(in srgb, var(--lumina-muted) 80%, var(--lumina-fg));
+  padding: 10px 8px;
+  border-radius: 11px;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lumina-act svg {
+  width: 17px;
+  height: 17px;
+}
+.lumina-act:hover {
+  border-color: color-mix(in srgb, var(--lumina-accent) 50%, var(--lumina-line));
+  color: var(--lumina-fg);
+}
+
+/* AI coverage estimate (#7): headline + stepper, shown only for coverage products. */
+.lumina-estimate {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 11px 12px;
+  border: 1px solid var(--lumina-line);
+  border-radius: 12px;
+  background: var(--lumina-surface);
+}
+.lumina-estimate-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lumina-estimate-label {
+  font-size: 12px;
+  font-weight: 700;
+}
+.lumina-estimate-note {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1.3;
+  color: var(--lumina-muted);
+}
+.lumina-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: none;
+  border: 1px solid var(--lumina-line);
+  border-radius: 10px;
+  background: var(--lumina-bg);
+  padding: 3px;
+}
+.lumina-step {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  line-height: 1;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--lumina-accent);
+  font-weight: 700;
+  cursor: pointer;
+}
+.lumina-step:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.lumina-step-val {
+  min-width: 26px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.lumina-cta {
+  width: 100%;
+}
+
+/* ---- before/after comparison slider ---- */
 .lumina-ba {
   position: relative;
   width: 100%;
   overflow: hidden;
-  border-radius: calc(var(--lumina-radius) * 0.7);
+  border-radius: 14px;
   touch-action: none;
   user-select: none;
   background: #000;
+  box-shadow: 0 1px 2px rgba(24, 22, 40, 0.12);
 }
-
 .lumina-ba-img {
   display: block;
   width: 100%;
   pointer-events: none;
 }
-
 .lumina-ba-clip {
   position: absolute;
   inset: 0;
   overflow: hidden;
 }
-
 .lumina-ba-clip .lumina-ba-img {
   position: absolute;
   inset: 0;
@@ -371,47 +537,111 @@
   height: 100%;
   object-fit: cover;
 }
-
 .lumina-ba-tag {
   position: absolute;
-  bottom: 8px;
-  font-size: 11px;
-  padding: 2px 8px;
-  border-radius: 999px;
-  background: rgba(0, 0, 0, 0.6);
+  top: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 5px 8px;
+  border-radius: 6px;
   color: #fff;
 }
-
 .lumina-ba-tag-before {
-  left: 8px;
+  left: 9px;
+  background: rgba(0, 0, 0, 0.5);
 }
-
 .lumina-ba-tag-after {
-  right: 8px;
+  right: 9px;
+  background: var(--lumina-accent);
 }
-
 .lumina-ba-handle {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 3px;
+  width: 2px;
   background: #fff;
   transform: translateX(-50%);
   cursor: ew-resize;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.25);
 }
-
 .lumina-ba-handle::after {
-  content: '';
+  content: '⇄';
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  color: var(--lumina-accent);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+.lumina-ba-handle:focus-visible {
+  outline: none;
+}
+.lumina-ba-handle:focus-visible::after {
+  box-shadow:
+    0 4px 14px rgba(0, 0, 0, 0.3),
+    0 0 0 3px color-mix(in srgb, var(--lumina-accent) 55%, transparent);
+}
+
+/* ---- camera viewfinder ---- */
+.lumina-camera {
+  gap: 12px;
+}
+.lumina-camera-video {
+  min-height: 280px;
+  object-fit: cover;
+}
+.lumina-camera .lumina-actions {
+  gap: 10px;
+}
+.lumina-camera .lumina-btn {
+  flex: 1;
+}
+
+/* ---- error / empty states ---- */
+.lumina-error {
+  align-items: center;
+  text-align: center;
+  gap: 12px;
+  padding: 12px 6px;
+}
+.lumina-error .lumina-title {
+  padding-right: 0;
+}
+.lumina-error-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+}
+.lumina-error-icon svg {
+  width: 22px;
+  height: 22px;
+}
+.lumina-error-bad_image .lumina-error-icon {
+  background: color-mix(in srgb, var(--lumina-warning) 16%, var(--lumina-bg));
+  color: var(--lumina-warning);
+}
+.lumina-error-failed .lumina-error-icon {
+  background: color-mix(in srgb, var(--lumina-danger) 14%, var(--lumina-bg));
+  color: var(--lumina-danger);
+}
+.lumina-error-out_of_credits .lumina-error-icon {
+  background: var(--lumina-surface);
+  color: var(--lumina-muted);
+}
+.lumina-error .lumina-btn {
+  width: 100%;
 }
 
 @media (prefers-color-scheme: dark) {
