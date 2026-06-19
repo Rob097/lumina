@@ -128,6 +128,17 @@ export function BillingView({
                 <a className="btn btn-secondary" href="mailto:sales@rdlabs.digital?subject=Enterprise%20plan">
                   Contact sales
                 </a>
+              ) : cta === 'downgrade' && p.tier === 'free' ? (
+                // Downgrading to Free = cancelling the subscription; Free has no Stripe price, so this
+                // must go through the billing portal (Stripe's cancel flow), never Checkout.
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  disabled={pendingPlan !== null}
+                  onClick={() => go(portalAction, 'portal')}
+                >
+                  {pendingPlan === 'portal' ? 'Opening…' : 'Cancel plan'}
+                </button>
               ) : (
                 <button
                   className={`btn ${cta === 'upgrade' ? 'btn-primary' : 'btn-secondary'}`}
