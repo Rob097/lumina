@@ -48,7 +48,7 @@ export const PLAN_PRESENTATION: Record<PlanTier, PlanPresentation> = {
   growth: {
     priceMonthly: 199,
     highlight: true,
-    features: ['1,200 credits / mo', 'Remove LUMINA watermark', 'Priority support'],
+    features: ['1,200 credits / mo', 'Remove YuzuView watermark', 'Priority support'],
   },
   scale: {
     priceMonthly: 799,
