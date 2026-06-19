@@ -81,13 +81,16 @@ export async function listGenerations(
 ): Promise<GenerationsListResponse> {
   const limit = Math.min(Math.max(opts.limit ?? 24, 1), 100);
 
-  const filters = [eq(generations.merchantId, merchantId)];
-  if (opts.status) filters.push(eq(generations.status, opts.status));
-  if (opts.productId) filters.push(eq(generations.productId, opts.productId));
-  if (opts.clientId) filters.push(eq(generations.clientId, opts.clientId));
-  if (opts.source === 'studio') filters.push(sql`${generations.metadata} ->> 'source' = 'studio'`);
-  if (opts.source === 'widget') filters.push(isNotNull(generations.anonId));
+  // Filters that define the full result set (drive both the COUNT and the page); the keyset cursor is
+  // pagination-only and must NOT narrow the total.
+  const baseFilters = [eq(generations.merchantId, merchantId)];
+  if (opts.status) baseFilters.push(eq(generations.status, opts.status));
+  if (opts.productId) baseFilters.push(eq(generations.productId, opts.productId));
+  if (opts.clientId) baseFilters.push(eq(generations.clientId, opts.clientId));
+  if (opts.source === 'studio') baseFilters.push(sql`${generations.metadata} ->> 'source' = 'studio'`);
+  if (opts.source === 'widget') baseFilters.push(isNotNull(generations.anonId));
 
+  const filters = [...baseFilters];
   const cursor = opts.cursor ? decodeCursor(opts.cursor) : null;
   if (cursor) {
     const t = new Date(cursor.t);
@@ -100,17 +103,27 @@ export async function listGenerations(
     );
   }
 
-  const rows = await db
-    .select()
-    .from(generations)
-    .where(and(...filters))
-    .orderBy(sql`${generations.createdAt} desc, ${generations.id} desc`)
-    .limit(limit + 1);
+  const [rows, totalRow] = await Promise.all([
+    db
+      .select()
+      .from(generations)
+      .where(and(...filters))
+      .orderBy(sql`${generations.createdAt} desc, ${generations.id} desc`)
+      .limit(limit + 1),
+    db
+      .select({ total: sql<number>`count(*)::int` })
+      .from(generations)
+      .where(and(...baseFilters)),
+  ]);
 
   const hasMore = rows.length > limit;
   const items = await Promise.all(rows.slice(0, limit).map((r) => toSummary(r, deps)));
   const last = items[items.length - 1];
-  return { items, nextCursor: hasMore && last ? encodeCursor(last) : null };
+  return {
+    items,
+    nextCursor: hasMore && last ? encodeCursor(last) : null,
+    total: totalRow[0]?.total ?? 0,
+  };
 }
 
 export async function getGeneration(

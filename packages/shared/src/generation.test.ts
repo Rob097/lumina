@@ -65,13 +65,17 @@ describe('GenerationsListResponseSchema', () => {
     const res = GenerationsListResponseSchema.parse({
       items: [SUMMARY],
       nextCursor: '2026-06-01T10:00:00.000Z',
+      total: 1,
     });
     expect(res.items).toHaveLength(1);
     expect(res.nextCursor).toBeTruthy();
+    expect(res.total).toBe(1);
   });
 
   it('allows a null cursor at the end of the list', () => {
-    expect(GenerationsListResponseSchema.parse({ items: [], nextCursor: null }).nextCursor).toBeNull();
+    expect(
+      GenerationsListResponseSchema.parse({ items: [], nextCursor: null, total: 0 }).nextCursor,
+    ).toBeNull();
   });
 });
 

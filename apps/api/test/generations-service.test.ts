@@ -77,6 +77,10 @@ describe('listGenerations', () => {
     const page2 = await listGenerations(ctx.db, m, { limit: 2, cursor: page1.nextCursor! }, deps);
     expect(page2.items).toHaveLength(1);
     expect(page2.nextCursor).toBeNull();
+
+    // `total` is the full filtered count — independent of the pagination cursor/limit.
+    expect(page1.total).toBe(3);
+    expect(page2.total).toBe(3);
   });
 
   it('filters by status', async () => {

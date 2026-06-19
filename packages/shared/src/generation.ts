@@ -31,6 +31,8 @@ export type GenerationSummary = z.infer<typeof GenerationSummarySchema>;
 export const GenerationsListResponseSchema = z.object({
   items: z.array(GenerationSummarySchema),
   nextCursor: z.string().nullable(),
+  /** Total matching the filters (ignores the pagination cursor) — drives the sidebar count. */
+  total: z.number().int().nonnegative(),
 });
 export type GenerationsListResponse = z.infer<typeof GenerationsListResponseSchema>;
 

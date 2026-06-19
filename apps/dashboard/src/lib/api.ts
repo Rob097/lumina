@@ -293,7 +293,7 @@ export async function fetchGenerations(
 ): Promise<GenerationsListResponse> {
   const res = await apiFetch(`/generations${queryString({ ...params })}`);
   if (!res.ok) {
-    return { items: [], nextCursor: null };
+    return { items: [], nextCursor: null, total: 0 };
   }
   return GenerationsListResponseSchema.parse(await res.json());
 }
