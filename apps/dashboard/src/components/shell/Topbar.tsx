@@ -49,7 +49,10 @@ export function Topbar({
           Credits &amp; billing
         </Link>
         <div className="menu-sep" />
-        <form action="/auth/signout" method="post">
+        {/* Stop the click from bubbling to the Menu panel's close handler: closing the
+            menu unmounts this form before the browser runs the native submit, so the
+            POST never fires. Keeping it mounted lets the sign-out request go through. */}
+        <form action="/auth/signout" method="post" onClick={(e) => e.stopPropagation()}>
           <button className="menu-item menu-item-danger" type="submit" role="menuitem">
             <Icon name="settings" size={15} strokeWidth={1.8} />
             Sign out
