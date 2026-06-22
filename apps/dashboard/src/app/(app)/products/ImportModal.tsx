@@ -5,7 +5,8 @@ import type { Product } from '@lumina/shared';
 import { parseProductsCsv, type CsvParseResult } from '@/lib/csv';
 import { importProductsAction } from './actions';
 
-const SAMPLE = 'name,imageUrl,category,externalId\nAura Floor Lamp,https://shop.it/aura.png,lighting,AURA-01';
+const SAMPLE =
+  'name,imageUrl,category,externalId,width,height,depth,unit\nAura Floor Lamp,https://shop.it/aura.png,lighting,AURA-01,30,150,30,cm';
 
 export function ImportModal({
   onClose,
@@ -57,8 +58,11 @@ export function ImportModal({
           <p className="t-secondary import-p">
             Columns: <span className="code-inline">name</span>,{' '}
             <span className="code-inline">imageUrl</span> (or <span className="code-inline">image</span>),{' '}
-            optional <span className="code-inline">category</span> &{' '}
-            <span className="code-inline">externalId</span>. Rows are upserted by external ID.
+            optional <span className="code-inline">category</span>,{' '}
+            <span className="code-inline">externalId</span>, and optional dimensions{' '}
+            <span className="code-inline">width</span>, <span className="code-inline">height</span>,{' '}
+            <span className="code-inline">depth</span> & <span className="code-inline">unit</span> (cm/in).
+            Rows are upserted by external ID.
           </p>
 
           <label className="import-drop">

@@ -14,7 +14,9 @@ export interface CsvParseResult {
   errors: CsvParseError[];
 }
 
-const HEADER_ALIASES: Record<string, 'name' | 'imageUrl' | 'category' | 'externalId'> = {
+type CsvField = 'name' | 'imageUrl' | 'category' | 'externalId' | 'w' | 'h' | 'd' | 'unit';
+
+const HEADER_ALIASES: Record<string, CsvField> = {
   name: 'name',
   title: 'name',
   imageurl: 'imageUrl',
@@ -27,6 +29,14 @@ const HEADER_ALIASES: Record<string, 'name' | 'imageUrl' | 'category' | 'externa
   external_id: 'externalId',
   sku: 'externalId',
   id: 'externalId',
+  // Real-world dimensions (§3.4) — optional; feed scale matching in the AI pipeline.
+  width: 'w',
+  w: 'w',
+  height: 'h',
+  h: 'h',
+  depth: 'd',
+  d: 'd',
+  unit: 'unit',
 };
 
 /** Split one CSV line into fields, honoring double-quoted fields with embedded commas/quotes. */
@@ -73,7 +83,7 @@ export function parseProductsCsv(text: string): CsvParseResult {
   const header = splitCsvLine(lines[headerIdx]!).map(
     (h) => HEADER_ALIASES[h.toLowerCase().replace(/\s+/g, '')] ?? null,
   );
-  const col = (key: 'name' | 'imageUrl' | 'category' | 'externalId') => header.indexOf(key);
+  const col = (key: CsvField) => header.indexOf(key);
 
   if (col('name') === -1) {
     return { rows, errors: [{ line: headerIdx + 1, message: 'Missing required column: name.' }] };
@@ -91,7 +101,7 @@ export function parseProductsCsv(text: string): CsvParseResult {
     const lineNo = i + 1;
     const cells = splitCsvLine(raw);
 
-    const at = (key: 'name' | 'imageUrl' | 'category' | 'externalId') => {
+    const at = (key: CsvField) => {
       const idx = col(key);
       const v = idx === -1 ? '' : (cells[idx] ?? '');
       return v.trim();
@@ -105,6 +115,22 @@ export function parseProductsCsv(text: string): CsvParseResult {
     if (category) candidate.category = category.toLowerCase();
     const externalId = at('externalId');
     if (externalId) candidate.externalId = externalId;
+
+    // Dimensions are optional: build them only when at least one measurement is present, so a lone
+    // `unit` column is ignored. Non-numeric/negative values stay as-is for ProductInputSchema to reject
+    // with a per-row `dimensions.*` error.
+    const w = at('w');
+    const h = at('h');
+    const d = at('d');
+    if (w || h || d) {
+      const unit = at('unit');
+      candidate.dimensions = {
+        ...(w ? { w: Number(w) } : {}),
+        ...(h ? { h: Number(h) } : {}),
+        ...(d ? { d: Number(d) } : {}),
+        unit: unit ? unit.toLowerCase() : 'cm',
+      };
+    }
 
     const parsed = ProductInputSchema.safeParse(candidate);
     if (parsed.success) {

@@ -102,6 +102,7 @@ export async function runSeed(db: Database, client: Sql): Promise<SeedResult> {
         name: 'Aura Floor Lamp',
         category: 'lighting',
         imageUrl: 'https://placehold.co/600x600/1d3a6b/ffffff.png?text=Aura+Floor+Lamp',
+        dimensions: { w: 30, h: 150, d: 30, unit: 'cm' },
       },
       {
         merchantId: inserted.id,
@@ -109,6 +110,7 @@ export async function runSeed(db: Database, client: Sql): Promise<SeedResult> {
         name: 'Nube Lounge Chair',
         category: 'furniture',
         imageUrl: 'https://placehold.co/600x600/34383f/ffffff.png?text=Nube+Lounge+Chair',
+        dimensions: { w: 80, h: 85, d: 82, unit: 'cm' },
       },
       {
         merchantId: inserted.id,
@@ -116,6 +118,7 @@ export async function runSeed(db: Database, client: Sql): Promise<SeedResult> {
         name: 'Terra Wall Mirror',
         category: 'mirror',
         imageUrl: 'https://placehold.co/600x600/232730/ffffff.png?text=Terra+Wall+Mirror',
+        dimensions: { w: 60, h: 100, d: 5, unit: 'cm' },
       },
     ]);
 

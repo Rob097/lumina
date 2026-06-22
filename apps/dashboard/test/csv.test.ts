@@ -64,4 +64,57 @@ describe('parseProductsCsv', () => {
     expect(rows).toHaveLength(0);
     expect(errors[0]?.message).toMatch(/imageUrl|image/i);
   });
+
+  describe('dimensions', () => {
+    it('parses width/height/depth/unit into a dimensions object', () => {
+      const csv = [
+        'name,imageUrl,width,height,depth,unit',
+        'Nube Sofa,https://s.it/n.png,200,85,90,cm',
+      ].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(errors).toHaveLength(0);
+      expect(rows[0]?.dimensions).toEqual({ w: 200, h: 85, d: 90, unit: 'cm' });
+    });
+
+    it('accepts the short w/h/d header aliases', () => {
+      const csv = ['name,imageUrl,w,h,d,unit', 'Lamp,https://s.it/a.png,30,150,30,in'].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(errors).toHaveLength(0);
+      expect(rows[0]?.dimensions).toEqual({ w: 30, h: 150, d: 30, unit: 'in' });
+    });
+
+    it('defaults the unit to cm when a dimension is given without a unit', () => {
+      const csv = ['name,imageUrl,width', 'Lamp,https://s.it/a.png,42'].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(errors).toHaveLength(0);
+      expect(rows[0]?.dimensions).toEqual({ w: 42, unit: 'cm' });
+    });
+
+    it('leaves dimensions undefined when no dimension columns are present', () => {
+      const csv = ['name,imageUrl', 'Lamp,https://s.it/a.png'].join('\n');
+      expect(parseProductsCsv(csv).rows[0]?.dimensions).toBeUndefined();
+    });
+
+    it('leaves dimensions undefined when only a unit (no measurement) is given', () => {
+      const csv = ['name,imageUrl,unit', 'Lamp,https://s.it/a.png,cm'].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(errors).toHaveLength(0);
+      expect(rows[0]?.dimensions).toBeUndefined();
+    });
+
+    it('reports a per-line error for a non-positive dimension', () => {
+      const csv = ['name,imageUrl,width', 'Lamp,https://s.it/a.png,-5'].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(rows).toHaveLength(0);
+      expect(errors[0]?.line).toBe(2);
+      expect(errors[0]?.message).toMatch(/dimensions/i);
+    });
+
+    it('reports a per-line error for a non-numeric dimension', () => {
+      const csv = ['name,imageUrl,height', 'Lamp,https://s.it/a.png,tall'].join('\n');
+      const { rows, errors } = parseProductsCsv(csv);
+      expect(rows).toHaveLength(0);
+      expect(errors[0]?.message).toMatch(/dimensions/i);
+    });
+  });
 });
