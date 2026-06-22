@@ -152,6 +152,9 @@ const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
 // Several distinct products legitimately change more of the scene than one object, so the localized-change
 // guard is looser for multi-product renders (F2) before it bails to the full model output.
 const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
+// Inside the drawn-stroke region a change must clear this (vs the normal threshold) to be kept, so a faint
+// mark the model left behind is restored to the clean room while a real product placed there is kept (F3).
+const CHANGE_STROKE_KEEP = Number(process.env.CHANGE_STROKE_KEEP_THRESHOLD ?? 140);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -162,26 +165,25 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
  * the ORIGINAL, so the rest of the scene is byte-identical to the upload. Falls back to the full model
  * output when the detected change is implausibly small/large or the images can't be read. Never throws.
  *
- * The change mask is computed against `diffReference` — the image the model actually SAW — while the kept
- * pixels are always restored from the clean `original`. These differ only for an annotated render (F3),
- * where the model saw the room WITH the burned strokes: anywhere the model left the strokes untouched
- * (didn't place/replace a product there) the composed output matches the burned reference → that region
- * reads as "unchanged" → the clean (mark-free) pixels are restored. This is what guarantees the highlight
- * marks are ALWAYS removed from the result, whether or not the model itself erased them. With no annotation
- * `diffReference` is omitted and equals `original`, so the single-product path is byte-identical to before.
+ * The change mask is a diff against the clean `original` (smooth product + glow detection — fast, no
+ * morphology). For an annotated render (F3) `markReference` carries the room the model actually SAW (clean +
+ * the burned strokes): inside the stroke region a faint leftover mark the model didn't replace shifts the
+ * pixel only moderately, so it falls under the stricter stroke-keep threshold and is restored to the clean,
+ * mark-free room — while a real product placed there shifts the pixel a lot and is kept. With no annotation
+ * `markReference` is omitted, so the single-product path is byte-identical to before.
  */
 export async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
-  opts: { maxFraction?: number; diffReference?: Uint8Array; close?: number } = {},
+  opts: { maxFraction?: number; markReference?: Uint8Array } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
-    const change = await computeChangeMask(opts.diffReference ?? original, composed.bytes, {
+    const change = await computeChangeMask(original, composed.bytes, {
       threshold: CHANGE_THRESHOLD,
       feather: CHANGE_FEATHER,
-      // Close stroke-line holes punched through a product placed over its own annotation marks (F3), where
-      // the product happens to match the burned reference. Only on the annotated path (a close radius set).
-      ...(opts.close ? { close: opts.close } : {}),
+      ...(opts.markReference
+        ? { markReference: opts.markReference, strokeKeepThreshold: CHANGE_STROKE_KEEP }
+        : {}),
     });
     if (
       !shouldComposite(change.changedFraction, {
@@ -620,21 +622,14 @@ export async function processGeneration(
     // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
-    // Morphological-close radius for the annotated path, scaled to the burned stroke width (~stroke width / 3,
-    // clamped) so it fills the stroke-line gaps the diff-against-burned can punch through a product placed over
-    // its marks, without merging distinct regions. Only used when an annotation was actually burned.
-    const closeRadius = annotation
-      ? Math.min(30, Math.max(3, Math.round((annotation.width * Math.max(roomSize.width, roomSize.height)) / 3)))
-      : undefined;
     const finalImage =
       mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
         : await keepOnlyProductChange(normalized, composed, {
             ...(isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {}),
-            // Diff against the burned room (what the model saw), restoring clean pixels — so any highlight
-            // strokes the model didn't replace with a product are wiped from the final image (F3) — and close
-            // the stroke-line holes that leaves in a product placed over its own marks.
-            ...(roomForModelBytes ? { diffReference: roomForModelBytes, close: closeRadius } : {}),
+            // Pass the burned room so the composite can wipe any highlight strokes the model left behind
+            // (restored to the clean room) without holing a real product placed over them (F3).
+            ...(roomForModelBytes ? { markReference: roomForModelBytes } : {}),
           });
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.

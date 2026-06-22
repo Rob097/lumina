@@ -35,30 +35,32 @@ describe('computeChangeMask', () => {
     expect(r).toMatchObject({ changedFraction: 0, width: 0, height: 0 });
   });
 
-  it('with `close`, fills small holes inside a changed region but leaves large unchanged areas black', async () => {
-    // reference = clean white room; composed = a black "product" block over cols 20-80 with a thin
-    // 4px-wide white stripe (cols 48-51) that matches the reference (a "hole" the diff would punch through,
-    // like a stroke line the placed product happens to match). Cols 0-19 stay white (a large unchanged area).
-    const reference = await solid(100, 100, { r: 255, g: 255, b: 255 });
-    const block = await solid(60, 100, { r: 0, g: 0, b: 0 });
-    const stripe = await solid(4, 100, { r: 255, g: 255, b: 255 });
+  it('with a markReference, drops faint leftover marks inside the stroke region but keeps strong products', async () => {
+    // clean white room; burned = clean + a translucent gray stroke at cols 10-30 (what the model saw).
+    // composed: the model LEFT the gray stroke at cols 10-30 (a moderate change vs clean), and placed a black
+    // product at cols 60-90 (a strong change vs clean).
+    const clean = await solid(100, 100, { r: 255, g: 255, b: 255 });
+    const stroke = await solid(20, 100, { r: 150, g: 150, b: 150 });
+    const product = await solid(30, 100, { r: 0, g: 0, b: 0 });
+    const burned = new Uint8Array(
+      await sharp(Buffer.from(clean)).composite([{ input: Buffer.from(stroke), left: 10, top: 0 }]).png().toBuffer(),
+    );
     const composed = new Uint8Array(
-      await sharp(Buffer.from(reference))
+      await sharp(Buffer.from(clean))
         .composite([
-          { input: Buffer.from(block), left: 20, top: 0 },
-          { input: Buffer.from(stripe), left: 48, top: 0 },
+          { input: Buffer.from(stroke), left: 10, top: 0 },
+          { input: Buffer.from(product), left: 60, top: 0 },
         ])
         .png()
         .toBuffer(),
     );
 
-    const r = await computeChangeMask(reference, composed, { feather: 0, close: 6 });
+    const r = await computeChangeMask(clean, composed, { feather: 0, markReference: burned, strokeKeepThreshold: 140 });
     const { data, info } = await sharp(Buffer.from(r.mask)).raw().toBuffer({ resolveWithObject: true });
     const at = (x: number, y: number): number => data[(y * info.width + x) * info.channels] ?? 0;
 
-    expect(at(30, 50)).toBeGreaterThan(200); // product body → kept
-    expect(at(50, 50)).toBeGreaterThan(200); // the thin hole → filled by the close (no missing piece)
-    expect(at(5, 50)).toBeLessThan(50); // large unchanged area → still black (not filled)
+    expect(at(20, 50)).toBeLessThan(50); // faint leftover mark inside the stroke → dropped (restore clean)
+    expect(at(75, 50)).toBeGreaterThan(200); // strong product → kept
   });
 });
 

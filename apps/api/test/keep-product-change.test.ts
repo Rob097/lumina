@@ -33,7 +33,7 @@ const MARK: Rgb = { r: 150, g: 150, b: 150 }; // translucent highlight burned ov
 const PRODUCT: Rgb = { r: 0, g: 0, b: 255 }; // the placed product
 
 describe('keepOnlyProductChange — annotation marks are always removed (F3)', () => {
-  it('restores clean pixels where the model RETAINED the marks, diffing against the burned room', async () => {
+  it('restores clean pixels where the model RETAINED a faint mark, via the markReference', async () => {
     const clean = await canvas([]); // pristine white room
     const burned = await canvas([{ left: 5, w: 20, rgb: MARK }]); // what the model actually saw
     // The model kept the highlight stripe untouched (cols 5-25) and placed a product (cols 55-95).
@@ -45,10 +45,10 @@ describe('keepOnlyProductChange — annotation marks are always removed (F3)', (
     const out = await keepOnlyProductChange(
       clean,
       { bytes: composed, contentType: 'image/png' },
-      { diffReference: burned },
+      { markReference: burned },
     );
 
-    // Marked-but-unchanged wall → the model left the marks, but the result MUST show the clean wall.
+    // Marked-but-unchanged wall → the model left a faint mark, but the result MUST show the clean wall.
     expect(await pixel(out.bytes, 15, 50)).toEqual([255, 255, 255]);
     // Where the product was placed → keep the model's output (centre, clear of the feathered seam).
     expect(await pixel(out.bytes, 75, 50)).toEqual([0, 0, 255]);
@@ -56,41 +56,31 @@ describe('keepOnlyProductChange — annotation marks are always removed (F3)', (
     expect(await pixel(out.bytes, 40, 50)).toEqual([255, 255, 255]);
   });
 
-  it('fills stroke-line holes a product placed over its own marks would otherwise punch (close)', async () => {
-    // burned room = clean + gray strokes at cols 5-18 (a wall mark) and 40-62 (under where the lamp goes).
+  it('keeps a real product placed over its own marks solid — no holes', async () => {
+    // burned room = clean + gray strokes at cols 5-18 (a wall mark) and 35-65 (under where the lamp goes).
     const clean = await canvas([]);
     const burned = await canvas([
-      { left: 5, w: 14, rgb: MARK },
-      { left: 40, w: 22, rgb: MARK },
+      { left: 5, w: 13, rgb: MARK },
+      { left: 40, w: 25, rgb: MARK },
     ]);
-    // composed = a black "lamp" over cols 30-70, but with a 13px slice (cols 45-58) the model rendered the
-    // same gray as the burned stroke (a coincidental match → a hole the diff punches), and the wall mark
-    // (cols 5-18) left untouched (the model kept it).
+    // composed = a strong blue "lamp" over cols 30-80 (covering its marks), and the wall mark (cols 5-18)
+    // left untouched by the model.
     const composed = await canvas([
-      { left: 5, w: 14, rgb: MARK },
-      { left: 30, w: 40, rgb: { r: 0, g: 0, b: 0 } },
-      { left: 45, w: 13, rgb: MARK },
+      { left: 5, w: 13, rgb: MARK },
+      { left: 30, w: 50, rgb: PRODUCT },
     ]);
 
-    const withoutClose = await keepOnlyProductChange(clean, { bytes: composed, contentType: 'image/png' }, {
-      diffReference: burned,
-    });
-    const withClose = await keepOnlyProductChange(clean, { bytes: composed, contentType: 'image/png' }, {
-      diffReference: burned,
-      close: 8,
+    const out = await keepOnlyProductChange(clean, { bytes: composed, contentType: 'image/png' }, {
+      markReference: burned,
     });
 
-    const px = pixel;
-    // Without the close the coincidental slice is punched out → the clean wall shows through (a missing piece).
-    expect((await px(withoutClose.bytes, 51, 50))[0]).toBeGreaterThan(230);
-    // With the close that hole is filled → the model's pixel is kept (gray), not the clean wall.
-    expect((await px(withClose.bytes, 51, 50))[0]).toBeLessThan(210);
-    // The lamp body is kept either way, and the untouched wall mark is still wiped to the clean wall.
-    expect((await px(withClose.bytes, 35, 50))[0]).toBeLessThan(60); // lamp body
-    expect((await px(withClose.bytes, 11, 50))).toEqual([255, 255, 255]); // wall mark removed
+    // The lamp is kept solid where it overlaps its own marks (cols 40-65) — no missing pieces.
+    expect(await pixel(out.bytes, 52, 50)).toEqual([0, 0, 255]); // centre, directly over the burned stroke
+    // The untouched wall mark is still wiped to the clean wall.
+    expect(await pixel(out.bytes, 10, 50)).toEqual([255, 255, 255]);
   });
 
-  it('without a diff reference, behaves as before (diffs against the original)', async () => {
+  it('without a markReference, behaves as before (plain diff against the original)', async () => {
     const clean = await canvas([]);
     const composed = await canvas([{ left: 55, w: 40, rgb: PRODUCT }]);
 

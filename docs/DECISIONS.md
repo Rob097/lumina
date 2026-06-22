@@ -751,8 +751,9 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   widget (`DrawCanvas`). The stroke color resolves from the merchant accent (`theme.accent`), falling back to
   the brand `#5a55d6` when it isn't a usable `#rrggbb`.
 
-- **D77 — The change mask diffs against the room the model SAW (burned), not the clean room.** D74's
-  "self-cleaning" relied on the diff-mask comparing the model output to the clean room — but that only erases
+- **D77 — The change mask diffs against the room the model SAW (burned), not the clean room.** *(Superseded by
+  D80 — the burned diff punched holes through a product placed over its own marks; D80 reverts to a clean diff.)*
+  D74's "self-cleaning" relied on the diff-mask comparing the model output to the clean room — but that only erases
   strokes the model *itself* removed; strokes the model **retained** (e.g. a broadly-marked wall where only
   part got the product) differ from the clean room, so the mask flagged them "changed" and the composite
   **kept the marked pixels** (observed: a highlighted wall's marks survived into the result). Fix: in
@@ -779,7 +780,9 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   on the strengthened prompt + the visual marks, and remain model-dependent (the provider takes only
   images + prompt, so there is no deterministic per-object placement lever).
 
-- **D79 — A morphological close fills the stroke-line holes the burned-diff punches through a product.** D77's
+- **D79 — A morphological close fills the stroke-line holes the burned-diff punches through a product.**
+  *(Superseded by D80 — the close ran large-sigma blurs + PNG round-trips on every annotated render, pushing the
+  function past its 120s timeout, and its aggressive dilate/erode blotched the lighting. D80 drops it.)* D77's
   diff-against-burned classifies any pixel where the model output ≈ the burned reference as "unchanged" → clean
   restored. Where the user draws a product's shape and the model places the product over those strokes, the
   product's pixels occasionally fall within the threshold of the burned (room+stroke) color, so the diff
@@ -792,3 +795,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   non-annotated path passes no `close` and is byte-identical. Implementation note: `blur` and `threshold` must
   live in **separate** sharp pipelines — within one pipeline sharp runs `threshold` before `blur` regardless of
   chain order, which would no-op the threshold on a binary mask.
+
+- **D80 — Mark removal is a cheap stroke-region keep-threshold, not a burned diff or morphology.** D77+D79
+  regressed badly: every annotated render diffed against the burned room (punching holes through a product
+  placed over its own marks) and ran a morphological close (large-sigma blurs + ~6 full-res PNG round-trips),
+  which on the Inngest runtime pushed past the **120s function timeout** (→ `FUNCTION_INVOCATION_TIMEOUT`,
+  retries, 3–4 min total) and blotched the lighting. Reverted both. The change mask is again a plain diff
+  against the **clean** room (smooth product + glow, fast — this is the known-good pre-D77 behaviour). Retained
+  marks are removed cheaply instead: `computeChangeMask` takes the burned room as `markReference`; a pixel the
+  burn shifted (a stroke pixel) must clear a **higher** keep threshold (`CHANGE_STROKE_KEEP`, default 140) to be
+  kept — a translucent leftover mark shifts a pixel ~100 so it's dropped (restored to the clean room), while a
+  real product shifts it ≫140 so it stays solid (no holes). Cost: one extra image decode, no blur/morphology, so
+  generation latency returns to the previous 10–50s. Trade-off: a very low-contrast product placed exactly on a
+  stroke could lose a soft edge; acceptable vs the timeout/blotch. With no annotation `markReference` is omitted
+  and the path is byte-identical. The position fix (D78) is unaffected.
