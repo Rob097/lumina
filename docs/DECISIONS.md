@@ -764,3 +764,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   renders. With no annotation `diffReference` is omitted (equals the clean room), so the single-product path is
   byte-identical. The compose annotation line also now says a broad marked area indicates the **extent** to
   fill/cover (not a single point), to nudge coverage-style products to fill the highlighted region.
+
+- **D78 — The marked position is authoritative, reinforced by a resolved textual region.** The drawn location
+  was being ignored for objects (a lamp drawn on the right was placed centrally on both Studio and widget):
+  the burned mark is faint and the object-placement task said "place at the most natural, functional location",
+  which the model satisfied by centering. Fix in two layers: (1) prompt authority — when an annotation is
+  present, `buildComposeTask`'s primary instruction targets the marked location (not "most natural"), and
+  `annotationFact` states the marked position OVERRIDES the natural location and (multi) match each product to
+  its best-fit marked region; (2) a deterministic textual region — `annotationRegionLabel()` (`@lumina/shared`)
+  reduces the strokes' bounding-box centre to a coarse 3×3 label ("right", "top-left", …) that the workflow
+  passes as `ComposeInput.annotation.region` for a **single** product, so the prompt states an explicit
+  position ("the marked area is on the right — place it there") the model obeys far more reliably than a faint
+  mark. The region is omitted for multi-product (no per-product stroke mapping); precise multi positions rely
+  on the strengthened prompt + the visual marks, and remain model-dependent (the provider takes only
+  images + prompt, so there is no deterministic per-object placement lever).

@@ -56,6 +56,30 @@ export function normalizedPoint(
 }
 
 /**
+ * A coarse human label for WHERE an annotation sits in the room ("right", "top-left", "center", …), derived
+ * from the bounding-box centre of all stroke points over a 3×3 grid. Fed to the compose prompt as an explicit
+ * textual position so the model honors the drawn location reliably (a faint burned mark alone is easily
+ * overridden by the model's "most natural location" instinct, F3). Returns '' when nothing was drawn. Only
+ * meaningful for a single placement target — a multi-product render has no per-product stroke mapping.
+ */
+export function annotationRegionLabel(annotation: Annotation): string {
+  const pts = annotation.strokes.flatMap((s) => s.points);
+  if (pts.length === 0) {
+    return '';
+  }
+  const xs = pts.map((p) => p.x);
+  const ys = pts.map((p) => p.y);
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  const col = cx < 1 / 3 ? 'left' : cx > 2 / 3 ? 'right' : 'center';
+  const row = cy < 1 / 3 ? 'top' : cy > 2 / 3 ? 'bottom' : 'middle';
+  if (col === 'center' && row === 'middle') return 'center';
+  if (row === 'middle') return col; // 'left' | 'right'
+  if (col === 'center') return row; // 'top' | 'bottom'
+  return `${row}-${col}`; // e.g. 'top-left', 'bottom-right'
+}
+
+/**
  * Build an {@link Annotation} from drawn strokes (each a list of normalized points), in the given color.
  * Drops empty strokes and enforces the caps; returns null when nothing was drawn. The caller is responsible
  * for passing a valid #rrggbb color (the canvas surfaces resolve their accent first).

@@ -72,8 +72,10 @@ export interface ComposeInput {
   /**
    * Freehand annotation (F3): the shopper burned translucent marks onto the room image. Surfaced to the
    * prompt by its color so the model treats the marked areas as guidance and does NOT keep the marks.
+   * `region` is a coarse textual position ("right", "top-left", …) the server resolved from the strokes
+   * for a single placement target, so the model honors the drawn location reliably (omitted for multi).
    */
-  annotation?: { color: string };
+  annotation?: { color: string; region?: string };
   /** Output aspect ratio pinned to the room photo (e.g. '4:3') so the model can't re-frame/rotate it. */
   aspectRatio?: string;
   policy: RoutingPolicy;

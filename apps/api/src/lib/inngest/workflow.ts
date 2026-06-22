@@ -20,6 +20,7 @@ import {
 } from '@lumina/db';
 import {
   AnnotationSchema,
+  annotationRegionLabel,
   neutralGenerationPlan,
   type Annotation,
   type GenerationMode,
@@ -594,7 +595,17 @@ export async function processGeneration(
       mode,
       target: isMulti ? undefined : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
-      ...(annotation ? { annotation: { color: annotation.color } } : {}),
+      // Pass the marked color always; for a single product also resolve a coarse textual position from the
+      // strokes ("right", "top-left", …) so the model honors the drawn location (a multi render has no
+      // per-product stroke mapping, so the region is omitted and the prompt matches marks to products).
+      ...(annotation
+        ? {
+            annotation: {
+              color: annotation.color,
+              ...(isMulti ? {} : { region: annotationRegionLabel(annotation) }),
+            },
+          }
+        : {}),
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),
