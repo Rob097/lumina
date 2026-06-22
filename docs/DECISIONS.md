@@ -727,3 +727,26 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   sends `[room, ...productCutouts]`. The diff-mask composite-over-original still applies, but
   `CHANGE_MAX_FRACTION_MULTI` (0.85, vs 0.6) lets several objects change more of the scene before it bails to
   the full render. Coverage-quantity estimation is skipped for a multi set (a single-product concept).
+
+## Draw on the room photo (2026-06-22) — Studio + widget
+
+- **D74 — Draw-on-room via a burned annotation, not provider inpainting.** The active Gemini-via-Gateway
+  provider only takes `images + prompt` (no mask input), so the shopper's freehand strokes are **burned onto
+  a copy** of the room (sharp rasterizes an SVG polyline overlay, `apps/api/src/lib/images/annotate.ts`) and
+  that annotated image is fed to the model, with a prompt line referencing the exact color and telling the
+  model the marks are guidance to **remove**, not render. The clean room stays the before image and the
+  diff-mask composite base, so stray marks outside the placed region are discarded automatically; residual
+  marks inside it are the one accepted risk (mitigated by low alpha + the prompt). Strokes travel as
+  **normalized 0..1 vectors** in the request (no second upload — the server rasterizes at native res) and are
+  persisted in `generations.metadata.annotation` (**no schema column**). Marks use the surface's accent color
+  at 0.6 alpha — never red. The annotation line is shared by the single- and multi-product prompts.
+
+- **D75 — Annotation folds into the idempotency key only when present.** Un-annotated requests keep their
+  existing keys (the segment is appended only when an annotation exists); a re-draw is a distinct paid render.
+
+- **D76 — The widget draws inside ConfirmStep, not a new flow step.** Overlaying the canvas on the existing
+  room preview avoids a new state-machine step and is leaner for the <45 KB bundle (**37.7 KB after, ~+1.5 KB**;
+  no drawing library — a few canvas calls + pointer events reused from `BeforeAfter`). The pure stroke helpers
+  `buildAnnotation`/`normalizedPoint` live in `@lumina/shared`, shared by the Studio (`RoomAnnotator`) and the
+  widget (`DrawCanvas`). The stroke color resolves from the merchant accent (`theme.accent`), falling back to
+  the brand `#5a55d6` when it isn't a usable `#rrggbb`.

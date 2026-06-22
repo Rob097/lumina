@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
-import type { FeedbackRating } from '@lumina/shared';
+import type { Annotation, FeedbackRating } from '@lumina/shared';
 import type { EffectiveConfig } from '../core/config.js';
 import type { Translate } from '../core/i18n.js';
 import { Modal } from './Modal.js';
@@ -17,6 +17,7 @@ export interface AppController {
   selectRoom(file: Blob, source: 'file' | 'camera'): unknown;
   setHint(hint: string): void;
   setInstructions(text: string): void;
+  setAnnotation(annotation: Annotation | null): void;
   setQuantity(quantity: number): void;
   startGeneration(): unknown;
   regenerate(): unknown;
@@ -38,6 +39,9 @@ export function App({ controller, config, t }: AppProps) {
   useEffect(() => controller.subscribe(setState), [controller]);
 
   if (state.step === 'idle') return null;
+
+  // The draw-layer stroke color: the merchant's accent if it's a usable #rrggbb, else the brand default.
+  const accent = /^#[0-9a-fA-F]{6}$/.test(config.theme.accent ?? '') ? config.theme.accent! : '#5a55d6';
 
   return (
     <Modal
@@ -67,6 +71,8 @@ export function App({ controller, config, t }: AppProps) {
             t={t}
             productName={state.opts?.product?.name}
             roomPreviewUrl={state.roomPreviewUrl}
+            accent={accent}
+            onSetAnnotation={(a) => controller.setAnnotation(a)}
             activeHint={state.placementHint}
             onSetHint={(hint) => controller.setHint(hint)}
             customInstructions={state.customInstructions}

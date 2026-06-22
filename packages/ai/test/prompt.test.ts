@@ -216,3 +216,29 @@ describe('buildComposePrompt — multi-product placement (F2)', () => {
     expect(buildComposePrompt(single)).toMatch(/most natural, functional location/i);
   });
 });
+
+describe('buildComposePrompt — annotation (F3)', () => {
+  it('references the highlight color and tells the model not to keep the marks', () => {
+    const p = buildComposePrompt({ ...base, annotation: { color: '#5A55D6' } });
+    expect(p).toContain('#5A55D6');
+    expect(p).toMatch(/highlight|marked|strokes/i);
+    expect(p).toMatch(/do not.*(render|keep|draw).*mark/i);
+  });
+
+  it('omits the annotation guidance when none is given', () => {
+    expect(buildComposePrompt(base)).not.toMatch(/highlighted region/i);
+  });
+
+  it('includes the annotation guidance for multi-product placement too', () => {
+    const p = buildComposePrompt({
+      ...base,
+      productInfos: [
+        { name: 'A', category: 'lighting' },
+        { name: 'B', category: 'furniture' },
+      ],
+      annotation: { color: '#123456' },
+    });
+    expect(p).toContain('#123456');
+    expect(p).toMatch(/highlight|marked/i);
+  });
+});

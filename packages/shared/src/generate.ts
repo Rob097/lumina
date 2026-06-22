@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { AnnotationSchema } from './annotation.js';
 import { GenerationStatusSchema } from './enums.js';
 import { ErrorCodeSchema } from './errors.js';
 import { InlineProductSchema } from './product.js';
@@ -26,6 +27,8 @@ export const GenerateRequestSchema = z
     placementHint: z.string().optional(),
     /** Optional free-text shopper guidance, fed to the prompt as a soft preference (§7.5). */
     customInstructions: z.string().max(280).optional(),
+    /** Freehand marks drawn over the room photo (F3) — guidance for where to focus the edit. */
+    annotation: AnnotationSchema.optional(),
     anonId: z.string().min(1),
     pageUrl: z.string().url().optional(),
     metadata: z.record(z.string(), z.string()).optional(),

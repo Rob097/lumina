@@ -385,7 +385,8 @@
 }
 .studio-room {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 14px;
 }
 .studio-room-img {
@@ -394,6 +395,45 @@
   object-fit: cover;
   border-radius: var(--r-md);
   border: 1px solid var(--border);
+}
+/* ---- room annotator (F3) ---- */
+.studio-annotator {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+.studio-annotator-stage {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+.studio-annotator-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-user-select: none;
+  user-select: none;
+  pointer-events: none;
+}
+.studio-annotator-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+  touch-action: none; /* let the canvas own touch gestures so drawing doesn't scroll the page */
+}
+.studio-annotator-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.studio-annotator-tools .studio-hint {
+  margin-right: auto;
 }
 .studio-generate {
   align-self: flex-start;

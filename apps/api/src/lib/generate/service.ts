@@ -1,8 +1,8 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { generations, products, type Database, type ProductSnapshot } from '@lumina/db';
-import type { GenerationStatus, InlineProduct } from '@lumina/shared';
+import type { Annotation, GenerationStatus, InlineProduct } from '@lumina/shared';
 import type { NotifyInput } from '../notifications/service.js';
-import { computeIdempotencyKey, inlineProductRef } from './idempotency.js';
+import { annotationRef, computeIdempotencyKey, inlineProductRef } from './idempotency.js';
 
 /** Notify the merchant once when their balance crosses below this (emitted from the debiting path). */
 const LOW_CREDITS_THRESHOLD = 20;
@@ -50,6 +50,8 @@ export interface CreateGenerationInput {
   roomKey: string;
   placementHint?: string;
   customInstructions?: string;
+  /** Freehand marks drawn over the room photo (F3) — persisted + burned onto the model's room by the workflow. */
+  annotation?: Annotation;
   /** Studio: link the render to a client (#8). */
   clientId?: string;
   anonId?: string;
@@ -243,6 +245,7 @@ export async function createGeneration(
     roomKey: input.roomKey,
     placementHint: input.placementHint,
     customInstructions: input.customInstructions,
+    ...(input.annotation ? { annotationHash: annotationRef(input.annotation) } : {}),
   });
 
   const existing = await findExisting(db, input.merchantId, idempotencyKey);
@@ -269,7 +272,11 @@ export async function createGeneration(
           idempotencyKey,
           anonId: input.anonId,
           pageUrl: input.pageUrl,
-          metadata: input.metadata ?? {},
+          // The annotation rides in metadata (no schema column needed); the workflow reads + burns it.
+          metadata: {
+            ...(input.metadata ?? {}),
+            ...(input.annotation ? { annotation: input.annotation } : {}),
+          },
           status: 'queued',
         })
         .returning({ id: generations.id });

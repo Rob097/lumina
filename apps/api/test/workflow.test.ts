@@ -685,6 +685,78 @@ describe('processGeneration — multi-product (F2)', () => {
   });
 });
 
+// Annotation (F3): a generation carrying metadata.annotation gets the shopper's strokes burned onto a COPY
+// of the room for the model (passed as bytes), while the clean room stays the before image + composite base.
+describe('processGeneration — annotation (F3)', () => {
+  it('burns the strokes onto the model room (bytes) and passes the color, keeping the clean original', async () => {
+    const annotation = {
+      color: '#5A55D6',
+      alpha: 0.6,
+      width: 0.05,
+      strokes: [{ points: [{ x: 0.4, y: 0.4 }, { x: 0.6, y: 0.6 }] }],
+    };
+    const merchantId = firstOrThrow(
+      await ctx.db.insert(merchants).values({ name: 'Ann', slug: `a-${randomUUID()}`, creditsBalance: 4 }).returning(),
+    ).id;
+    const generationId = firstOrThrow(
+      await ctx.db
+        .insert(generations)
+        .values({
+          merchantId,
+          roomKey: `rooms/${merchantId}/${randomUUID()}.jpg`,
+          productSnapshot: { name: 'Aura', category: 'lighting', imageUrl: 'https://shop.test/a.png' },
+          metadata: { annotation },
+          idempotencyKey: randomUUID(),
+          status: 'queued',
+          creditsSpent: 1,
+        })
+        .returning(),
+    ).id;
+    await ctx.db.insert(creditLedger).values({ merchantId, amount: -1, reason: 'generation', generationId });
+
+    const room = new Uint8Array(
+      await sharp({ create: { width: 80, height: 60, channels: 3, background: { r: 240, g: 240, b: 240 } } }).jpeg().toBuffer(),
+    );
+    const captured: { room?: ImageRef; color?: string } = {};
+    const provider: AIProvider = {
+      name: 'cap',
+      compose: async (input) => {
+        captured.room = input.room;
+        captured.color = input.annotation?.color;
+        return { bytes: room, contentType: 'image/jpeg', model: 'mock-compose', costCents: 1, width: 80, height: 60 };
+      },
+    };
+    const orch = new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      quantity: new MockQuantityProvider(),
+    });
+    const realStorage: StoragePort = {
+      getObject: async () => room,
+      presignDownload: async (k) => `https://signed/${k}`,
+      putObject: async () => {},
+    };
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: realStorage }, generationId)).toBe('succeeded');
+    expect(captured.color).toBe('#5A55D6');
+    expect(captured.room && 'bytes' in captured.room).toBe(true); // model got the annotated bytes, not the clean URL
+  });
+
+  it('composes against the clean room URL when there is no annotation', async () => {
+    const { generationId } = await queued(4);
+    const captured: { room?: ImageRef } = {};
+    const provider: AIProvider = {
+      name: 'cap',
+      compose: async (input) => {
+        captured.room = input.room;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 10, height: 10 };
+      },
+    };
+    const orch = new AIOrchestrator({ chains: { quality: [provider], balanced: [provider], fast: [provider] } });
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    expect(captured.room && 'url' in captured.room).toBe(true);
+  });
+});
+
 // The Inngest `onFailure` net: when a run dies *outside* processGeneration's own try/catch (a module-load
 // crash, OOM, or timeout — the failure mode that left a generation stuck in QUEUED), this marks it failed
 // and refunds the credit. It must be idempotent so retries / a late onFailure can never double-refund.

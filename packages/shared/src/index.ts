@@ -8,6 +8,7 @@ export * from './enums.js';
 export * from './errors.js';
 export * from './events.js';
 export * from './product.js';
+export * from './annotation.js';
 export * from './config.js';
 export * from './widget.js';
 export * from './generate.js';

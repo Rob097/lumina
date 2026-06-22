@@ -82,6 +82,11 @@ and can fill an always-visible **custom-instructions** field (`customInstruction
 the `generate` request and reach `AIOrchestrator.compose`; the prompt renders the free text as a *soft
 preference* below the HARD RULES so it can't override product identity, room integrity, scale, or framing.
 
+The shopper can also **draw on the room photo** (`DrawCanvas`, mouse + touch) to mark where the product should
+go (F3). Strokes are sent as normalized vectors (`annotation`) in the `generate` request; the server burns them
+onto a copy of the room for the model and keeps the clean photo for the before/after. Marks use the merchant's
+accent color at reduced opacity. Drawing is optional.
+
 **Locale precedence** (`mergeConfig`): an explicit `data-lumina-locale`/`init` locale wins; otherwise the
 merchant's dashboard locale is authoritative; the host page's `<html lang>` is only a last-ditch fallback
 — so an Italian storefront never silently overrides a merchant who configured English.

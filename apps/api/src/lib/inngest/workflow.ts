@@ -19,7 +19,9 @@ import {
   type ProductSnapshot,
 } from '@lumina/db';
 import {
+  AnnotationSchema,
   neutralGenerationPlan,
+  type Annotation,
   type GenerationMode,
   type GenerationPlan,
   type ProductCategory,
@@ -30,6 +32,7 @@ import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
+import { burnAnnotation } from '../images/annotate.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -190,6 +193,16 @@ async function keepOnlyProductChange(
 /** R2 key for a product's cached background-removed cutout (tenant-prefixed, HARD RULE #1). */
 export function productCleanKey(merchantId: string, id: string): string {
   return `products/${merchantId}/clean/${id}.png`;
+}
+
+/** The freehand annotation (F3) stored in metadata at creation, re-validated; null when absent/invalid. */
+function readAnnotation(gen: GenerationRow): Annotation | null {
+  const raw = (gen.metadata as { annotation?: unknown } | null)?.annotation;
+  if (!raw) {
+    return null;
+  }
+  const parsed = AnnotationSchema.safeParse(raw);
+  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -531,8 +544,22 @@ export async function processGeneration(
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
     // always-true system instruction. One generative compose per product (no deterministic tiling); the
     // coverage QUANTITY is surfaced separately in the dashboard (D67).
+    // Annotation (F3): burn the shopper's strokes onto a COPY of the (clean, normalized) room and hand THAT
+    // to the model, while `normalized` stays the clean original for the composite + before image. So stray
+    // marks outside the placed region are discarded by keepOnlyProductChange, and the before stays clean.
+    const annotation = readAnnotation(gen);
+    let roomForModel: ImageRef = { url: roomUrl };
+    if (annotation) {
+      try {
+        const burned = await burnAnnotation(normalized, annotation);
+        roomForModel = { bytes: burned.bytes, contentType: burned.contentType };
+      } catch (err) {
+        deps.reportError?.(err, { generationId, stage: 'annotate' });
+      }
+    }
+
     const composed = await deps.orchestrator.compose({
-      room: { url: roomUrl },
+      room: roomForModel,
       product: productImages[0]!,
       // Multi-product: hand the model every product image + per-product facts; the prompt switches to a
       // multi-object placement task. Single-product callers omit these and behave exactly as before.
@@ -554,6 +581,7 @@ export async function processGeneration(
       mode,
       target: isMulti ? undefined : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
+      ...(annotation ? { annotation: { color: annotation.color } } : {}),
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),

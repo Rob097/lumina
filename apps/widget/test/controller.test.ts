@@ -91,6 +91,32 @@ describe('LuminaController', () => {
     );
   });
 
+  it('includes a set annotation in the generate request', async () => {
+    const { controller, api } = harness();
+    const annotation = {
+      color: '#5a55d6',
+      alpha: 0.6,
+      width: 0.012,
+      strokes: [{ points: [{ x: 0.2, y: 0.3 }, { x: 0.6, y: 0.7 }] }],
+    };
+    controller.open({ productId: 'SKU' });
+    await controller.selectRoom(room(), 'file');
+    controller.setAnnotation(annotation);
+    await controller.startGeneration();
+    expect(api.generate).toHaveBeenCalledWith(expect.objectContaining({ annotation }));
+  });
+
+  it('omits the annotation from the request once cleared', async () => {
+    const { controller, api } = harness();
+    controller.open({ productId: 'SKU' });
+    await controller.selectRoom(room(), 'file');
+    controller.setAnnotation({ color: '#5a55d6', alpha: 0.6, width: 0.012, strokes: [{ points: [{ x: 0, y: 0 }] }] });
+    controller.setAnnotation(null);
+    await controller.startGeneration();
+    const req = (api.generate as ReturnType<typeof vi.fn>).mock.calls[0]![0] as { annotation?: unknown };
+    expect(req.annotation).toBeUndefined();
+  });
+
   it('maps insufficient_credits to the error step with no result', async () => {
     const api = makeApi({
       generate: vi.fn(async () => {

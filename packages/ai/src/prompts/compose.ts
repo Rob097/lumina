@@ -85,6 +85,23 @@ function sceneFacts(input: ComposeInput): string[] {
 }
 
 /**
+ * Freehand annotation guidance (F3): the shopper drew translucent marks on the room to point at where the
+ * edit should happen. Reference the exact color so the model can pick the marks out, and make clear they're
+ * guidance to be removed — never rendered into the result. Shared by single- and multi-product tasks.
+ */
+function annotationFact(input: ComposeInput): string[] {
+  if (!input.annotation) {
+    return [];
+  }
+  const { color } = input.annotation;
+  return [
+    `- The user highlighted region(s) on the room photo with translucent ${color} strokes. Treat the marked` +
+      ' areas as where to focus the edit — place/replace the product there, or apply the change there. The' +
+      ` strokes are guidance ONLY: do NOT render, draw, or keep the ${color} marks in the output.`,
+  ];
+}
+
+/**
  * The (untrusted, subordinated) shopper free-text. Quoted and subordinated to the HARD RULES so it can
  * refine placement/style but never relax product identity, environment integrity, scale, or framing.
  * Collapse quotes so it can't break the wrapper. Shared by every task.
@@ -116,7 +133,7 @@ function requestFacts(input: ComposeInput): string[] {
     lines.push(`- Real-world product dimensions: ${dims}. Match scale to these relative to visible references.`);
   }
 
-  lines.push(...sceneFacts(input), ...customPreference(input));
+  lines.push(...sceneFacts(input), ...annotationFact(input), ...customPreference(input));
   return lines;
 }
 
@@ -207,6 +224,7 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     '',
     'REQUEST DETAILS for this generation:',
     ...sceneFacts(input),
+    ...annotationFact(input),
     ...customPreference(input),
   ].join('\n');
 }
