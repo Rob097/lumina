@@ -152,9 +152,6 @@ const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
 // Several distinct products legitimately change more of the scene than one object, so the localized-change
 // guard is looser for multi-product renders (F2) before it bails to the full model output.
 const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
-// Inside the drawn-stroke region a change must clear this (vs the normal threshold) to be kept, so a faint
-// mark the model left behind is restored to the clean room while a real product placed there is kept (F3).
-const CHANGE_STROKE_KEEP = Number(process.env.CHANGE_STROKE_KEEP_THRESHOLD ?? 140);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -165,25 +162,21 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
  * the ORIGINAL, so the rest of the scene is byte-identical to the upload. Falls back to the full model
  * output when the detected change is implausibly small/large or the images can't be read. Never throws.
  *
- * The change mask is a diff against the clean `original` (smooth product + glow detection — fast, no
- * morphology). For an annotated render (F3) `markReference` carries the room the model actually SAW (clean +
- * the burned strokes): inside the stroke region a faint leftover mark the model didn't replace shifts the
- * pixel only moderately, so it falls under the stricter stroke-keep threshold and is restored to the clean,
- * mark-free room — while a real product placed there shifts the pixel a lot and is kept. With no annotation
- * `markReference` is omitted, so the single-product path is byte-identical to before.
+ * The change mask is a plain diff against the clean `original`: the model's output is kept where it differs
+ * from the upload (the product + its shadows/glow), and the original pixels are restored everywhere else, so
+ * the rest of the scene stays byte-identical (no drift). This is intentionally annotation-agnostic — special-
+ * casing the burned-stroke region damages a product placed on its own marks (it sits exactly there), so the
+ * strokes are guidance for the MODEL only and their removal is left to the prompt, not the composite.
  */
 export async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
-  opts: { maxFraction?: number; markReference?: Uint8Array } = {},
+  opts: { maxFraction?: number } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
     const change = await computeChangeMask(original, composed.bytes, {
       threshold: CHANGE_THRESHOLD,
       feather: CHANGE_FEATHER,
-      ...(opts.markReference
-        ? { markReference: opts.markReference, strokeKeepThreshold: CHANGE_STROKE_KEEP }
-        : {}),
     });
     if (
       !shouldComposite(change.changedFraction, {
@@ -563,15 +556,10 @@ export async function processGeneration(
     // marks outside the placed region are discarded by keepOnlyProductChange, and the before stays clean.
     const annotation = readAnnotation(gen);
     let roomForModel: ImageRef = { url: roomUrl };
-    // The exact bytes the model is handed (clean room + burned strokes). Used as the change-mask reference
-    // below so retained strokes read as "unchanged" and the clean pixels are restored over them. Stays
-    // undefined when there's no annotation, so the composite reference is the clean room (unchanged path).
-    let roomForModelBytes: Uint8Array | undefined;
     if (annotation) {
       try {
         const burned = await burnAnnotation(normalized, annotation);
         roomForModel = { bytes: burned.bytes, contentType: burned.contentType };
-        roomForModelBytes = burned.bytes;
       } catch (err) {
         deps.reportError?.(err, { generationId, stage: 'annotate' });
       }
@@ -625,12 +613,11 @@ export async function processGeneration(
     const finalImage =
       mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
-        : await keepOnlyProductChange(normalized, composed, {
-            ...(isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {}),
-            // Pass the burned room so the composite can wipe any highlight strokes the model left behind
-            // (restored to the clean room) without holing a real product placed over them (F3).
-            ...(roomForModelBytes ? { markReference: roomForModelBytes } : {}),
-          });
+        : await keepOnlyProductChange(
+            normalized,
+            composed,
+            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
+          );
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

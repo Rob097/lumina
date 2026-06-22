@@ -35,33 +35,6 @@ describe('computeChangeMask', () => {
     expect(r).toMatchObject({ changedFraction: 0, width: 0, height: 0 });
   });
 
-  it('with a markReference, drops faint leftover marks inside the stroke region but keeps strong products', async () => {
-    // clean white room; burned = clean + a translucent gray stroke at cols 10-30 (what the model saw).
-    // composed: the model LEFT the gray stroke at cols 10-30 (a moderate change vs clean), and placed a black
-    // product at cols 60-90 (a strong change vs clean).
-    const clean = await solid(100, 100, { r: 255, g: 255, b: 255 });
-    const stroke = await solid(20, 100, { r: 150, g: 150, b: 150 });
-    const product = await solid(30, 100, { r: 0, g: 0, b: 0 });
-    const burned = new Uint8Array(
-      await sharp(Buffer.from(clean)).composite([{ input: Buffer.from(stroke), left: 10, top: 0 }]).png().toBuffer(),
-    );
-    const composed = new Uint8Array(
-      await sharp(Buffer.from(clean))
-        .composite([
-          { input: Buffer.from(stroke), left: 10, top: 0 },
-          { input: Buffer.from(product), left: 60, top: 0 },
-        ])
-        .png()
-        .toBuffer(),
-    );
-
-    const r = await computeChangeMask(clean, composed, { feather: 0, markReference: burned, strokeKeepThreshold: 140 });
-    const { data, info } = await sharp(Buffer.from(r.mask)).raw().toBuffer({ resolveWithObject: true });
-    const at = (x: number, y: number): number => data[(y * info.width + x) * info.channels] ?? 0;
-
-    expect(at(20, 50)).toBeLessThan(50); // faint leftover mark inside the stroke → dropped (restore clean)
-    expect(at(75, 50)).toBeGreaterThan(200); // strong product → kept
-  });
 });
 
 describe('shouldComposite', () => {

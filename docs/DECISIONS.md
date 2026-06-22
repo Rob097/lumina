@@ -796,7 +796,10 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   live in **separate** sharp pipelines — within one pipeline sharp runs `threshold` before `blur` regardless of
   chain order, which would no-op the threshold on a binary mask.
 
-- **D80 — Mark removal is a cheap stroke-region keep-threshold, not a burned diff or morphology.** D77+D79
+- **D80 — Mark removal is a cheap stroke-region keep-threshold, not a burned diff or morphology.** *(Superseded
+  by D81 — any stroke-region special-casing damages a product placed on its own marks; the keep-threshold
+  dropped the lamp's mid-contrast pixels and glow, reproducing the holes + blotchy lighting once D78 made the
+  product land on its strokes.)* D77+D79
   regressed badly: every annotated render diffed against the burned room (punching holes through a product
   placed over its own marks) and ran a morphological close (large-sigma blurs + ~6 full-res PNG round-trips),
   which on the Inngest runtime pushed past the **120s function timeout** (→ `FUNCTION_INVOCATION_TIMEOUT`,
@@ -809,3 +812,16 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   generation latency returns to the previous 10–50s. Trade-off: a very low-contrast product placed exactly on a
   stroke could lose a soft edge; acceptable vs the timeout/blotch. With no annotation `markReference` is omitted
   and the path is byte-identical. The position fix (D78) is unaffected.
+
+- **D81 — The composite is annotation-agnostic; stroke removal is the prompt's job, not the composite's.** The
+  key realization after D77→D80 all failed: once D78 makes the product land on the drawn strokes, the stroke
+  region **is** the product region, so *any* special-casing of that region in the composite (a burned diff, a
+  morphological close, or a stroke-region keep-threshold) damages the product — holes + blotchy lighting. D80
+  proved this again (its threshold dropped the lamp's mid-contrast pixels and glow). Resolution: revert all of
+  it. `keepOnlyProductChange` / `computeChangeMask` do a **plain diff against the clean room** — the model
+  output is kept where it differs from the upload (product + shadows + glow, smooth) and the original is
+  restored elsewhere — exactly the pre-F3 behaviour, fast, no holes. The burned strokes remain guidance for the
+  **model only** (still sent to compose for placement, D78); **removing them is left to the prompt** (which
+  already states emphatically "do NOT render/keep the marks"), never to the composite. Consequence: a mark the
+  model declines to remove in an area with no product can survive — accepted, because the alternative
+  (mutating the product region) is worse. If that recurs we'll address it without ever touching product pixels.

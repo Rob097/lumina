@@ -21,28 +21,10 @@ export interface ChangeMaskOptions {
   threshold?: number;
   /** Feather (blur) radius in px applied to the mask edge so the composite seam is invisible. */
   feather?: number;
-  /**
-   * The image actually shown to the model — the clean room WITH the burned annotation strokes (F3). Where it
-   * differs from `original` marks the stroke pixels; inside those the keep test is stricter (see
-   * `strokeKeepThreshold`) so a faint mark the model left behind is dropped (restored to the clean room) while
-   * a strong product change is kept. Omitted (no annotation) → a plain diff against `original`, byte-identical
-   * to before. This costs only one extra decode — no blur/morphology — so the pipeline stays fast.
-   */
-  markReference?: Uint8Array;
-  /**
-   * Inside a stroke pixel, the change vs `original` must exceed this (higher than `threshold`) to be kept: a
-   * translucent leftover mark shifts the pixel only moderately, a real product shifts it a lot. Only used with
-   * `markReference`.
-   */
-  strokeKeepThreshold?: number;
 }
 
 const DEFAULT_THRESHOLD = 28;
 const DEFAULT_FEATHER = 6;
-/** Default keep threshold inside a stroke (a 0.6-alpha mark shifts a pixel ~100; products shift much more). */
-const DEFAULT_STROKE_KEEP = 140;
-/** A pixel counts as "on a stroke" only when the burn shifted it at least this much vs the clean room. */
-const STROKE_MIN_DIFF = 12;
 const EMPTY: ChangeMaskResult = { mask: new Uint8Array(), changedFraction: 0, width: 0, height: 0 };
 
 export async function computeChangeMask(
@@ -63,12 +45,7 @@ export async function computeChangeMask(
 
     const toRgb = (b: Uint8Array): Promise<Buffer> =>
       sharp(Buffer.from(b)).resize(width, height, { fit: 'fill' }).removeAlpha().raw().toBuffer();
-    const [o, e, m] = await Promise.all([
-      toRgb(original),
-      toRgb(edited),
-      opts.markReference ? toRgb(opts.markReference) : Promise.resolve<Buffer | null>(null),
-    ]);
-    const strokeKeep = opts.strokeKeepThreshold ?? DEFAULT_STROKE_KEEP;
+    const [o, e] = await Promise.all([toRgb(original), toRgb(edited)]);
 
     const n = width * height;
     const raw = Buffer.allocUnsafe(n);
@@ -79,20 +56,7 @@ export async function computeChangeMask(
         Math.abs(o[p + 1]! - e[p + 1]!),
         Math.abs(o[p + 2]! - e[p + 2]!),
       );
-      let isChanged = d > threshold;
-      if (isChanged && m) {
-        // On a stroke pixel (the burn shifted the clean room) a real product still changes it a lot, but a
-        // leftover mark only moderately — so require a stronger change there to keep it, else restore clean.
-        const strokeStrength = Math.max(
-          Math.abs(o[p]! - m[p]!),
-          Math.abs(o[p + 1]! - m[p + 1]!),
-          Math.abs(o[p + 2]! - m[p + 2]!),
-        );
-        if (strokeStrength > STROKE_MIN_DIFF && d <= strokeKeep) {
-          isChanged = false;
-        }
-      }
-      if (isChanged) {
+      if (d > threshold) {
         raw[i] = 255;
         changed += 1;
       } else {
