@@ -21,6 +21,14 @@ export interface ChangeMaskOptions {
   threshold?: number;
   /** Feather (blur) radius in px applied to the mask edge so the composite seam is invisible. */
   feather?: number;
+  /**
+   * Morphological close radius (px). When > 0, the binary mask is dilated then eroded, filling small holes
+   * that are *surrounded by changed pixels* — e.g. the stroke-line gaps punched through a product placed over
+   * its own annotation marks (F3), where the product happens to match the burned reference. Large unchanged
+   * regions (a retained mark on an empty wall, surrounded by unchanged pixels) are NOT filled, so deterministic
+   * mark removal still holds. Applied before the feather.
+   */
+  close?: number;
 }
 
 const DEFAULT_THRESHOLD = 28;
@@ -66,6 +74,18 @@ export async function computeChangeMask(
     const changedFraction = n > 0 ? changed / n : 0;
 
     let maskImg = sharp(raw, { raw: { width, height, channels: 1 } });
+    const close = opts.close ?? 0;
+    if (close > 0) {
+      // Morphological close = dilate (blur + low threshold, grows white) then erode (blur + high threshold,
+      // shrinks white back). Net: holes smaller than the radius get filled; region edges return to size.
+      // blur and threshold must live in SEPARATE sharp pipelines: within one pipeline sharp runs threshold
+      // before blur regardless of chain order, which would no-op the threshold on a binary mask.
+      const blurDilate = await sharp(await maskImg.png().toBuffer()).blur(close).png().toBuffer();
+      const dilated = await sharp(blurDilate).threshold(40).png().toBuffer();
+      const blurErode = await sharp(dilated).blur(close).png().toBuffer();
+      const eroded = await sharp(blurErode).threshold(215).png().toBuffer();
+      maskImg = sharp(eroded);
+    }
     if (feather > 0) {
       maskImg = sharp(await maskImg.png().toBuffer()).blur(feather);
     }

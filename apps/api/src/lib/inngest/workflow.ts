@@ -173,12 +173,15 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
 export async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
-  opts: { maxFraction?: number; diffReference?: Uint8Array } = {},
+  opts: { maxFraction?: number; diffReference?: Uint8Array; close?: number } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
     const change = await computeChangeMask(opts.diffReference ?? original, composed.bytes, {
       threshold: CHANGE_THRESHOLD,
       feather: CHANGE_FEATHER,
+      // Close stroke-line holes punched through a product placed over its own annotation marks (F3), where
+      // the product happens to match the burned reference. Only on the annotated path (a close radius set).
+      ...(opts.close ? { close: opts.close } : {}),
     });
     if (
       !shouldComposite(change.changedFraction, {
@@ -617,14 +620,21 @@ export async function processGeneration(
     // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
+    // Morphological-close radius for the annotated path, scaled to the burned stroke width (~stroke width / 3,
+    // clamped) so it fills the stroke-line gaps the diff-against-burned can punch through a product placed over
+    // its marks, without merging distinct regions. Only used when an annotation was actually burned.
+    const closeRadius = annotation
+      ? Math.min(30, Math.max(3, Math.round((annotation.width * Math.max(roomSize.width, roomSize.height)) / 3)))
+      : undefined;
     const finalImage =
       mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
         : await keepOnlyProductChange(normalized, composed, {
             ...(isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {}),
             // Diff against the burned room (what the model saw), restoring clean pixels — so any highlight
-            // strokes the model didn't replace with a product are wiped from the final image (F3).
-            ...(roomForModelBytes ? { diffReference: roomForModelBytes } : {}),
+            // strokes the model didn't replace with a product are wiped from the final image (F3) — and close
+            // the stroke-line holes that leaves in a product placed over its own marks.
+            ...(roomForModelBytes ? { diffReference: roomForModelBytes, close: closeRadius } : {}),
           });
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.

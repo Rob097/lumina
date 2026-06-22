@@ -34,6 +34,32 @@ describe('computeChangeMask', () => {
     const r = await computeChangeMask(Uint8Array.from([1, 2, 3]), Uint8Array.from([4, 5, 6]));
     expect(r).toMatchObject({ changedFraction: 0, width: 0, height: 0 });
   });
+
+  it('with `close`, fills small holes inside a changed region but leaves large unchanged areas black', async () => {
+    // reference = clean white room; composed = a black "product" block over cols 20-80 with a thin
+    // 4px-wide white stripe (cols 48-51) that matches the reference (a "hole" the diff would punch through,
+    // like a stroke line the placed product happens to match). Cols 0-19 stay white (a large unchanged area).
+    const reference = await solid(100, 100, { r: 255, g: 255, b: 255 });
+    const block = await solid(60, 100, { r: 0, g: 0, b: 0 });
+    const stripe = await solid(4, 100, { r: 255, g: 255, b: 255 });
+    const composed = new Uint8Array(
+      await sharp(Buffer.from(reference))
+        .composite([
+          { input: Buffer.from(block), left: 20, top: 0 },
+          { input: Buffer.from(stripe), left: 48, top: 0 },
+        ])
+        .png()
+        .toBuffer(),
+    );
+
+    const r = await computeChangeMask(reference, composed, { feather: 0, close: 6 });
+    const { data, info } = await sharp(Buffer.from(r.mask)).raw().toBuffer({ resolveWithObject: true });
+    const at = (x: number, y: number): number => data[(y * info.width + x) * info.channels] ?? 0;
+
+    expect(at(30, 50)).toBeGreaterThan(200); // product body → kept
+    expect(at(50, 50)).toBeGreaterThan(200); // the thin hole → filled by the close (no missing piece)
+    expect(at(5, 50)).toBeLessThan(50); // large unchanged area → still black (not filled)
+  });
 });
 
 describe('shouldComposite', () => {

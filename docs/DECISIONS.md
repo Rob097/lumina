@@ -778,3 +778,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   mark. The region is omitted for multi-product (no per-product stroke mapping); precise multi positions rely
   on the strengthened prompt + the visual marks, and remain model-dependent (the provider takes only
   images + prompt, so there is no deterministic per-object placement lever).
+
+- **D79 — A morphological close fills the stroke-line holes the burned-diff punches through a product.** D77's
+  diff-against-burned classifies any pixel where the model output ≈ the burned reference as "unchanged" → clean
+  restored. Where the user draws a product's shape and the model places the product over those strokes, the
+  product's pixels occasionally fall within the threshold of the burned (room+stroke) color, so the diff
+  punched **holes along the stroke lines** (missing pieces) and rendered the glow blotchy — off-stroke the
+  product was solid, confirming it was confined to the drawn marks. Fix: on the annotated path only,
+  `computeChangeMask` now takes a `close` radius and applies a morphological close (dilate→erode) to the binary
+  mask before feathering — filling small holes *surrounded by changed (product) pixels* while leaving large
+  unchanged regions (a retained mark on an empty wall) black, so D77's mark removal still holds. The radius is
+  scaled to the burned stroke width (~width/3, clamped 3–30px) and passed via `keepOnlyProductChange`; the
+  non-annotated path passes no `close` and is byte-identical. Implementation note: `blur` and `threshold` must
+  live in **separate** sharp pipelines — within one pipeline sharp runs `threshold` before `blur` regardless of
+  chain order, which would no-op the threshold on a binary mask.

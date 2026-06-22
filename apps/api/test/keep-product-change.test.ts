@@ -56,6 +56,40 @@ describe('keepOnlyProductChange — annotation marks are always removed (F3)', (
     expect(await pixel(out.bytes, 40, 50)).toEqual([255, 255, 255]);
   });
 
+  it('fills stroke-line holes a product placed over its own marks would otherwise punch (close)', async () => {
+    // burned room = clean + gray strokes at cols 5-18 (a wall mark) and 40-62 (under where the lamp goes).
+    const clean = await canvas([]);
+    const burned = await canvas([
+      { left: 5, w: 14, rgb: MARK },
+      { left: 40, w: 22, rgb: MARK },
+    ]);
+    // composed = a black "lamp" over cols 30-70, but with a 13px slice (cols 45-58) the model rendered the
+    // same gray as the burned stroke (a coincidental match → a hole the diff punches), and the wall mark
+    // (cols 5-18) left untouched (the model kept it).
+    const composed = await canvas([
+      { left: 5, w: 14, rgb: MARK },
+      { left: 30, w: 40, rgb: { r: 0, g: 0, b: 0 } },
+      { left: 45, w: 13, rgb: MARK },
+    ]);
+
+    const withoutClose = await keepOnlyProductChange(clean, { bytes: composed, contentType: 'image/png' }, {
+      diffReference: burned,
+    });
+    const withClose = await keepOnlyProductChange(clean, { bytes: composed, contentType: 'image/png' }, {
+      diffReference: burned,
+      close: 8,
+    });
+
+    const px = pixel;
+    // Without the close the coincidental slice is punched out → the clean wall shows through (a missing piece).
+    expect((await px(withoutClose.bytes, 51, 50))[0]).toBeGreaterThan(230);
+    // With the close that hole is filled → the model's pixel is kept (gray), not the clean wall.
+    expect((await px(withClose.bytes, 51, 50))[0]).toBeLessThan(210);
+    // The lamp body is kept either way, and the untouched wall mark is still wiped to the clean wall.
+    expect((await px(withClose.bytes, 35, 50))[0]).toBeLessThan(60); // lamp body
+    expect((await px(withClose.bytes, 11, 50))).toEqual([255, 255, 255]); // wall mark removed
+  });
+
   it('without a diff reference, behaves as before (diffs against the original)', async () => {
     const clean = await canvas([]);
     const composed = await canvas([{ left: 55, w: 40, rgb: PRODUCT }]);
