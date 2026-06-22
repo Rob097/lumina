@@ -225,39 +225,6 @@ describe('buildComposePrompt — annotation (F3)', () => {
     expect(p).toMatch(/do not.*(render|keep|draw).*mark/i);
   });
 
-  it('tells the model a broad marked area is the extent to fill/cover, not a single point', () => {
-    const p = buildComposePrompt({ ...base, annotation: { color: '#5A55D6' } });
-    expect(p).toMatch(/extent|fill|cover/i);
-  });
-
-  it('object placement: an annotation makes the marked position the placement (not "most natural")', () => {
-    const p = buildComposePrompt({ ...base, annotation: { color: '#abcdef' } });
-    expect(p).not.toMatch(/place the supplied product once at the most natural, functional location from your analysis/i);
-    expect(p).toMatch(/marked (location|area|region|position)/i);
-  });
-
-  it('treats the marked position as authoritative, overriding the natural location', () => {
-    const p = buildComposePrompt({ ...base, annotation: { color: '#5A55D6' } });
-    expect(p).toMatch(/overrid|priorit|authoritative/i);
-  });
-
-  it('states the explicit marked region when the server resolved one', () => {
-    const p = buildComposePrompt({ ...base, annotation: { color: '#5A55D6', region: 'right' } });
-    expect(p).toMatch(/marked area is on the right of the room/i);
-  });
-
-  it('multi-product: matches each product to its marked region when annotated', () => {
-    const p = buildComposePrompt({
-      ...base,
-      productInfos: [
-        { name: 'Lamp', category: 'lighting' },
-        { name: 'Panels', category: 'decor' },
-      ],
-      annotation: { color: '#123456' },
-    });
-    expect(p).toMatch(/match each product/i);
-  });
-
   it('omits the annotation guidance when none is given', () => {
     expect(buildComposePrompt(base)).not.toMatch(/highlighted region/i);
   });

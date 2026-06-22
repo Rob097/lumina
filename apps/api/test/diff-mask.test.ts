@@ -34,7 +34,6 @@ describe('computeChangeMask', () => {
     const r = await computeChangeMask(Uint8Array.from([1, 2, 3]), Uint8Array.from([4, 5, 6]));
     expect(r).toMatchObject({ changedFraction: 0, width: 0, height: 0 });
   });
-
 });
 
 describe('shouldComposite', () => {

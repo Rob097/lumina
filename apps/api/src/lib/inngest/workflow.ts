@@ -20,7 +20,6 @@ import {
 } from '@lumina/db';
 import {
   AnnotationSchema,
-  annotationRegionLabel,
   neutralGenerationPlan,
   type Annotation,
   type GenerationMode,
@@ -161,14 +160,8 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
  * Keep only the region the model actually changed (the product + its shadows) and composite it back over
  * the ORIGINAL, so the rest of the scene is byte-identical to the upload. Falls back to the full model
  * output when the detected change is implausibly small/large or the images can't be read. Never throws.
- *
- * The change mask is a plain diff against the clean `original`: the model's output is kept where it differs
- * from the upload (the product + its shadows/glow), and the original pixels are restored everywhere else, so
- * the rest of the scene stays byte-identical (no drift). This is intentionally annotation-agnostic — special-
- * casing the burned-stroke region damages a product placed on its own marks (it sits exactly there), so the
- * strokes are guidance for the MODEL only and their removal is left to the prompt, not the composite.
  */
-export async function keepOnlyProductChange(
+async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
   opts: { maxFraction?: number } = {},
@@ -588,17 +581,7 @@ export async function processGeneration(
       mode,
       target: isMulti ? undefined : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
-      // Pass the marked color always; for a single product also resolve a coarse textual position from the
-      // strokes ("right", "top-left", …) so the model honors the drawn location (a multi render has no
-      // per-product stroke mapping, so the region is omitted and the prompt matches marks to products).
-      ...(annotation
-        ? {
-            annotation: {
-              color: annotation.color,
-              ...(isMulti ? {} : { region: annotationRegionLabel(annotation) }),
-            },
-          }
-        : {}),
+      ...(annotation ? { annotation: { color: annotation.color } } : {}),
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),

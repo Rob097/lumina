@@ -825,3 +825,15 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   already states emphatically "do NOT render/keep the marks"), never to the composite. Consequence: a mark the
   model declines to remove in an area with no product can survive — accepted, because the alternative
   (mutating the product region) is worse. If that recurs we'll address it without ever touching product pixels.
+
+- **D82 — Full revert of the annotation positioning + removal work (D77–D81) to the F3 baseline; redesign from
+  scratch.** Even after D81 the owner still saw missing product pixels + strange lighting + a surviving mark.
+  Five successive fixes (D77–D81) failed to make burned-stroke placement/removal robust — the signal that the
+  whole sub-approach, not its parameters, is wrong. Reverted `compose.ts` (annotationFact/buildComposeTask/
+  buildMultiPlacementTask), `types.ts` (`annotation` back to `{ color }`), `@lumina/shared` annotation (dropped
+  `annotationRegionLabel`), and the workflow's compose wiring to the **D74/de3f958 F3 baseline** — the state
+  where the lamp rendered fine. F1 (CSV dims), F2 (multi-product), the widget draw-stage CSS fix, and the rest
+  of F3 (the draw UI + the burn-onto-the-room-for-the-model mechanism) are **kept**. Positioning-where-drawn and
+  deterministic stroke-removal are now **open for a fresh design** (see the next spec) — likely candidates: a
+  provider/model with real mask-inpainting support, or a textual-region placement hint that does NOT alter the
+  composited pixels, decided with the owner before any implementation.

@@ -1,6 +1,5 @@
 import { describe, expect, it } from 'vitest';
 import {
-  annotationRegionLabel,
   AnnotationSchema,
   buildAnnotation,
   MAX_ANNOTATION_STROKES,
@@ -59,31 +58,6 @@ describe('AnnotationSchema', () => {
     expect(AnnotationSchema.safeParse({ color: '#000000', strokes: [] }).success).toBe(false);
     const tooMany = { color: '#000000', strokes: Array.from({ length: MAX_ANNOTATION_STROKES + 1 }, () => stroke()) };
     expect(AnnotationSchema.safeParse(tooMany).success).toBe(false);
-  });
-});
-
-describe('annotationRegionLabel', () => {
-  const ann = (pts: Array<{ x: number; y: number }>) => ({
-    color: '#000000',
-    alpha: 0.6,
-    width: 0.012,
-    strokes: [{ points: pts }],
-  });
-
-  it('labels a right-side mark "right"', () => {
-    expect(annotationRegionLabel(ann([{ x: 0.8, y: 0.5 }, { x: 0.9, y: 0.5 }]))).toBe('right');
-  });
-  it('labels a centered mark "center"', () => {
-    expect(annotationRegionLabel(ann([{ x: 0.45, y: 0.48 }, { x: 0.55, y: 0.52 }]))).toBe('center');
-  });
-  it('labels a top-left mark "top-left"', () => {
-    expect(annotationRegionLabel(ann([{ x: 0.05, y: 0.05 }, { x: 0.15, y: 0.12 }]))).toBe('top-left');
-  });
-  it('labels a purely vertical offset by row only ("top")', () => {
-    expect(annotationRegionLabel(ann([{ x: 0.45, y: 0.05 }, { x: 0.55, y: 0.12 }]))).toBe('top');
-  });
-  it('returns an empty string when there are no points', () => {
-    expect(annotationRegionLabel({ color: '#000000', alpha: 0.6, width: 0.012, strokes: [] })).toBe('');
   });
 });
 

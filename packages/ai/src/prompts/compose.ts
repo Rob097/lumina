@@ -93,23 +93,12 @@ function annotationFact(input: ComposeInput): string[] {
   if (!input.annotation) {
     return [];
   }
-  const { color, region } = input.annotation;
-  const lines = [
-    `- The user drew translucent ${color} strokes on the room to show WHERE the product goes. The marked` +
-      ' POSITION is AUTHORITATIVE: place the product on/at the marked area and let it OVERRIDE the default or' +
-      ' most-natural location — if the mark is on the right, place it on the right; near the floor, place it' +
-      ' there. When a marked region spans a broad surface (e.g. a wall or a floor area), treat its full EXTENT' +
-      ' as the area the product should fill/cover, not merely a single point. With several products and several' +
-      ' marked regions, match each product to the marked region that best fits it (by the mark’s shape, size and' +
-      ` position) and place it there. The marks guide PLACEMENT ONLY: do NOT render, draw, or keep the ${color}` +
-      ' marks in the output — the marked areas must show the product and the clean scene, never the strokes.',
+  const { color } = input.annotation;
+  return [
+    `- The user highlighted region(s) on the room photo with translucent ${color} strokes. Treat the marked` +
+      ' areas as where to focus the edit — place/replace the product there, or apply the change there. The' +
+      ` strokes are guidance ONLY: do NOT render, draw, or keep the ${color} marks in the output.`,
   ];
-  if (region) {
-    lines.push(
-      `- The marked area is on the ${region} of the room — place the product there, not in the centre by default.`,
-    );
-  }
-  return lines;
 }
 
 /**
@@ -153,14 +142,11 @@ function requestFacts(input: ComposeInput): string[] {
  * planner's target, or the most natural location.
  */
 export function buildComposeTask(input: ComposeInput): string {
-  const where = input.annotation
-    ? 'place the supplied product once at the marked location on the room photo (the highlighted area described' +
-      ' below), even if a different spot would look more natural'
-    : input.placementHint
-      ? `place the supplied product once ${input.placementHint}`
-      : input.target?.description
-        ? `place the supplied product once at ${input.target.description} (or the most natural, functional location)`
-        : 'place the supplied product once at the most natural, functional location from your analysis';
+  const where = input.placementHint
+    ? `place the supplied product once ${input.placementHint}`
+    : input.target?.description
+      ? `place the supplied product once at ${input.target.description} (or the most natural, functional location)`
+      : 'place the supplied product once at the most natural, functional location from your analysis';
   return [
     `OPERATION: object placement. Task: ${where} at correct real-world scale given its dimensions, with` +
       " physically correct contact shadows and lighting consistent with the scene. Preserve the product's" +
@@ -225,19 +211,13 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     const where = p.placementHint ? ` — place ${p.placementHint}` : '';
     return `  ${i + 1}. ${p.name} (category hint: ${p.category}${dims})${where}`;
   });
-  const placeLine = input.annotation
-    ? 'Match each product to the marked region that best fits it (by the mark’s shape, size and position) and' +
-      ' place it there — the marked positions OVERRIDE the default natural placement. Do NOT merge, stack, fuse,' +
-      ' duplicate, or omit any product — exactly one of each must appear. Keep the room and the original' +
-      ' framing/aspect ratio exactly.'
-    : 'Place each product in a DISTINCT, natural, functional location appropriate to its type. Do NOT merge,' +
-      ' stack, fuse, duplicate, or omit any product — exactly one of each must appear. Keep the room and the' +
-      ' original framing/aspect ratio exactly.';
   return [
     `OPERATION: multi-object placement. Place ALL ${infos.length} supplied products into the one scene, each at` +
       ' correct real-world scale given its dimensions, with physically correct contact shadows and lighting' +
       " consistent with the scene. Preserve each product's exact identity.",
-    placeLine,
+    'Place each product in a DISTINCT, natural, functional location appropriate to its type. Do NOT merge,' +
+      ' stack, fuse, duplicate, or omit any product — exactly one of each must appear. Keep the room and the' +
+      ' original framing/aspect ratio exactly.',
     '',
     'PRODUCTS (the supplied product images follow the room image, in this order):',
     ...list,
