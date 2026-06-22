@@ -264,6 +264,11 @@
 .lumina-draw-stage .lumina-preview {
   display: block;
   margin: 0;
+  /* Show the WHOLE room at its natural aspect (override the confirm preview's cover-crop + 150px cap), so
+     the overlay canvas maps 1:1 to the real image and strokes land where the shopper drew them (F3). */
+  height: auto;
+  max-height: none;
+  object-fit: contain;
 }
 .lumina-draw-canvas {
   position: absolute;
