@@ -171,3 +171,48 @@ describe('buildComposePrompt — mode-specific compose (Gen v3 Phase 2)', () => 
     expect(p).toMatch(/position|scale|perspective/i);
   });
 });
+
+describe('buildComposePrompt — multi-product placement (F2)', () => {
+  const multi: ComposeInput = {
+    ...base,
+    products: [{ url: 'https://x/p1.png' }, { url: 'https://x/p2.png' }],
+    productInfos: [
+      { name: 'Aura Lamp', category: 'lighting', dimensions: { w: 30, h: 150, unit: 'cm' } },
+      { name: 'Nube Sofa', category: 'furniture' },
+    ],
+  };
+
+  it('layers the multi-object task on the always-true system instruction and lists every product', () => {
+    const p = buildComposePrompt(multi);
+    expect(p).toContain('photorealistic environment compositor');
+    expect(p).toContain('Aura Lamp');
+    expect(p).toContain('Nube Sofa');
+  });
+
+  it('instructs distinct placement and forbids merging / stacking / duplicating / omitting', () => {
+    const p = buildComposePrompt(multi);
+    expect(p).toMatch(/distinct/i);
+    expect(p).toMatch(/do not.*(merge|stack|duplicate|omit)/i);
+  });
+
+  it('keeps the framing/aspect-ratio rule and includes per-product real-world dimensions', () => {
+    const p = buildComposePrompt(multi);
+    expect(p).toMatch(/150/); // the lamp's height
+    expect(p).toMatch(/framing|aspect ratio/i);
+  });
+
+  it('does not use the single-product "place the supplied product once" phrasing', () => {
+    expect(buildComposePrompt(multi)).not.toMatch(/place the supplied product once/i);
+  });
+
+  it('carries the shopper custom instructions through, after the hard rules', () => {
+    const p = buildComposePrompt({ ...multi, customInstructions: 'keep it cosy' });
+    expect(p).toContain('keep it cosy');
+    expect(p.indexOf('keep it cosy')).toBeGreaterThan(p.indexOf('HARD RULES'));
+  });
+
+  it('treats a single-element productInfos as normal single placement', () => {
+    const single: ComposeInput = { ...base, productInfos: [{ name: 'Solo', category: 'lighting' }] };
+    expect(buildComposePrompt(single)).toMatch(/most natural, functional location/i);
+  });
+});

@@ -97,11 +97,13 @@ export class GatewayProvider implements AIProvider {
   }
 
   async compose(input: ComposeInput, prompt: string): Promise<ProviderResult> {
-    // Always SCENE first, PRODUCT second — the order the prompt contract relies on.
+    // Always SCENE first, then the product(s) — the order the prompt contract relies on. For a
+    // multi-product generation (F2) every product image follows the room, in request order.
+    const products = input.products ?? [input.product];
     const image = await this.run({
       model: this.opts.model,
       prompt,
-      images: [input.room, input.product],
+      images: [input.room, ...products],
       ...(input.aspectRatio ? { aspectRatio: input.aspectRatio } : {}),
       ...(this.opts.imageSize ? { imageSize: this.opts.imageSize } : {}),
     });

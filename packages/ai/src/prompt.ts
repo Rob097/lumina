@@ -1,6 +1,11 @@
 import type { ComposeInput } from './types.js';
 import { COMPOSE_SYSTEM_INSTRUCTION } from './prompts/system.js';
-import { buildComposeTask, buildCoveringTask, buildReplacementTask } from './prompts/compose.js';
+import {
+  buildComposeTask,
+  buildCoveringTask,
+  buildMultiPlacementTask,
+  buildReplacementTask,
+} from './prompts/compose.js';
 
 /**
  * Compose prompt assembler. All prompt *text* lives in `./prompts/` (the editable surface). This file
@@ -10,19 +15,27 @@ import { buildComposeTask, buildCoveringTask, buildReplacementTask } from './pro
  * and the task are passed separately (HARD RULE #8 keeps that a provider-only change).
  */
 export { COMPOSE_SYSTEM_INSTRUCTION } from './prompts/system.js';
-export { buildComposeTask, buildCoveringTask, buildReplacementTask } from './prompts/compose.js';
+export {
+  buildComposeTask,
+  buildCoveringTask,
+  buildMultiPlacementTask,
+  buildReplacementTask,
+} from './prompts/compose.js';
 
 /**
- * The full compose prompt = the always-true system instruction + the mode-specific task. The compositor's
- * job becomes specific to the kind of operation: re-surfacing for `surface_covering`, swapping for
- * `object_replacement`, single placement for `object_placement` (the default when no mode is present).
+ * The full compose prompt = the always-true system instruction + the task. With two or more products it's a
+ * multi-object placement (F2). Otherwise the compositor's job is specific to the planner's operation:
+ * re-surfacing for `surface_covering`, swapping for `object_replacement`, single placement for
+ * `object_placement` (the default when no mode is present).
  */
 export function buildComposePrompt(input: ComposeInput): string {
   const task =
-    input.mode === 'surface_covering'
-      ? buildCoveringTask(input)
-      : input.mode === 'object_replacement'
-        ? buildReplacementTask(input)
-        : buildComposeTask(input);
+    input.productInfos && input.productInfos.length > 1
+      ? buildMultiPlacementTask(input)
+      : input.mode === 'surface_covering'
+        ? buildCoveringTask(input)
+        : input.mode === 'object_replacement'
+          ? buildReplacementTask(input)
+          : buildComposeTask(input);
   return `${COMPOSE_SYSTEM_INSTRUCTION}\n\n${task}`;
 }

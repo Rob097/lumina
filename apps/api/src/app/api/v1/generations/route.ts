@@ -80,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
   try {
     const result = await createGeneration(guard.db, deps, {
       merchantId: guard.merchantId,
-      productUuid: req.productId,
+      productUuids: req.productIds,
       roomKey: req.roomKey,
       clientId: req.clientId,
       placementHint: req.placementHint,

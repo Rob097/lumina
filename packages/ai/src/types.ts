@@ -29,9 +29,29 @@ export interface Dimensions {
   unit?: 'cm' | 'in';
 }
 
+/**
+ * One product in a multi-product generation (F2), used to enumerate the products in the compose prompt.
+ * The images themselves travel in {@link ComposeInput.products} (same order).
+ */
+export interface MultiProductInfo {
+  name: string;
+  category: ProductCategory;
+  dimensions?: Dimensions;
+  /** Optional per-product placement guidance (e.g. 'on the side table'). */
+  placementHint?: string;
+}
+
 export interface ComposeInput {
   room: ImageRef;
   product: ImageRef;
+  /**
+   * Multi-product (F2): all product cutouts to place into the one scene, in order. When present with more
+   * than one entry, the provider sends `[room, ...products]` and the prompt switches to multi-object
+   * placement. `product` stays the primary (products[0]) so single-product callers are untouched.
+   */
+  products?: ImageRef[];
+  /** Per-product facts for the multi-object prompt (same order as {@link products}). */
+  productInfos?: MultiProductInfo[];
   category: ProductCategory;
   placementHint?: string;
   /** Free-text shopper guidance, rendered as a soft preference that can't override the hard rules. */

@@ -36,7 +36,7 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 | GET / POST | `/api/v1/clients` | session | Studio client list (#8) — list / create. `?withStats=true` adds render count + last activity (rubric/overview) |
 | GET / PUT / DELETE | `/api/v1/clients/:id` | session | fetch / update / delete (tenant-scoped) |
 | POST | `/api/v1/uploads/sign` | session | authed presigned R2 room upload (Studio) |
-| POST | `/api/v1/generations` | session | Studio generate — reuses `createGeneration`, debits 1 credit, optional `clientId` |
+| POST | `/api/v1/generations` | session | Studio generate — reuses `createGeneration`, debits 1 credit, optional `clientId`. Accepts `productIds[]` (1–5; multi-product → one combined render; legacy single `productId` still accepted) |
 | POST | `/api/v1/generations/:id/email` | session | email a finished render (7-day signed link) to the client |
 | POST | `/api/v1/billing/checkout` | session | Stripe Checkout URL `{ plan }` |
 | POST | `/api/v1/billing/portal` | session | Stripe Customer Portal URL |

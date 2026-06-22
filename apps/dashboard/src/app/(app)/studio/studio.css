@@ -316,6 +316,51 @@
 .studio-empty a {
   color: var(--accent);
 }
+/* ---- multi-product picker (F2) ---- */
+.studio-product-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.studio-product-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: var(--fs-sm);
+  transition: border-color var(--dur-fast), background var(--dur-fast);
+}
+.studio-product-option:hover {
+  border-color: var(--accent);
+}
+.studio-product-option.is-selected {
+  border-color: var(--accent);
+  background: var(--surface-2);
+}
+.studio-product-option input {
+  accent-color: var(--accent);
+}
+.studio-product-option:has(input:disabled) {
+  opacity: 0.5;
+  cursor: default;
+}
+.studio-product-order {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: var(--fs-micro);
+  font-weight: 600;
+}
 .studio-drop {
   display: flex;
   flex-direction: column;

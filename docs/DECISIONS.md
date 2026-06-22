@@ -702,3 +702,28 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   (−51%), avg cost 13¢ → 8¢; the common path is ~13s (p50 < 15s, fast-case p95 < 30s — target met).** No quality
   regression: at 1K on the fast model the placements still read correctly AND both coverage cases still rendered
   a clad / tiled wall (the §3.1 criterion holds on the fast path).
+
+## Multi-product generation (2026-06-22) — Studio
+
+- **D71 — Multiple products stored as a snapshot array, not a junction table.** A generation can now compose
+  several products into one image (Studio). The set is an immutable **snapshot** captured at generation time
+  (the catalog FK is `on delete set null`, so live FKs would lose history), is never queried relationally, and
+  is small. So we added a nullable `generations.product_snapshots jsonb` (`0010_*.sql`, additive — no backfill,
+  no RLS change) instead of a junction table (which would add a migration + RLS + N inserts inside the credit
+  transaction + joins per read). `product_id` / `product_snapshot` stay as the **primary** (first) product, so
+  every existing single-product read is byte-identical; single-product rows leave `product_snapshots` null.
+  Each snapshot also carries the catalog `id` (not an FK) so the workflow caches the per-product bg cutout.
+
+- **D72 — One combined render = one credit (unchanged debit/refund).** A multi-product generation produces one
+  output image, so it debits exactly one credit like any generation — no per-product billing. `productIds` is
+  capped at **5** (each product is an extra reference image; quality/latency degrade past a handful). The
+  idempotency key folds the **ordered** product refs into one string (`refs.join(',')`), so a single product
+  hashes identically to before (cache preserved) and product order stays significant.
+
+- **D73 — Multi-product forces `object_placement` + a multi-object prompt; localized-change guard loosened.**
+  The planner's `surface_covering`/`object_replacement` operations are single-object by construction, so a
+  multi set forces `object_placement` (the planner still runs for scene facts). A new `buildMultiPlacementTask`
+  enumerates each product (name/category/dimensions) and forbids merging/duplicating/omitting; the gateway
+  sends `[room, ...productCutouts]`. The diff-mask composite-over-original still applies, but
+  `CHANGE_MAX_FRACTION_MULTI` (0.85, vs 0.6) lets several objects change more of the scene before it bails to
+  the full render. Coverage-quantity estimation is skipped for a multi set (a single-product concept).

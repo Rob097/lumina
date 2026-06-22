@@ -53,17 +53,35 @@ export const ClientsWithStatsListResponseSchema = z.object({
 export type ClientsWithStatsListResponse = z.infer<typeof ClientsWithStatsListResponseSchema>;
 
 /**
- * `POST /v1/generations` (§6.3) — the authenticated, dashboard-side (Studio) generate entrypoint.
- * References a product by its internal uuid (works for catalog items without an external SKU) and may
- * link the render to a client. Debits one credit through the same pipeline as the widget.
+ * Most products we'll compose into a single generation. Each product is an extra reference image for the
+ * model; quality and latency degrade past a handful, so we cap the set (shared by the schema + the Studio UI).
  */
-export const StudioGenerateRequestSchema = z.object({
-  productId: z.string().uuid(),
-  roomKey: z.string().min(1),
-  clientId: z.string().uuid().optional(),
-  placementHint: z.string().max(120).optional(),
-  customInstructions: z.string().max(280).optional(),
-});
+export const MAX_PRODUCTS_PER_GENERATION = 5;
+
+/**
+ * `POST /v1/generations` (§6.3) — the authenticated, dashboard-side (Studio) generate entrypoint.
+ * References one or more catalog products by internal uuid (works for items without an external SKU) and
+ * may link the render to a client. Debits exactly one credit (one output image) through the same pipeline
+ * as the widget, regardless of how many products are combined. A legacy single `productId` is accepted and
+ * normalized to a one-element `productIds`, so older callers keep working.
+ */
+export const StudioGenerateRequestSchema = z
+  .object({
+    productId: z.string().uuid().optional(),
+    productIds: z.array(z.string().uuid()).min(1).max(MAX_PRODUCTS_PER_GENERATION).optional(),
+    roomKey: z.string().min(1),
+    clientId: z.string().uuid().optional(),
+    placementHint: z.string().max(120).optional(),
+    customInstructions: z.string().max(280).optional(),
+  })
+  .transform(({ productId, productIds, ...rest }) => ({
+    ...rest,
+    productIds: productIds ?? (productId ? [productId] : []),
+  }))
+  .refine((v) => v.productIds.length >= 1, {
+    message: 'At least one product is required',
+    path: ['productIds'],
+  });
 export type StudioGenerateRequest = z.infer<typeof StudioGenerateRequestSchema>;
 
 /** `POST /v1/generations/:id/email` — email the finished render to a client (defaults to their email). */

@@ -174,6 +174,12 @@ export const clients = pgTable(
 
 // ───────────────────────────── generations ─────────────────────────────
 export interface ProductSnapshot {
+  /**
+   * Catalog product id at generation time (absent for inline widget products). Not an FK — just a
+   * reference the workflow uses opportunistically to reuse/cache the bg-removed cutout per product
+   * (F2 multi-product), so it degrades gracefully if the product is later deleted.
+   */
+  id?: string;
   name: string;
   category: string;
   imageUrl: string;
@@ -193,6 +199,12 @@ export const generations = pgTable(
     // inputs
     roomKey: text('room_key').notNull(),
     productSnapshot: jsonb('product_snapshot').$type<ProductSnapshot>().notNull(),
+    /**
+     * All products composed into this generation (F2 multi-product), in placement order. `[0]` mirrors
+     * `productSnapshot` and `productId`. Null for single-product/legacy rows, which keep behaving exactly
+     * as before — readers fall back to `[productSnapshot]`.
+     */
+    productSnapshots: jsonb('product_snapshots').$type<ProductSnapshot[]>(),
     placementHint: text('placement_hint'),
     customInstructions: text('custom_instructions'),
     // Studio (#8): the client this render was made for (in-dashboard generations). Null for widget runs.

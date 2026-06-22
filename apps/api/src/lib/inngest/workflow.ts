@@ -16,8 +16,14 @@ import {
   products,
   usageEvents,
   type Database,
+  type ProductSnapshot,
 } from '@lumina/db';
-import { neutralGenerationPlan, type GenerationPlan, type ProductCategory } from '@lumina/shared';
+import {
+  neutralGenerationPlan,
+  type GenerationMode,
+  type GenerationPlan,
+  type ProductCategory,
+} from '@lumina/shared';
 import { resultKey as buildResultKey } from '../storage/keys.js';
 import { contentTypeForKey } from '../images/exif.js';
 import { autoOrientAndStrip } from '../images/orient.js';
@@ -139,6 +145,9 @@ const CHANGE_THRESHOLD = Number(process.env.CHANGE_MASK_THRESHOLD ?? 28);
 const CHANGE_FEATHER = Number(process.env.CHANGE_MASK_FEATHER ?? 6);
 const CHANGE_MIN_FRACTION = Number(process.env.CHANGE_MIN_FRACTION ?? 0.002);
 const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
+// Several distinct products legitimately change more of the scene than one object, so the localized-change
+// guard is looser for multi-product renders (F2) before it bails to the full model output.
+const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -184,19 +193,24 @@ export function productCleanKey(merchantId: string, id: string): string {
 }
 
 /**
- * Resolve the product image to compose with (Phase 1 / D63). Prefer a cached cutout
+ * Resolve one product image to compose with (Phase 1 / D63). Prefer a cached cutout
  * (`products.clean_image_key`); else compute one best-effort via the orchestrator's matting provider,
  * cache it on the catalog product (so the next generation skips the call), and use it. A matting cutout
  * preserves the product's exact pixels. Any failure — or no provider configured — degrades to the raw
- * product image; the cutout never fails or bills a generation.
+ * product image; the cutout never fails or bills a generation. The product is addressed explicitly (by its
+ * catalog id + image url) so the same logic serves the single- and multi-product (F2) paths.
  */
-async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Promise<ImageRef> {
-  const rawUrl = gen.productSnapshot.imageUrl;
-  if (gen.productId) {
+async function resolveProductImageFor(
+  deps: WorkflowDeps,
+  gen: Pick<GenerationRow, 'merchantId' | 'id'>,
+  product: { productId?: string; imageUrl: string },
+): Promise<ImageRef> {
+  const rawUrl = product.imageUrl;
+  if (product.productId) {
     const rows = await deps.db
       .select({ cleanImageKey: products.cleanImageKey })
       .from(products)
-      .where(eq(products.id, gen.productId))
+      .where(eq(products.id, product.productId))
       .limit(1);
     const cleanKey = rows[0]?.cleanImageKey;
     if (cleanKey) {
@@ -206,13 +220,13 @@ async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Prom
   try {
     const cutout = await deps.orchestrator.bgRemoval({ url: rawUrl });
     if (cutout) {
-      const key = productCleanKey(gen.merchantId, gen.productId ?? gen.id);
+      const key = productCleanKey(gen.merchantId, product.productId ?? gen.id);
       await deps.storage.putObject(key, cutout.bytes, cutout.contentType);
-      if (gen.productId) {
+      if (product.productId) {
         await deps.db
           .update(products)
           .set({ cleanImageKey: key })
-          .where(and(eq(products.id, gen.productId), eq(products.merchantId, gen.merchantId)));
+          .where(and(eq(products.id, product.productId), eq(products.merchantId, gen.merchantId)));
       }
       return { url: await deps.storage.presignDownload(key) };
     }
@@ -220,6 +234,36 @@ async function resolveProductImage(deps: WorkflowDeps, gen: GenerationRow): Prom
     deps.reportError?.(err, { generationId: gen.id, stage: 'bg_removal' });
   }
   return { url: rawUrl };
+}
+
+/**
+ * Resolve every product image for the generation. `surface_covering` passes the ORIGINAL product texture
+ * (the model needs the repeating pattern; single-product only, §4.3). Otherwise each product gets a cached
+ * cutout — one for a single product (keyed by the row's `productId`), or one per product for a multi-product
+ * render (F2), each keyed by its own catalog id so cutouts are cached + reused independently.
+ */
+async function resolveProductImages(
+  deps: WorkflowDeps,
+  gen: GenerationRow,
+  productList: ProductSnapshot[],
+  mode: GenerationMode,
+): Promise<ImageRef[]> {
+  if (mode === 'surface_covering') {
+    return [{ url: gen.productSnapshot.imageUrl }];
+  }
+  if (productList.length <= 1) {
+    return [
+      await resolveProductImageFor(deps, gen, {
+        ...(gen.productId ? { productId: gen.productId } : {}),
+        imageUrl: gen.productSnapshot.imageUrl,
+      }),
+    ];
+  }
+  return Promise.all(
+    productList.map((p) =>
+      resolveProductImageFor(deps, gen, { ...(p.id ? { productId: p.id } : {}), imageUrl: p.imageUrl }),
+    ),
+  );
 }
 
 /**
@@ -421,24 +465,32 @@ export async function processGeneration(
       return 'failed';
     }
 
+    // Multi-product (F2): all products composed into one image. A single-product row (productSnapshots null)
+    // reads as the one-element [productSnapshot], so the single path is byte-identical to before.
+    const productList: ProductSnapshot[] = gen.productSnapshots ?? [gen.productSnapshot];
+    const isMulti = productList.length > 1;
+
     // The planner (§4.1) and the coverage estimate run in parallel (both best-effort). The product cutout
     // depends on the operation the planner decides, so it follows. (Phase 3 re-parallelizes the independent
-    // pre-passes once routing lands.)
+    // pre-passes once routing lands.) Coverage is a single-product concept — skipped for a multi set.
     const [genPlan, estimate] = await Promise.all([
       planSafe(deps, gen, roomUrl),
-      estimateCoverageSafe(deps, gen, category, roomUrl),
+      isMulti
+        ? Promise.resolve<QuantityEstimate | null>(null)
+        : estimateCoverageSafe(deps, gen, category, roomUrl),
     ]);
-    // Feed the plan's per-image facts into the compositor through the SceneAnalysis it consumes.
+    // A multi-product render is always a multi-object placement: the planner's covering/replacement
+    // operations are single-object by construction, so force object_placement (its scene facts still feed
+    // the compositor). Feed the plan's per-image facts into the compositor via the SceneAnalysis it consumes.
+    const mode: GenerationMode = isMulti ? 'object_placement' : genPlan.mode;
     const scene = planToSceneAnalysis(genPlan);
 
     // Run the independent post-plan pre-passes in parallel (Phase 3 speed): the mode-dependent product
-    // cutout (§4.3 — object modes get a cached, fidelity-preserving cutout; surface_covering passes the
+    // cutout(s) (§4.3 — object modes get a cached, fidelity-preserving cutout; surface_covering passes the
     // ORIGINAL product texture, since the model needs the repeating pattern) and the room normalization
     // (D65 — a gentle clamped deskew + conditional auto-level, best-effort). Neither depends on the other.
-    const [productImage, normalized] = await Promise.all([
-      genPlan.mode === 'surface_covering'
-        ? Promise.resolve<ImageRef>({ url: gen.productSnapshot.imageUrl })
-        : resolveProductImage(deps, gen),
+    const [productImages, normalized] = await Promise.all([
+      resolveProductImages(deps, gen, productList, mode),
       normalizeRoom(sanitized, {
         tiltDegrees: scene.tiltDegrees,
         dark: scene.quality.dark,
@@ -466,7 +518,8 @@ export async function processGeneration(
         roomW: roomSize.width,
         roomH: roomSize.height,
         aspectRatio: aspectRatio ?? null,
-        mode: genPlan.mode,
+        mode,
+        products: productList.length,
         sceneTilt: scene.tiltDegrees,
         coverage: estimate
           ? { isCoverage: estimate.isCoverage, qty: estimate.suggestedQuantity, conf: estimate.confidence }
@@ -480,15 +533,27 @@ export async function processGeneration(
     // coverage QUANTITY is surfaced separately in the dashboard (D67).
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
-      product: productImage,
+      product: productImages[0]!,
+      // Multi-product: hand the model every product image + per-product facts; the prompt switches to a
+      // multi-object placement task. Single-product callers omit these and behave exactly as before.
+      ...(isMulti
+        ? {
+            products: productImages,
+            productInfos: productList.map((p) => ({
+              name: p.name,
+              category: p.category as ProductCategory,
+              ...(p.dimensions ? { dimensions: p.dimensions } : {}),
+            })),
+          }
+        : {}),
       category,
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,
       dimensions: snapshot.dimensions,
       scene,
-      mode: genPlan.mode,
-      target: genPlan.target,
-      repetition: genPlan.repetition,
+      mode,
+      target: isMulti ? undefined : genPlan.target,
+      repetition: isMulti ? undefined : genPlan.repetition,
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),
@@ -501,9 +566,13 @@ export async function processGeneration(
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
     const finalImage =
-      genPlan.mode === 'surface_covering'
+      mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
-        : await keepOnlyProductChange(normalized, composed);
+        : await keepOnlyProductChange(
+            normalized,
+            composed,
+            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
+          );
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

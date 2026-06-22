@@ -1,4 +1,4 @@
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 import { generations, products, type Database, type ProductSnapshot } from '@lumina/db';
 import type { GenerationStatus, InlineProduct } from '@lumina/shared';
 import type { NotifyInput } from '../notifications/service.js';
@@ -40,6 +40,12 @@ export interface CreateGenerationInput {
   productId?: string;
   /** Internal product uuid — the authenticated Studio path (#8), works without an external SKU. */
   productUuid?: string;
+  /**
+   * Internal product uuids for a multi-product generation (F2, Studio). One combined render, one credit.
+   * Order is significant (it feeds the idempotency key and the prompt). Takes precedence over the single
+   * fields when present.
+   */
+  productUuids?: string[];
   inlineProduct?: InlineProduct;
   roomKey: string;
   placementHint?: string;
@@ -148,6 +154,52 @@ async function resolveProduct(
   throw new ProductNotFoundError();
 }
 
+/**
+ * Resolve every product for a generation into ordered refs + snapshots. Single-product callers (widget SKU,
+ * inline, single Studio uuid) delegate to {@link resolveProduct} and come back as a one-element array, so
+ * their behaviour and idempotency key are unchanged. The multi-product path (F2) resolves all uuids in ONE
+ * merchant-scoped query (tenant isolation: any id not owned by the merchant → ProductNotFoundError) and
+ * preserves request order. Each snapshot carries its catalog `id` so the workflow can cache the per-product
+ * cutout.
+ */
+async function resolveProducts(
+  db: Database,
+  input: CreateGenerationInput,
+): Promise<{ productRefs: string[]; snapshots: ProductSnapshot[]; primaryProductId?: string }> {
+  if (input.productUuids && input.productUuids.length > 0) {
+    const rows = await db
+      .select({
+        id: products.id,
+        externalId: products.externalId,
+        name: products.name,
+        category: products.category,
+        imageUrl: products.imageUrl,
+        dimensions: products.dimensions,
+      })
+      .from(products)
+      .where(and(inArray(products.id, input.productUuids), eq(products.merchantId, input.merchantId)));
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const ordered = input.productUuids.map((id) => byId.get(id));
+    if (ordered.some((p) => !p)) {
+      throw new ProductNotFoundError(); // an unknown id or one owned by another merchant
+    }
+    const resolved = ordered as NonNullable<(typeof ordered)[number]>[];
+    return {
+      productRefs: resolved.map((p) => p.externalId ?? p.id),
+      snapshots: resolved.map((p) => ({
+        id: p.id,
+        name: p.name,
+        category: p.category,
+        imageUrl: p.imageUrl,
+        ...(p.dimensions ? { dimensions: p.dimensions } : {}),
+      })),
+      primaryProductId: resolved[0]!.id,
+    };
+  }
+  const single = await resolveProduct(db, input);
+  return { productRefs: [single.productRef], snapshots: [single.snapshot], primaryProductId: single.productId };
+}
+
 async function findExisting(db: Database, merchantId: string, idempotencyKey: string) {
   const rows = await db
     .select()
@@ -182,10 +234,12 @@ export async function createGeneration(
   deps: GenerateDeps,
   input: CreateGenerationInput,
 ): Promise<CreateGenerationResult> {
-  const { productRef, snapshot, productId } = await resolveProduct(db, input);
+  const { productRefs, snapshots, primaryProductId } = await resolveProducts(db, input);
+  // One ordered ref string keeps the key stable: a single product hashes exactly as before (cache preserved),
+  // and product order stays significant for multi-product renders.
   const idempotencyKey = computeIdempotencyKey({
     merchantId: input.merchantId,
-    productRef,
+    productRef: productRefs.join(','),
     roomKey: input.roomKey,
     placementHint: input.placementHint,
     customInstructions: input.customInstructions,
@@ -204,9 +258,11 @@ export async function createGeneration(
         .insert(generations)
         .values({
           merchantId: input.merchantId,
-          productId,
+          productId: primaryProductId,
           roomKey: input.roomKey,
-          productSnapshot: snapshot,
+          productSnapshot: snapshots[0]!,
+          // Only multi-product renders carry the array; single-product rows stay null (existing reads unaffected).
+          productSnapshots: snapshots.length > 1 ? snapshots : undefined,
           placementHint: input.placementHint,
           customInstructions: input.customInstructions,
           clientId: input.clientId,

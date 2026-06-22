@@ -5,8 +5,11 @@ import {
   ClientWithStatsSchema,
   ClientsWithStatsListResponseSchema,
   EmailResultRequestSchema,
+  MAX_PRODUCTS_PER_GENERATION,
   StudioGenerateRequestSchema,
 } from './client.js';
+
+const uuid = (n: number) => `00000000-0000-4000-8000-00000000000${n}`;
 
 describe('ClientInput', () => {
   it('requires a name and accepts optional contact fields', () => {
@@ -45,6 +48,48 @@ describe('StudioGenerateRequest', () => {
     expect(() =>
       StudioGenerateRequestSchema.parse({ productId: 'SKU-1', roomKey: 'rooms/m/r.jpg' }),
     ).toThrow();
+  });
+});
+
+describe('StudioGenerateRequest — multi-product', () => {
+  const room = 'rooms/m/r.jpg';
+
+  it('accepts a productIds array and exposes it on the parsed output', () => {
+    const parsed = StudioGenerateRequestSchema.parse({ productIds: [uuid(1), uuid(2)], roomKey: room });
+    expect(parsed.productIds).toEqual([uuid(1), uuid(2)]);
+  });
+
+  it('normalizes a legacy single productId to a one-element productIds array', () => {
+    const parsed = StudioGenerateRequestSchema.parse({ productId: uuid(1), roomKey: room });
+    expect(parsed.productIds).toEqual([uuid(1)]);
+  });
+
+  it('rejects a request with neither productId nor productIds', () => {
+    expect(StudioGenerateRequestSchema.safeParse({ roomKey: room }).success).toBe(false);
+  });
+
+  it('rejects an empty productIds array', () => {
+    expect(StudioGenerateRequestSchema.safeParse({ productIds: [], roomKey: room }).success).toBe(false);
+  });
+
+  it(`rejects more than ${MAX_PRODUCTS_PER_GENERATION} products`, () => {
+    const tooMany = Array.from({ length: MAX_PRODUCTS_PER_GENERATION + 1 }, (_, i) => uuid(i % 9));
+    expect(StudioGenerateRequestSchema.safeParse({ productIds: tooMany, roomKey: room }).success).toBe(false);
+  });
+
+  it('keeps the optional client/hint/instructions fields through the transform', () => {
+    const parsed = StudioGenerateRequestSchema.parse({
+      productIds: [uuid(1)],
+      roomKey: room,
+      clientId: uuid(3),
+      placementHint: 'by the window',
+      customInstructions: 'warm lighting',
+    });
+    expect(parsed).toMatchObject({
+      clientId: uuid(3),
+      placementHint: 'by the window',
+      customInstructions: 'warm lighting',
+    });
   });
 });
 

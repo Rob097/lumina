@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRef, useState } from 'react';
-import type { Client, Product } from '@lumina/shared';
+import { MAX_PRODUCTS_PER_GENERATION, type Client, type Product } from '@lumina/shared';
 import { Icon } from '@/components/ui/Icon';
 import { BeforeAfter } from '../../generations/BeforeAfter';
 import {
@@ -39,7 +39,7 @@ export function NewVisualization({
 }) {
   const [clients, setClients] = useState<Client[]>(initialClients);
   const [clientId, setClientId] = useState<string>(preselectClientId ?? '');
-  const [productId, setProductId] = useState<string>(products[0]?.id ?? '');
+  const [productIds, setProductIds] = useState<string[]>(products[0] ? [products[0].id] : []);
   const [room, setRoom] = useState<RoomFile | null>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -62,7 +62,19 @@ export function NewVisualization({
   const fileRef = useRef<HTMLInputElement>(null);
 
   const selectedClient = clients.find((c) => c.id === clientId) ?? null;
-  const canGenerate = Boolean(productId && room && !uploading);
+  const atProductCap = productIds.length >= MAX_PRODUCTS_PER_GENERATION;
+  const canGenerate = Boolean(productIds.length > 0 && room && !uploading);
+
+  // Toggle a product in/out of the set, preserving click order (it feeds placement order), capped at the max.
+  function toggleProduct(id: string): void {
+    setProductIds((cur) =>
+      cur.includes(id)
+        ? cur.filter((p) => p !== id)
+        : cur.length < MAX_PRODUCTS_PER_GENERATION
+          ? [...cur, id]
+          : cur,
+    );
+  }
 
   async function onPickFile(file: File): Promise<void> {
     setError(null);
@@ -109,13 +121,13 @@ export function NewVisualization({
   }
 
   async function onGenerate(): Promise<void> {
-    if (!room || !productId) return;
+    if (!room || productIds.length === 0) return;
     setPhase('generating');
     setError(null);
     setResult(null);
     setEmailState('idle');
     const res = await startStudioGenerationAction({
-      productId,
+      productIds,
       roomKey: room.roomKey,
       ...(clientId ? { clientId } : {}),
     });
@@ -286,21 +298,42 @@ export function NewVisualization({
         ) : null}
       </div>
 
-      {/* Product */}
+      {/* Products — select one or more to place together in a single render */}
       <div className="studio-field">
-        <label className="studio-label">Product</label>
+        <label className="studio-label">Products</label>
         {products.length === 0 ? (
           <p className="studio-empty">
             No products yet. Add one in <Link href="/products">Products</Link> first.
           </p>
         ) : (
-          <select className="input" value={productId} onChange={(e) => setProductId(e.target.value)}>
-            {products.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
-          </select>
+          <>
+            <div className="studio-product-list" role="group" aria-label="Products to place">
+              {products.map((p) => {
+                const order = productIds.indexOf(p.id);
+                const selected = order !== -1;
+                return (
+                  <label
+                    key={p.id}
+                    className={`studio-product-option${selected ? ' is-selected' : ''}`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selected}
+                      disabled={!selected && atProductCap}
+                      onChange={() => toggleProduct(p.id)}
+                    />
+                    <span className="studio-product-name">{p.name}</span>
+                    {selected ? <span className="studio-product-order">{order + 1}</span> : null}
+                  </label>
+                );
+              })}
+            </div>
+            <p className="studio-hint">
+              {productIds.length > 1
+                ? `${productIds.length} products will be placed together in one render.`
+                : `Select up to ${MAX_PRODUCTS_PER_GENERATION} products to place together in one render.`}
+            </p>
+          </>
         )}
       </div>
 

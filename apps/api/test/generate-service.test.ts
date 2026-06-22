@@ -153,6 +153,96 @@ describe('createGeneration', () => {
   });
 });
 
+async function newProduct(merchantId: string, name: string): Promise<string> {
+  const rows = await ctx.db
+    .insert(products)
+    .values({ merchantId, name, category: 'furniture', imageUrl: `https://shop.test/${name}.png` })
+    .returning();
+  return firstOrThrow(rows).id;
+}
+
+describe('createGeneration — multi-product (F2)', () => {
+  it('stores the full snapshot array, sets the primary to the first product, and debits one credit', async () => {
+    const merchantId = await newMerchant(5);
+    const a = await newProduct(merchantId, 'lamp');
+    const b = await newProduct(merchantId, 'sofa');
+    const d = deps();
+
+    const result = await createGeneration(ctx.db, d, {
+      merchantId,
+      productUuids: [a, b],
+      roomKey: `rooms/${merchantId}/m1.jpg`,
+    });
+
+    expect(result.status).toBe('queued');
+    expect(await balance(merchantId)).toBe(4); // exactly ONE credit for the combined render
+    expect(d.enqueued).toBe(1);
+
+    const row = firstOrThrow(
+      await ctx.db.select().from(generations).where(eq(generations.id, result.generationId)),
+    );
+    expect(row.productId).toBe(a); // primary = first product
+    expect(row.productSnapshot.id).toBe(a);
+    expect(row.productSnapshots?.map((s) => s.id)).toEqual([a, b]);
+  });
+
+  it('leaves productSnapshots null for a single product (back-compat with existing reads)', async () => {
+    const merchantId = await newMerchant(5);
+    const a = await newProduct(merchantId, 'solo');
+    const result = await createGeneration(ctx.db, deps(), {
+      merchantId,
+      productUuids: [a],
+      roomKey: `rooms/${merchantId}/single.jpg`,
+    });
+    const row = firstOrThrow(
+      await ctx.db.select().from(generations).where(eq(generations.id, result.generationId)),
+    );
+    expect(row.productSnapshots).toBeNull();
+    expect(row.productId).toBe(a);
+  });
+
+  it('rejects (and bills nothing) when the set contains an id from another merchant', async () => {
+    const m1 = await newMerchant(5);
+    const m2 = await newMerchant(5);
+    const mine = await newProduct(m1, 'mine');
+    const foreign = await newProduct(m2, 'theirs');
+
+    await expect(
+      createGeneration(ctx.db, deps(), {
+        merchantId: m1,
+        productUuids: [mine, foreign],
+        roomKey: `rooms/${m1}/x.jpg`,
+      }),
+    ).rejects.toBeInstanceOf(ProductNotFoundError);
+    expect(await balance(m1)).toBe(5); // no row, no debit
+  });
+
+  it('treats product order as significant (distinct idempotency keys → two billed renders)', async () => {
+    const merchantId = await newMerchant(5);
+    const a = await newProduct(merchantId, 'a');
+    const b = await newProduct(merchantId, 'b');
+    const room = `rooms/${merchantId}/ord.jpg`;
+
+    const first = await createGeneration(ctx.db, deps(), { merchantId, productUuids: [a, b], roomKey: room });
+    const second = await createGeneration(ctx.db, deps(), { merchantId, productUuids: [b, a], roomKey: room });
+
+    expect(second.generationId).not.toBe(first.generationId);
+    expect(await balance(merchantId)).toBe(3);
+  });
+
+  it('a one-element productUuids matches the legacy single-product key (cache preserved)', async () => {
+    const merchantId = await newMerchant(5);
+    const a = await newProduct(merchantId, 'cache');
+    const room = `rooms/${merchantId}/cache.jpg`;
+
+    const legacy = await createGeneration(ctx.db, deps(), { merchantId, productUuid: a, roomKey: room });
+    const viaArray = await createGeneration(ctx.db, deps(), { merchantId, productUuids: [a], roomKey: room });
+
+    expect(viaArray.generationId).toBe(legacy.generationId); // same idempotency key → same row
+    expect(await balance(merchantId)).toBe(4); // billed once total
+  });
+});
+
 describe('low-credits notification', () => {
   function depsWithNotify(): GenerateDeps & { notified: { type: string; data?: unknown }[] } {
     const notified: { type: string; data?: unknown }[] = [];

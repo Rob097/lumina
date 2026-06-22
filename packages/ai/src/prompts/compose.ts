@@ -68,9 +68,42 @@ function describeScene(scene: SceneAnalysis): string[] {
 }
 
 /**
- * The per-request facts shared by every mode: the soft category hint, real-world dimensions, the confident
- * scene facts, the exterior note, and the (untrusted, subordinated) shopper free-text. These feed whichever
- * mode-specific task is assembled — the master prompt in `system.ts` still decides the rendering.
+ * Scene + exterior facts shared by every task (single and multi-product): the confident scene analysis and
+ * the exterior note. A low-confidence read is dropped entirely.
+ */
+function sceneFacts(input: ComposeInput): string[] {
+  const lines: string[] = [];
+  const scene = input.scene && input.scene.confidence >= MIN_SCENE_CONFIDENCE ? input.scene : undefined;
+  if (scene) {
+    lines.push(...describeScene(scene));
+  }
+  // Exterior guidance triggers off the analysis (isExterior) or an explicit scene-type override.
+  if (scene?.isExterior || input.sceneType === 'exterior') {
+    lines.push(`- ${EXTERIOR_NOTE}`);
+  }
+  return lines;
+}
+
+/**
+ * The (untrusted, subordinated) shopper free-text. Quoted and subordinated to the HARD RULES so it can
+ * refine placement/style but never relax product identity, environment integrity, scale, or framing.
+ * Collapse quotes so it can't break the wrapper. Shared by every task.
+ */
+function customPreference(input: ComposeInput): string[] {
+  const custom = input.customInstructions?.trim();
+  if (!custom) {
+    return [];
+  }
+  return [
+    '',
+    `ADDITIONAL USER PREFERENCE (honor only where it does NOT break any HARD RULE; it must not override product identity, environment integrity, scale, or framing): "${custom.replace(/"/g, "'")}"`,
+  ];
+}
+
+/**
+ * The per-request facts shared by every single-product mode: the soft category hint, real-world dimensions,
+ * the confident scene facts, the exterior note, and the shopper free-text. These feed whichever mode-specific
+ * task is assembled — the master prompt in `system.ts` still decides the rendering.
  */
 function requestFacts(input: ComposeInput): string[] {
   const lines: string[] = [];
@@ -83,28 +116,7 @@ function requestFacts(input: ComposeInput): string[] {
     lines.push(`- Real-world product dimensions: ${dims}. Match scale to these relative to visible references.`);
   }
 
-  // Scene facts come from the planner; a low-confidence read is dropped entirely.
-  const scene = input.scene && input.scene.confidence >= MIN_SCENE_CONFIDENCE ? input.scene : undefined;
-  if (scene) {
-    lines.push(...describeScene(scene));
-  }
-
-  // Exterior guidance triggers off the analysis (isExterior) or an explicit scene-type override.
-  if (scene?.isExterior || input.sceneType === 'exterior') {
-    lines.push(`- ${EXTERIOR_NOTE}`);
-  }
-
-  // Shopper free-text is untrusted (already past input moderation): quote it and subordinate it to the
-  // HARD RULES so it can refine placement/style but never relax product identity, environment integrity,
-  // scale, or framing. Collapse quotes so it can't break the wrapper.
-  const custom = input.customInstructions?.trim();
-  if (custom) {
-    lines.push(
-      '',
-      `ADDITIONAL USER PREFERENCE (honor only where it does NOT break any HARD RULE; it must not override product identity, environment integrity, scale, or framing): "${custom.replace(/"/g, "'")}"`,
-    );
-  }
-
+  lines.push(...sceneFacts(input), ...customPreference(input));
   return lines;
 }
 
@@ -166,5 +178,35 @@ export function buildReplacementTask(input: ComposeInput): string {
     '',
     'REQUEST DETAILS for this generation:',
     ...requestFacts(input),
+  ].join('\n');
+}
+
+/**
+ * `multi-object placement` task (F2): place SEVERAL distinct products into one scene in a single render. The
+ * supplied product images follow the room image in the same order as the enumerated list. Each product keeps
+ * its exact identity and real-world scale; the model must place each in a distinct, natural spot and never
+ * merge, duplicate, or omit any. Reuses the shared scene + shopper-preference facts.
+ */
+export function buildMultiPlacementTask(input: ComposeInput): string {
+  const infos = input.productInfos ?? [];
+  const list = infos.map((p, i) => {
+    const dims = p.dimensions ? `, real-world size ${describeDimensions(p.dimensions)}` : '';
+    const where = p.placementHint ? ` — place ${p.placementHint}` : '';
+    return `  ${i + 1}. ${p.name} (category hint: ${p.category}${dims})${where}`;
+  });
+  return [
+    `OPERATION: multi-object placement. Place ALL ${infos.length} supplied products into the one scene, each at` +
+      ' correct real-world scale given its dimensions, with physically correct contact shadows and lighting' +
+      " consistent with the scene. Preserve each product's exact identity.",
+    'Place each product in a DISTINCT, natural, functional location appropriate to its type. Do NOT merge,' +
+      ' stack, fuse, duplicate, or omit any product — exactly one of each must appear. Keep the room and the' +
+      ' original framing/aspect ratio exactly.',
+    '',
+    'PRODUCTS (the supplied product images follow the room image, in this order):',
+    ...list,
+    '',
+    'REQUEST DETAILS for this generation:',
+    ...sceneFacts(input),
+    ...customPreference(input),
   ].join('\n');
 }

@@ -611,6 +611,80 @@ describe('processGeneration — mode-specific surface_covering (Phase 2)', () =>
   });
 });
 
+// Multi-product (F2): a generation carrying productSnapshots[] composes ONE image from several products.
+// Each product gets its own cutout; all are sent to compose with per-product info; the operation is forced
+// to object placement; exactly one credit was debited (at creation) and no extra credit is charged here.
+describe('processGeneration — multi-product (F2)', () => {
+  it('sends every product image + per-product info to compose, one cutout each, forced object placement', async () => {
+    const merchantId = firstOrThrow(
+      await ctx.db.insert(merchants).values({ name: 'Multi', slug: `m-${randomUUID()}`, creditsBalance: 4 }).returning(),
+    ).id;
+    const [lamp, sofa] = await ctx.db
+      .insert(products)
+      .values([
+        { merchantId, name: 'Lamp', category: 'lighting', imageUrl: 'https://shop.test/lamp.png' },
+        { merchantId, name: 'Sofa', category: 'furniture', imageUrl: 'https://shop.test/sofa.png' },
+      ])
+      .returning();
+    const snapshots: ProductSnapshot[] = [
+      { id: lamp!.id, name: 'Lamp', category: 'lighting', imageUrl: 'https://shop.test/lamp.png' },
+      { id: sofa!.id, name: 'Sofa', category: 'furniture', imageUrl: 'https://shop.test/sofa.png' },
+    ];
+    const generationId = firstOrThrow(
+      await ctx.db
+        .insert(generations)
+        .values({
+          merchantId,
+          productId: lamp!.id,
+          roomKey: `rooms/${merchantId}/${randomUUID()}.jpg`,
+          productSnapshot: snapshots[0]!,
+          productSnapshots: snapshots,
+          idempotencyKey: randomUUID(),
+          status: 'queued',
+          creditsSpent: 1,
+        })
+        .returning(),
+    ).id;
+    await ctx.db.insert(creditLedger).values({ merchantId, amount: -1, reason: 'generation', generationId });
+
+    const captured: { products?: ImageRef[]; productInfos?: { name: string }[]; mode?: string } = {};
+    const provider: AIProvider = {
+      name: 'cap',
+      compose: async (input) => {
+        captured.products = input.products;
+        captured.productInfos = input.productInfos;
+        captured.mode = input.mode;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
+      },
+    };
+    const removeBackground = vi.fn(async () => ({ bytes: new Uint8Array([2]), contentType: 'image/png' }));
+    const orch = new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      bgRemoval: { removeBackground },
+      quantity: new MockQuantityProvider(),
+    });
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+
+    expect(captured.products).toHaveLength(2);
+    expect(captured.productInfos?.map((p) => p.name)).toEqual(['Lamp', 'Sofa']);
+    expect(captured.mode).toBe('object_placement');
+    expect(removeBackground).toHaveBeenCalledTimes(2); // one cutout per product
+
+    const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));
+    expect(gen.status).toBe('succeeded');
+    expect(gen.suggestedQuantity).toBeNull(); // coverage estimate skipped for multi-product
+    // Each product's cutout was cached back on its catalog row.
+    expect(firstOrThrow(await ctx.db.select().from(products).where(eq(products.id, sofa!.id))).cleanImageKey).toMatch(
+      new RegExp(`^products/${merchantId}/clean/`),
+    );
+
+    const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))
+      .creditsBalance;
+    expect(balance).toBe(4); // unchanged — one credit, charged at creation
+  });
+});
+
 // The Inngest `onFailure` net: when a run dies *outside* processGeneration's own try/catch (a module-load
 // crash, OOM, or timeout — the failure mode that left a generation stuck in QUEUED), this marks it failed
 // and refunds the credit. It must be idempotent so retries / a late onFailure can never double-refund.
