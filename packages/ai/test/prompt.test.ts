@@ -225,6 +225,11 @@ describe('buildComposePrompt — annotation (F3)', () => {
     expect(p).toMatch(/do not.*(render|keep|draw).*mark/i);
   });
 
+  it('tells the model a broad marked area is the extent to fill/cover, not a single point', () => {
+    const p = buildComposePrompt({ ...base, annotation: { color: '#5A55D6' } });
+    expect(p).toMatch(/extent|fill|cover/i);
+  });
+
   it('omits the annotation guidance when none is given', () => {
     expect(buildComposePrompt(base)).not.toMatch(/highlighted region/i);
   });

@@ -160,14 +160,22 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
  * Keep only the region the model actually changed (the product + its shadows) and composite it back over
  * the ORIGINAL, so the rest of the scene is byte-identical to the upload. Falls back to the full model
  * output when the detected change is implausibly small/large or the images can't be read. Never throws.
+ *
+ * The change mask is computed against `diffReference` — the image the model actually SAW — while the kept
+ * pixels are always restored from the clean `original`. These differ only for an annotated render (F3),
+ * where the model saw the room WITH the burned strokes: anywhere the model left the strokes untouched
+ * (didn't place/replace a product there) the composed output matches the burned reference → that region
+ * reads as "unchanged" → the clean (mark-free) pixels are restored. This is what guarantees the highlight
+ * marks are ALWAYS removed from the result, whether or not the model itself erased them. With no annotation
+ * `diffReference` is omitted and equals `original`, so the single-product path is byte-identical to before.
  */
-async function keepOnlyProductChange(
+export async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
-  opts: { maxFraction?: number } = {},
+  opts: { maxFraction?: number; diffReference?: Uint8Array } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
-    const change = await computeChangeMask(original, composed.bytes, {
+    const change = await computeChangeMask(opts.diffReference ?? original, composed.bytes, {
       threshold: CHANGE_THRESHOLD,
       feather: CHANGE_FEATHER,
     });
@@ -549,10 +557,15 @@ export async function processGeneration(
     // marks outside the placed region are discarded by keepOnlyProductChange, and the before stays clean.
     const annotation = readAnnotation(gen);
     let roomForModel: ImageRef = { url: roomUrl };
+    // The exact bytes the model is handed (clean room + burned strokes). Used as the change-mask reference
+    // below so retained strokes read as "unchanged" and the clean pixels are restored over them. Stays
+    // undefined when there's no annotation, so the composite reference is the clean room (unchanged path).
+    let roomForModelBytes: Uint8Array | undefined;
     if (annotation) {
       try {
         const burned = await burnAnnotation(normalized, annotation);
         roomForModel = { bytes: burned.bytes, contentType: burned.contentType };
+        roomForModelBytes = burned.bytes;
       } catch (err) {
         deps.reportError?.(err, { generationId, stage: 'annotate' });
       }
@@ -596,11 +609,12 @@ export async function processGeneration(
     const finalImage =
       mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
-        : await keepOnlyProductChange(
-            normalized,
-            composed,
-            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
-          );
+        : await keepOnlyProductChange(normalized, composed, {
+            ...(isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {}),
+            // Diff against the burned room (what the model saw), restoring clean pixels — so any highlight
+            // strokes the model didn't replace with a product are wiped from the final image (F3).
+            ...(roomForModelBytes ? { diffReference: roomForModelBytes } : {}),
+          });
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

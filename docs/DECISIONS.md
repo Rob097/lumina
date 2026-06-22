@@ -750,3 +750,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   `buildAnnotation`/`normalizedPoint` live in `@lumina/shared`, shared by the Studio (`RoomAnnotator`) and the
   widget (`DrawCanvas`). The stroke color resolves from the merchant accent (`theme.accent`), falling back to
   the brand `#5a55d6` when it isn't a usable `#rrggbb`.
+
+- **D77 — The change mask diffs against the room the model SAW (burned), not the clean room.** D74's
+  "self-cleaning" relied on the diff-mask comparing the model output to the clean room — but that only erases
+  strokes the model *itself* removed; strokes the model **retained** (e.g. a broadly-marked wall where only
+  part got the product) differ from the clean room, so the mask flagged them "changed" and the composite
+  **kept the marked pixels** (observed: a highlighted wall's marks survived into the result). Fix: in
+  `keepOnlyProductChange` the change mask is now computed against `diffReference` — the exact bytes handed to
+  the model (clean room **+** burned strokes) — while kept pixels are still restored from the *clean* original.
+  Any region the model left untouched (including leftover strokes) now reads as "unchanged" → clean, mark-free
+  pixels are restored over it. This makes **highlight removal deterministic** (model-independent), and because
+  the strokes no longer count as "changes" the `CHANGE_MAX_FRACTION` bail triggers less often on annotated
+  renders. With no annotation `diffReference` is omitted (equals the clean room), so the single-product path is
+  byte-identical. The compose annotation line also now says a broad marked area indicates the **extent** to
+  fill/cover (not a single point), to nudge coverage-style products to fill the highlighted region.

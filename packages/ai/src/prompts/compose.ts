@@ -95,9 +95,11 @@ function annotationFact(input: ComposeInput): string[] {
   }
   const { color } = input.annotation;
   return [
-    `- The user highlighted region(s) on the room photo with translucent ${color} strokes. Treat the marked` +
-      ' areas as where to focus the edit — place/replace the product there, or apply the change there. The' +
-      ` strokes are guidance ONLY: do NOT render, draw, or keep the ${color} marks in the output.`,
+    `- The user highlighted region(s) on the room photo with translucent ${color} strokes. Treat each marked` +
+      ' area as where to focus the edit — place or replace the product within the marked region. When a marked' +
+      ' region spans a broad surface (e.g. a wall or a floor area), treat its full EXTENT as the area the product' +
+      ' should fill/cover, not merely a single point. The strokes are guidance ONLY: do NOT render, draw, or keep' +
+      ` the ${color} marks in the output — the marked areas must show the product and the clean scene, never the strokes.`,
   ];
 }
 
