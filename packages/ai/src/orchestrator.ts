@@ -34,6 +34,12 @@ export class AIComposeError extends Error {
 export interface OrchestratorConfig {
   /** Ordered provider chain per routing policy (primary first, then fallbacks). */
   chains: Record<RoutingPolicy, AIProvider[]>;
+  /**
+   * Ordered provider chain for draw-to-place edits (when `input.region` is set) — typically `[fal, gateway]`.
+   * When absent/empty, region edits fall back to the policy chain. Keeps the region path additive: existing
+   * (non-drawn) generations are never rerouted.
+   */
+  regionChain?: AIProvider[];
   /** Attempts per provider before falling back (default 2). */
   retries?: number;
   /** Base backoff between retries in ms (default 250, exponential). */
@@ -61,7 +67,11 @@ export class AIOrchestrator {
   constructor(private readonly config: OrchestratorConfig) {}
 
   async compose(input: ComposeInput): Promise<ComposeResult> {
-    const chain = this.config.chains[input.policy];
+    // Draw-to-place edits route to the region chain (fal); everything else uses the policy chain.
+    const chain =
+      input.region && this.config.regionChain?.length
+        ? this.config.regionChain
+        : this.config.chains[input.policy];
     if (!chain || chain.length === 0) {
       throw new AIComposeError(`no providers configured for policy "${input.policy}"`, []);
     }

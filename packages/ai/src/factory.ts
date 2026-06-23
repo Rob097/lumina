@@ -3,6 +3,7 @@ import { resolveImageSizes } from './routing.js';
 import { ReplicateMattingProvider } from './providers/bg-removal.js';
 import { GatewayBgRemovalProvider } from './providers/bg-removal-gateway.js';
 import { GatewayProvider } from './providers/gateway.js';
+import { FalProvider } from './providers/fal.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
 import { GatewayPlannerProvider } from './providers/gateway-planner.js';
 import {
@@ -73,6 +74,29 @@ export function selectPlannerProvider(env: Record<string, string | undefined>): 
 }
 
 /**
+ * Build the draw-to-place (region_edit) provider chain from env. When `FAL_KEY` is present the fal Seedream
+ * editor leads (spike winner: faithful product, ~$0.04/~30s) with `fallback` (the gateway quality provider)
+ * behind it; without a key the chain is just `[fallback]` so drawing still works (lower fidelity) and nothing
+ * crashes. The fal call stays behind `AIProvider.compose()` (HARD RULE #8); the key is only ever sent in the
+ * Authorization header. Model/cost are env-configurable (`FAL_IMAGE_MODEL`, `FAL_COST_CENTS`).
+ */
+export function selectRegionChain(
+  env: Record<string, string | undefined>,
+  fallback: AIProvider,
+): AIProvider[] {
+  if (!env.FAL_KEY) {
+    return [fallback];
+  }
+  const fal = new FalProvider({
+    name: 'fal-seedream',
+    model: env.FAL_IMAGE_MODEL ?? 'fal-ai/bytedance/seedream/v4.5/edit',
+    costCents: Number(env.FAL_COST_CENTS ?? 4),
+    falKey: env.FAL_KEY,
+  });
+  return [fal, fallback];
+}
+
+/**
  * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
  * credentials are present (`AI_GATEWAY_API_KEY` or, on Vercel, `VERCEL_OIDC_TOKEN`) or when
  * `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
@@ -85,6 +109,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     const mock = new MockProvider({ name: 'mock', model: 'mock-compose', costCents: 0 });
     return new AIOrchestrator({
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
+      regionChain: [mock],
       bgRemoval: new MockBgRemovalProvider(),
       planner: new MockPlannerProvider(),
       quantity: new MockQuantityProvider(),
@@ -122,6 +147,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
   });
   return new AIOrchestrator({
     chains,
+    regionChain: selectRegionChain(env, quality),
     bgRemoval: selectBgRemovalProvider(env),
     planner: selectPlannerProvider(env),
     quantity,
