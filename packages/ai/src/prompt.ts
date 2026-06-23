@@ -1,5 +1,6 @@
 import type { ComposeInput } from './types.js';
 import { COMPOSE_SYSTEM_INSTRUCTION } from './prompts/system.js';
+import { playbookRules } from './prompts/playbook.js';
 import {
   buildComposeTask,
   buildCoveringTask,
@@ -37,5 +38,8 @@ export function buildComposePrompt(input: ComposeInput): string {
         : input.mode === 'object_replacement'
           ? buildReplacementTask(input)
           : buildComposeTask(input);
-  return `${COMPOSE_SYSTEM_INSTRUCTION}\n\n${task}`;
+  // Owner-editable tuning rules (packages/ai/src/prompts/playbook.ts) ride between the always-true system
+  // instruction and the task, applying to every mode (single + multi). Empty when no rules are configured.
+  const playbook = playbookRules();
+  return [COMPOSE_SYSTEM_INSTRUCTION, ...(playbook ? [playbook] : []), task].join('\n\n');
 }

@@ -202,12 +202,18 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     return `  ${i + 1}. ${p.name} (category hint: ${p.category}${dims})${where}`;
   });
   return [
-    `OPERATION: multi-object placement. Place ALL ${infos.length} supplied products into the one scene, each at` +
-      ' correct real-world scale given its dimensions, with physically correct contact shadows and lighting' +
-      " consistent with the scene. Preserve each product's exact identity.",
-    'Place each product in a DISTINCT, natural, functional location appropriate to its type. Do NOT merge,' +
-      ' stack, fuse, duplicate, or omit any product — exactly one of each must appear. Keep the room and the' +
-      ' original framing/aspect ratio exactly.',
+    `OPERATION: multi-product composition. Insert ALL ${infos.length} supplied products into the one scene,` +
+      ' each at correct real-world scale given its dimensions, with physically correct contact shadows and' +
+      " lighting consistent with the scene. Preserve each product's exact identity.",
+    'Decide EACH product\'s operation from the product itself, independently:',
+    '- a discrete object (e.g. lamp, sofa, mirror, chair) → place it ONCE at a natural, functional location;',
+    '- a surfacing/cladding material (e.g. acoustic or slat panels, tiles, wallpaper, flooring, cladding) →' +
+      ' CLAD the whole appropriate surface with it, repeating the unit to fill the ENTIRE surface edge-to-edge' +
+      ' — never a single piece and never just a small patch on part of the surface.',
+    'Give each product exactly ONE coherent treatment, in a DISTINCT place appropriate to its type. Do NOT' +
+      ' merge, stack, fuse, duplicate a discrete object, or omit any product — every supplied product must' +
+      ' appear. (Repeating a surfacing unit across its surface is the intended cladding, NOT a forbidden' +
+      ' duplicate.) Keep the room and the original framing/aspect ratio exactly.',
     '',
     'PRODUCTS (the supplied product images follow the room image, in this order):',
     ...list,

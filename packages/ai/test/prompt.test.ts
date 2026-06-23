@@ -127,6 +127,10 @@ describe('buildComposePrompt', () => {
     expect(buildComposePrompt(base)).not.toMatch(/insert this exact/i);
   });
 
+  it('injects the owner-editable playbook tuning rules into every compose prompt', () => {
+    expect(buildComposePrompt(base)).toMatch(/TUNING RULES/i);
+  });
+
   it('includes shopper custom instructions as a soft preference, after the hard rules', () => {
     const p = buildComposePrompt({ ...base, customInstructions: 'near the reading nook by the window' });
     expect(p).toContain('near the reading nook by the window');
@@ -206,6 +210,19 @@ describe('buildComposePrompt — multi-product placement (F2)', () => {
     const p = buildComposePrompt(multi);
     expect(p).toMatch(/distinct/i);
     expect(p).toMatch(/do not.*(merge|stack|duplicate|omit)/i);
+  });
+
+  it('infers each product operation, so a surfacing product clads its WHOLE surface (not a single patch)', () => {
+    const p = buildComposePrompt({
+      ...multi,
+      productInfos: [
+        { name: 'Aura Lamp', category: 'lighting' },
+        { name: 'Acoustic Panel', category: 'decor' },
+      ],
+    });
+    expect(p).toMatch(/place/i); // discrete objects are placed
+    expect(p).toMatch(/clad|cover|re-?surface/i); // surfacing materials clad
+    expect(p).toMatch(/entire|whole/i); // …the whole surface, not a patch
   });
 
   it('keeps the framing/aspect-ratio rule and includes per-product real-world dimensions', () => {
