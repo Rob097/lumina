@@ -56,3 +56,11 @@ export {
 } from './providers/gateway.js';
 export { VertexProvider } from './providers/vertex.js';
 export { ReplicateProvider } from './providers/replicate.js';
+export {
+  FalProvider,
+  falImageSize,
+  type FalProviderOptions,
+  type FalRunner,
+  type FalCallArgs,
+  type FalImage,
+} from './providers/fal.js';
