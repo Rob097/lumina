@@ -837,3 +837,21 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   deterministic stroke-removal are now **open for a fresh design** (see the next spec) — likely candidates: a
   provider/model with real mask-inpainting support, or a textual-region placement hint that does NOT alter the
   composited pixels, decided with the owner before any implementation.
+
+- **D83 — Draw-to-place (region_edit) = fal Seedream v4.5/edit full-frame + drift safety-net (Option A).** After
+  a spike on the owner's real golden cases (`apps/api/scripts/spike-fal/`, throwaway), the rebuild was decided on
+  evidence, not parameters. **Model:** `fal-ai/bytedance/seedream/v4.5/edit` behind `AIProvider` — faithful
+  product reconstruction (even from a partial product photo), ~$0.04, ~30s. **Rejected:** Nano-Banana-Pro on fal
+  (too slow, 143–225s); `flux-kontext-lora/inpaint` for objects (it frames the reference photo as a mounted
+  picture — only ok for flat surfaces); **region-gated diff-mask composite (reintroduces the D77–D81 "missing
+  pieces / burnt" bug** — thin low-contrast object parts fall below the change threshold and get composited away);
+  crop-to-region (burnt, out-of-context lighting). **Strokes are never burned** — the widget already sends them as
+  vectors; we derive the drawn REGION (`regionFromStrokes`) and a generic geometry-derived `placementPhrase`, edit
+  the CLEAN room full-frame with ONE generic rule block (`buildRegionEditTask` — works for any product/any room,
+  no per-category if/else), and **contain drift only when needed**: `driftOutsideRegion` > `REGION_DRIFT_MAX`
+  (0.06) ⇒ `containInRegion` (keep the model's region, restore the original elsewhere), else ship the raw
+  full-frame (best quality — "room recognizably yours", owner-accepted, not byte-identical). **Additive:** routes
+  via `regionChain` (FAL_KEY ⇒ `[fal, gateway]`, else `[gateway]`); non-drawn modes + multi-product drawn keep
+  today's gateway path untouched (multi-product stroke→product auto-mapping is deferred to M-R5). Plan:
+  `docs/superpowers/plans/2026-06-23-draw-to-place-region-edit.md`. Owner-set: Phase-2 (migrate non-drawn modes to
+  Seedream) is approved but gated on the upgraded golden eval staying ≥ baseline 7/7.

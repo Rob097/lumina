@@ -9,6 +9,34 @@ const base: ComposeInput = {
   policy: 'balanced',
 };
 
+describe('buildComposePrompt — region_edit (draw-to-place)', () => {
+  const region = { box: { x: 0.64, y: 0.22, w: 0.31, h: 0.5 }, placement: 'in the right part of the scene' };
+
+  it('uses the generic region task with the placement phrase and the rigid rules', () => {
+    const p = buildComposePrompt({ ...base, region });
+    expect(p).toContain('in the right part of the scene');
+    expect(p).toMatch(/PRODUCT FIDELITY/);
+    expect(p).toMatch(/PRESERVE THE ROOM/);
+    expect(p).toMatch(/switched OFF unless/i);
+    expect(p).toContain('photorealistic environment compositor'); // system instruction still prepended
+  });
+
+  it('applies the SAME rule block regardless of product category (generic, no per-product branch)', () => {
+    const tiles = buildComposePrompt({ ...base, category: 'tiles', region });
+    const furniture = buildComposePrompt({ ...base, category: 'furniture', region });
+    expect(tiles).toContain('PRODUCT FIDELITY');
+    expect(furniture).toContain('PRODUCT FIDELITY');
+    // Same operation header for both — the category only appears as a soft fact, not a behaviour switch.
+    expect(tiles).toContain('OPERATION: draw-to-place');
+    expect(furniture).toContain('OPERATION: draw-to-place');
+  });
+
+  it('does not burn/mention stroke marks (strokes travel as a region, never rendered)', () => {
+    const p = buildComposePrompt({ ...base, region });
+    expect(p).not.toMatch(/translucent .* strokes/i);
+  });
+});
+
 describe('buildComposePrompt', () => {
   it('always enforces identity preservation and environment integrity', () => {
     const p = buildComposePrompt(base);

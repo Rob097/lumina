@@ -685,15 +685,15 @@ describe('processGeneration — multi-product (F2)', () => {
   });
 });
 
-// Annotation (F3): a generation carrying metadata.annotation gets the shopper's strokes burned onto a COPY
-// of the room for the model (passed as bytes), while the clean room stays the before image + composite base.
-describe('processGeneration — annotation (F3)', () => {
-  it('burns the strokes onto the model room (bytes) and passes the color, keeping the clean original', async () => {
+// Draw-to-place (F3, Option A): a single-product generation carrying metadata.annotation derives the drawn
+// REGION from the strokes, sends the CLEAN room (strokes never burned), and steers placement by prompt.
+describe('processGeneration — draw-to-place (F3, region)', () => {
+  it('derives the drawn region, sends a clean room (no burn, no colour), and steers placement', async () => {
     const annotation = {
       color: '#5A55D6',
       alpha: 0.6,
       width: 0.05,
-      strokes: [{ points: [{ x: 0.4, y: 0.4 }, { x: 0.6, y: 0.6 }] }],
+      strokes: [{ points: [{ x: 0.7, y: 0.3 }, { x: 0.9, y: 0.8 }] }], // right side of the room
     };
     const merchantId = firstOrThrow(
       await ctx.db.insert(merchants).values({ name: 'Ann', slug: `a-${randomUUID()}`, creditsBalance: 4 }).returning(),
@@ -717,17 +717,23 @@ describe('processGeneration — annotation (F3)', () => {
     const room = new Uint8Array(
       await sharp({ create: { width: 80, height: 60, channels: 3, background: { r: 240, g: 240, b: 240 } } }).jpeg().toBuffer(),
     );
-    const captured: { room?: ImageRef; color?: string } = {};
+    const captured: {
+      room?: ImageRef;
+      region?: { box: { x: number; y: number; w: number; h: number }; placement: string };
+      color?: string;
+    } = {};
     const provider: AIProvider = {
       name: 'cap',
       compose: async (input) => {
         captured.room = input.room;
+        captured.region = input.region;
         captured.color = input.annotation?.color;
         return { bytes: room, contentType: 'image/jpeg', model: 'mock-compose', costCents: 1, width: 80, height: 60 };
       },
     };
     const orch = new AIOrchestrator({
       chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      regionChain: [provider],
       quantity: new MockQuantityProvider(),
     });
     const realStorage: StoragePort = {
@@ -737,8 +743,10 @@ describe('processGeneration — annotation (F3)', () => {
     };
 
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage: realStorage }, generationId)).toBe('succeeded');
-    expect(captured.color).toBe('#5A55D6');
-    expect(captured.room && 'bytes' in captured.room).toBe(true); // model got the annotated bytes, not the clean URL
+    expect(captured.region).toBeDefined();
+    expect(captured.region?.placement).toMatch(/right/); // strokes were on the right
+    expect(captured.color).toBeUndefined(); // strokes are NOT surfaced as a colour (never burned)
+    expect(captured.room && 'url' in captured.room).toBe(true); // model gets the clean room URL, not burned bytes
   });
 
   it('composes against the clean room URL when there is no annotation', async () => {

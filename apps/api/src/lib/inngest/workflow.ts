@@ -21,6 +21,8 @@ import {
 import {
   AnnotationSchema,
   neutralGenerationPlan,
+  placementPhrase,
+  regionFromStrokes,
   type Annotation,
   type GenerationMode,
   type GenerationPlan,
@@ -33,6 +35,7 @@ import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
 import { burnAnnotation } from '../images/annotate.js';
+import { driftOutsideRegion, containInRegion } from '../images/region.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -151,6 +154,9 @@ const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
 // Several distinct products legitimately change more of the scene than one object, so the localized-change
 // guard is looser for multi-product renders (F2) before it bails to the full model output.
 const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
+// Draw-to-place (Option A): above this fraction of pixels changed OUTSIDE the drawn region, the model drifted
+// the room too much → contain the edit inside the region; below it, ship the model's full frame (best quality).
+const REGION_DRIFT_MAX = Number(process.env.REGION_DRIFT_MAX ?? 0.06);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -544,12 +550,23 @@ export async function processGeneration(
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
     // always-true system instruction. One generative compose per product (no deterministic tiling); the
     // coverage QUANTITY is surfaced separately in the dashboard (D67).
-    // Annotation (F3): burn the shopper's strokes onto a COPY of the (clean, normalized) room and hand THAT
-    // to the model, while `normalized` stays the clean original for the composite + before image. So stray
-    // marks outside the placed region are discarded by keepOnlyProductChange, and the before stays clean.
+    // Draw-to-place (F3, Option A): the shopper's strokes are NEVER burned into the model's image — we derive
+    // the drawn REGION from them, let the model edit the CLEAN room, steer placement by prompt, and contain
+    // drift afterwards. So there is nothing to "remove". Single-product only here; multi-product drawn keeps
+    // today's burn path until stroke→product auto-mapping (M-R5).
     const annotation = readAnnotation(gen);
+    const isDrawn = Boolean(annotation) && !isMulti;
+    const region =
+      isDrawn && annotation
+        ? (() => {
+            const box = regionFromStrokes(annotation);
+            return { box, placement: placementPhrase(box) };
+          })()
+        : undefined;
     let roomForModel: ImageRef = { url: roomUrl };
-    if (annotation) {
+    if (annotation && isMulti) {
+      // Multi-product drawn: keep today's behaviour (burn marks onto a COPY; `normalized` stays clean for the
+      // composite + before image) until per-stroke product mapping lands (M-R5).
       try {
         const burned = await burnAnnotation(normalized, annotation);
         roomForModel = { bytes: burned.bytes, contentType: burned.contentType };
@@ -581,7 +598,10 @@ export async function processGeneration(
       mode,
       target: isMulti ? undefined : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
-      ...(annotation ? { annotation: { color: annotation.color } } : {}),
+      // Draw-to-place: the region routes to the fal Seedream chain + the generic region_edit prompt.
+      ...(region ? { region } : {}),
+      // Multi-product drawn still surfaces the burned marks by colour (single-product uses `region` instead).
+      ...(annotation && isMulti ? { annotation: { color: annotation.color } } : {}),
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),
@@ -593,14 +613,38 @@ export async function processGeneration(
     // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
-    const finalImage =
-      mode === 'surface_covering'
-        ? { bytes: composed.bytes, contentType: composed.contentType }
-        : await keepOnlyProductChange(
-            normalized,
-            composed,
-            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
-          );
+    // Draw-to-place (Option A): ship the model's full frame when it left the room essentially intact (best
+    // quality, natural lighting); contain the edit inside the drawn region only when it drifted too much.
+    let finalImage: { bytes: Uint8Array; contentType: string };
+    if (region) {
+      const drift = await driftOutsideRegion(normalized, composed.bytes, region.box);
+      const contained = drift > REGION_DRIFT_MAX;
+      finalImage = contained
+        ? await containInRegion({
+            original: normalized,
+            edited: composed.bytes,
+            box: region.box,
+            contentType: composed.contentType,
+          })
+        : { bytes: composed.bytes, contentType: composed.contentType };
+      console.info(
+        '[gen] region',
+        JSON.stringify({
+          generationId,
+          placement: region.placement,
+          drift: Number(drift.toFixed(3)),
+          contained,
+        }),
+      );
+    } else if (mode === 'surface_covering') {
+      finalImage = { bytes: composed.bytes, contentType: composed.contentType };
+    } else {
+      finalImage = await keepOnlyProductChange(
+        normalized,
+        composed,
+        isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
+      );
+    }
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

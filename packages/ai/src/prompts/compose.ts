@@ -158,6 +158,37 @@ export function buildComposeTask(input: ComposeInput): string {
 }
 
 /**
+ * `region_edit` task (draw-to-place / F3, Option A): the shopper drew a region on their room; place the
+ * product THERE and nowhere else, faithfully, while keeping the rest of the room intact. ONE generic rule
+ * block for ANY product and ANY environment — the only per-request variation is the geometry-derived
+ * placement phrase and the product facts. The model handles surface-vs-object on its own (no branching),
+ * and the strokes are never burned, so there is nothing to "remove".
+ */
+export function buildRegionEditTask(input: ComposeInput): string {
+  const placement = input.region?.placement ?? 'in the area the shopper indicated';
+  return [
+    'OPERATION: draw-to-place. Add the supplied product into THIS room photo, only in the area the shopper indicated. Output one photorealistic image.',
+    '',
+    'RULES (apply to ANY product and ANY room):',
+    '1. PRODUCT FIDELITY — Reproduce the product EXACTLY as in the reference image(s): same shape,' +
+      ' proportions, colour, material, texture and finish. If a reference shows only part of it, faithfully' +
+      ' reconstruct the rest in the same style. Never substitute, restyle, recolour, or invent a different product.',
+    `2. PLACEMENT — Put the product ${placement}. Keep it within that area; do not recentre it or move it elsewhere.`,
+    '3. SCALE & FIT — Size it to plausibly fill the indicated area, respecting real-world proportions and the' +
+      " room's perspective. A surface finish should clad the indicated surface; a discrete object should rest" +
+      ' in a physically plausible spot there with a natural contact shadow.',
+    '4. PRESERVE THE ROOM — Change nothing else: keep every existing wall, floor, window, door, furniture' +
+      ' item, fixture, colour, and the layout exactly as photographed. Add only the product and its own shadow.',
+    "5. REALISM — Match the room's perspective, lighting direction, white balance and shadow softness. Do NOT" +
+      ' add glow, bloom, lens flare, or blown highlights; if the product is a lamp or light, render it switched' +
+      ' OFF unless the room is dark. The result must look like a real photograph of THIS room with the product in it.',
+    '',
+    'REQUEST DETAILS for this generation:',
+    ...requestFacts(input),
+  ].join('\n');
+}
+
+/**
  * `surface_covering` task (the §4.2 mental-model fix): treat the product as a REPEATING surfacing unit and
  * render the target surface generatively re-clad — NOT a single placement and NOT flat pasted copies. The
  * scoped exception lets it cover the target surface while keeping everything else (and the framing) exact.

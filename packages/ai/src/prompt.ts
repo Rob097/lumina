@@ -4,6 +4,7 @@ import {
   buildComposeTask,
   buildCoveringTask,
   buildMultiPlacementTask,
+  buildRegionEditTask,
   buildReplacementTask,
 } from './prompts/compose.js';
 
@@ -19,6 +20,7 @@ export {
   buildComposeTask,
   buildCoveringTask,
   buildMultiPlacementTask,
+  buildRegionEditTask,
   buildReplacementTask,
 } from './prompts/compose.js';
 
@@ -29,13 +31,17 @@ export {
  * `object_placement` (the default when no mode is present).
  */
 export function buildComposePrompt(input: ComposeInput): string {
+  // Draw-to-place (single-product) takes priority: the shopper's drawn region drives a generic placement
+  // task. Multi-product and the planner modes keep their existing tasks (additive).
   const task =
-    input.productInfos && input.productInfos.length > 1
-      ? buildMultiPlacementTask(input)
-      : input.mode === 'surface_covering'
-        ? buildCoveringTask(input)
-        : input.mode === 'object_replacement'
-          ? buildReplacementTask(input)
-          : buildComposeTask(input);
+    input.region && !(input.productInfos && input.productInfos.length > 1)
+      ? buildRegionEditTask(input)
+      : input.productInfos && input.productInfos.length > 1
+        ? buildMultiPlacementTask(input)
+        : input.mode === 'surface_covering'
+          ? buildCoveringTask(input)
+          : input.mode === 'object_replacement'
+            ? buildReplacementTask(input)
+            : buildComposeTask(input);
   return `${COMPOSE_SYSTEM_INSTRUCTION}\n\n${task}`;
 }
