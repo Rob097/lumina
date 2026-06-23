@@ -17,7 +17,8 @@ describe('buildComposePrompt — region_edit (draw-to-place)', () => {
     expect(p).toContain('in the right part of the scene');
     expect(p).toMatch(/PRODUCT FIDELITY/);
     expect(p).toMatch(/PRESERVE THE ROOM/);
-    expect(p).toMatch(/switched OFF unless/i);
+    expect(p).toMatch(/do not darken or dim/i); // keep the room's own light (no relight to dramatize)
+    expect(p).toMatch(/brightness|exposure/i);
     expect(p).toContain('photorealistic environment compositor'); // system instruction still prepended
   });
 

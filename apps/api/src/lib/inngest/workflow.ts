@@ -35,7 +35,7 @@ import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
 import { burnAnnotation } from '../images/annotate.js';
-import { driftOutsideRegion, containInRegion } from '../images/region.js';
+import { driftOutsideRegion } from '../images/region.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -154,9 +154,6 @@ const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
 // Several distinct products legitimately change more of the scene than one object, so the localized-change
 // guard is looser for multi-product renders (F2) before it bails to the full model output.
 const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
-// Draw-to-place (Option A): above this fraction of pixels changed OUTSIDE the drawn region, the model drifted
-// the room too much → contain the edit inside the region; below it, ship the model's full frame (best quality).
-const REGION_DRIFT_MAX = Number(process.env.REGION_DRIFT_MAX ?? 0.06);
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -613,28 +610,16 @@ export async function processGeneration(
     // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
-    // Draw-to-place (Option A): ship the model's full frame when it left the room essentially intact (best
-    // quality, natural lighting); contain the edit inside the drawn region only when it drifted too much.
+    // Draw-to-place: ship the model's full frame as-is (owner decision 2026-06-23). The generic prompt keeps
+    // the room's lighting/exposure unchanged, so we trust the raw rather than containing it (containment made
+    // glow blobs when the model relit, and erased misplaced products). Drift is logged for observability only.
     let finalImage: { bytes: Uint8Array; contentType: string };
     if (region) {
       const drift = await driftOutsideRegion(normalized, composed.bytes, region.box);
-      const contained = drift > REGION_DRIFT_MAX;
-      finalImage = contained
-        ? await containInRegion({
-            original: normalized,
-            edited: composed.bytes,
-            box: region.box,
-            contentType: composed.contentType,
-          })
-        : { bytes: composed.bytes, contentType: composed.contentType };
+      finalImage = { bytes: composed.bytes, contentType: composed.contentType };
       console.info(
         '[gen] region',
-        JSON.stringify({
-          generationId,
-          placement: region.placement,
-          drift: Number(drift.toFixed(3)),
-          contained,
-        }),
+        JSON.stringify({ generationId, placement: region.placement, drift: Number(drift.toFixed(3)) }),
       );
     } else if (mode === 'surface_covering') {
       finalImage = { bytes: composed.bytes, contentType: composed.contentType };

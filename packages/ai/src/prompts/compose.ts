@@ -179,9 +179,11 @@ export function buildRegionEditTask(input: ComposeInput): string {
       ' in a physically plausible spot there with a natural contact shadow.',
     '4. PRESERVE THE ROOM — Change nothing else: keep every existing wall, floor, window, door, furniture' +
       ' item, fixture, colour, and the layout exactly as photographed. Add only the product and its own shadow.',
-    "5. REALISM — Match the room's perspective, lighting direction, white balance and shadow softness. Do NOT" +
-      ' add glow, bloom, lens flare, or blown highlights; if the product is a lamp or light, render it switched' +
-      ' OFF unless the room is dark. The result must look like a real photograph of THIS room with the product in it.',
+    "5. KEEP THE ROOM'S OWN LIGHT — Match the room's perspective and existing lighting. Keep the room's overall" +
+      ' brightness, exposure and colour exactly as in the original photo: do NOT darken or dim the room, do NOT' +
+      ' add a colour cast, bloom, lens flare, or blown highlights. A lamp or light MAY appear switched on, but' +
+      ' only as a subtle local accent — it must NOT change how bright the rest of the room looks. The result' +
+      ' must look like a real photograph of THIS room with the product added.',
     '',
     'REQUEST DETAILS for this generation:',
     ...requestFacts(input),
