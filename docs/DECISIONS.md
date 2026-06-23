@@ -874,3 +874,18 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   providers; drawing may return later only as an isolated strategy behind the eval gate. Definitive goal: env
   (room/house/garden/person) + 1+ products → faithful product, environment untouched where nothing is added,
   < 1 min, robust to imperfect (non-straight / non-4K) inputs.
+
+- **D85 — Drop fal entirely; Gemini is the only compose provider.** With fal wired as a fallback (D84) the
+  golden eval was run through BOTH providers (Gemini vs fal Seedream v4.5) on all 7 cases. **Gemini won
+  decisively on quality AND speed.** fal consistently mis-behaved: it relit/brightened scenes (tilted, dark),
+  de-blurred/altered the scene (blurry), floated objects or opened doors (standard lamp), and tiled coverage
+  products as discrete blocks — i.e. it broke requirement (a) "don't change the environment". It was also
+  slower (avg ~41s vs Gemini ~27s, with a 62s outlier over the 1-minute budget). The product-description
+  anchor (D-next) helped Gemini broadly but only partially helped fal and even regressed its slat covering.
+  **Decision (owner, 2026-06-23): fal results are terrible — remove it completely and use only Gemini.**
+  Reverted `factory.ts` + `index.ts` to the Gemini-only chains, deleted `providers/fal.ts`, `fal.test.ts`,
+  and the fal-only `factory.test.ts`, and dropped the `COMPOSE_PRIMARY`/`selectFalFallback`/`buildComposeChains`
+  experiment. **Models in use (Vercel AI Gateway):** quality = `google/gemini-3-pro-image` (**Nano Banana
+  Pro**), fast = `google/gemini-3.1-flash-image-preview`; the router picks fast for easy scenes and escalates
+  to Nano Banana Pro for hard ones. The `FAL_KEY` on Vercel/`.env.dev` is now unused (owner can remove it).
+  Supersedes the fal-fallback half of D84.

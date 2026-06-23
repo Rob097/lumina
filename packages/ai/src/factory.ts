@@ -3,7 +3,6 @@ import { resolveImageSizes } from './routing.js';
 import { ReplicateMattingProvider } from './providers/bg-removal.js';
 import { GatewayBgRemovalProvider } from './providers/bg-removal-gateway.js';
 import { GatewayProvider } from './providers/gateway.js';
-import { FalProvider } from './providers/fal.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
 import { GatewayPlannerProvider } from './providers/gateway-planner.js';
 import {
@@ -74,56 +73,6 @@ export function selectPlannerProvider(env: Record<string, string | undefined>): 
 }
 
 /**
- * The cross-provider compose fallback (fal.ai Seedream). When `FAL_KEY` is present it's appended to every
- * compose chain so a full AI-Gateway outage still produces a result. It runs the SAME prompt and the SAME
- * pixel-perfect composite as the Gemini primary, so the shopper sees no quality/speed difference vs Gemini
- * (a faithful reference editor at ~$0.04 / ~30s). Absent ⇒ undefined (gemini-only, no crash). Behind
- * `AIProvider.compose()` (HARD RULE #8); the key only ever rides the Authorization header. Model/cost are
- * env-configurable (`FAL_IMAGE_MODEL`, `FAL_COST_CENTS`).
- */
-export function selectFalFallback(env: Record<string, string | undefined>): AIProvider | undefined {
-  if (!env.FAL_KEY) {
-    return undefined;
-  }
-  return new FalProvider({
-    name: 'fal-seedream',
-    model: env.FAL_IMAGE_MODEL ?? 'fal-ai/bytedance/seedream/v4.5/edit',
-    costCents: Number(env.FAL_COST_CENTS ?? 4),
-    falKey: env.FAL_KEY,
-  });
-}
-
-/**
- * Assemble the per-policy compose chains (primary first, then fallbacks; the orchestrator tries each in
- * order on error). Default (`primary: 'gemini'`): `quality` leads the quality/balanced policies, `fast`
- * leads the fast policy, and the optional cross-provider `fallback` (fal) is appended LAST to every policy
- * as the outage safety net — so a single provider being down never hard-fails a generation. With
- * `primary: 'fal'` (and a `fallback` present) fal leads every policy and the Gemini pair becomes the
- * fallback — same prompt + composite either way, so the shopper sees no quality/speed difference; this is
- * the env-flippable lever (`COMPOSE_PRIMARY`) to promote fal once the golden eval proves it ≥ Gemini.
- */
-export function buildComposeChains(
-  quality: AIProvider,
-  fast: AIProvider,
-  fallback?: AIProvider,
-  opts?: { primary?: 'gemini' | 'fal' },
-): Record<RoutingPolicy, AIProvider[]> {
-  if (opts?.primary === 'fal' && fallback) {
-    return {
-      quality: [fallback, quality, fast],
-      balanced: [fallback, quality, fast],
-      fast: [fallback, fast, quality],
-    };
-  }
-  const tail = fallback ? [fallback] : [];
-  return {
-    quality: [quality, fast, ...tail],
-    balanced: [quality, fast, ...tail],
-    fast: [fast, quality, ...tail],
-  };
-}
-
-/**
  * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
  * credentials are present (`AI_GATEWAY_API_KEY` or, on Vercel, `VERCEL_OIDC_TOKEN`) or when
  * `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
@@ -160,12 +109,11 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     apiKey,
   });
 
-  // Gemini leads (the proven 7/7 quality path); fal is appended as the cross-provider fallback when a
-  // FAL_KEY is configured, so a gateway outage still yields a result at equivalent quality/speed.
-  // `COMPOSE_PRIMARY=fal` flips fal to lead (Gemini becomes the fallback) — the evidence-gated lever to
-  // promote fal once the golden eval proves it ≥ Gemini; default stays the proven Gemini-first order.
-  const primary = env.COMPOSE_PRIMARY === 'fal' ? 'fal' : 'gemini';
-  const chains = buildComposeChains(quality, fast, selectFalFallback(env), { primary });
+  const chains: Record<RoutingPolicy, AIProvider[]> = {
+    quality: [quality, fast],
+    balanced: [quality, fast],
+    fast: [fast, quality],
+  };
   // A cheap text+vision pass for coverage products (tiles/decor/renovation/outdoor); single-unit
   // categories short-circuit to 1 in the orchestrator without ever calling it.
   const quantity = new GatewayQuantityProvider({
