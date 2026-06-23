@@ -36,7 +36,7 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 | GET / POST | `/api/v1/clients` | session | Studio client list (#8) — list / create. `?withStats=true` adds render count + last activity (rubric/overview) |
 | GET / PUT / DELETE | `/api/v1/clients/:id` | session | fetch / update / delete (tenant-scoped) |
 | POST | `/api/v1/uploads/sign` | session | authed presigned R2 room upload (Studio) |
-| POST | `/api/v1/generations` | session | Studio generate — reuses `createGeneration`, debits 1 credit, optional `clientId`. Accepts `productIds[]` (1–5; multi-product → one combined render; legacy single `productId` still accepted) and an optional freehand `annotation` (drawn marks, burned onto the model room) |
+| POST | `/api/v1/generations` | session | Studio generate — reuses `createGeneration`, debits 1 credit, optional `clientId`. Accepts `productIds[]` (1–5; multi-product → one combined render; legacy single `productId` still accepted) |
 | POST | `/api/v1/generations/:id/email` | session | email a finished render (7-day signed link) to the client |
 | POST | `/api/v1/billing/checkout` | session | Stripe Checkout URL `{ plan }` |
 | POST | `/api/v1/billing/portal` | session | Stripe Customer Portal URL |
@@ -48,7 +48,7 @@ Keys are stored as `sha256(raw)` + a lookup `prefix`; the raw key is shown once 
 |---|---|---|
 | GET | `/api/v1/widget/config` | theme/buttonText/locale/i18n/watermark/limits/resultCta |
 | POST | `/api/v1/widget/sign-upload` | presigned R2 PUT → `{ uploadUrl, roomKey, expiresIn }` |
-| POST | `/api/v1/widget/generate` | rate-limit + anon cap → debit + queue, or cached result (0 credits); `402` insufficient. Accepts an optional freehand `annotation` (drawn marks, burned onto the model room) |
+| POST | `/api/v1/widget/generate` | rate-limit + anon cap → debit + queue, or cached result (0 credits); `402` insufficient |
 | GET | `/api/v1/widget/status/:id` | polling fallback (signed result/before URLs) |
 | POST | `/api/v1/widget/feedback` | 👍/👎 → usage_event (`204`) |
 | POST | `/api/v1/widget/event` | impression/open/cta beacon → usage_event (`204`) |

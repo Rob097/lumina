@@ -19,11 +19,7 @@ import {
   type ProductSnapshot,
 } from '@lumina/db';
 import {
-  AnnotationSchema,
   neutralGenerationPlan,
-  placementPhrase,
-  regionFromStrokes,
-  type Annotation,
   type GenerationMode,
   type GenerationPlan,
   type ProductCategory,
@@ -34,8 +30,6 @@ import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
 import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
-import { burnAnnotation } from '../images/annotate.js';
-import { driftOutsideRegion } from '../images/region.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
 import type { NotifyInput } from '../notifications/service.js';
@@ -196,16 +190,6 @@ async function keepOnlyProductChange(
 /** R2 key for a product's cached background-removed cutout (tenant-prefixed, HARD RULE #1). */
 export function productCleanKey(merchantId: string, id: string): string {
   return `products/${merchantId}/clean/${id}.png`;
-}
-
-/** The freehand annotation (F3) stored in metadata at creation, re-validated; null when absent/invalid. */
-function readAnnotation(gen: GenerationRow): Annotation | null {
-  const raw = (gen.metadata as { annotation?: unknown } | null)?.annotation;
-  if (!raw) {
-    return null;
-  }
-  const parsed = AnnotationSchema.safeParse(raw);
-  return parsed.success ? parsed.data : null;
 }
 
 /**
@@ -547,33 +531,8 @@ export async function processGeneration(
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
     // always-true system instruction. One generative compose per product (no deterministic tiling); the
     // coverage QUANTITY is surfaced separately in the dashboard (D67).
-    // Draw-to-place (F3, Option A): the shopper's strokes are NEVER burned into the model's image — we derive
-    // the drawn REGION from them, let the model edit the CLEAN room, steer placement by prompt, and contain
-    // drift afterwards. So there is nothing to "remove". Single-product only here; multi-product drawn keeps
-    // today's burn path until stroke→product auto-mapping (M-R5).
-    const annotation = readAnnotation(gen);
-    const isDrawn = Boolean(annotation) && !isMulti;
-    const region =
-      isDrawn && annotation
-        ? (() => {
-            const box = regionFromStrokes(annotation);
-            return { box, placement: placementPhrase(box) };
-          })()
-        : undefined;
-    let roomForModel: ImageRef = { url: roomUrl };
-    if (annotation && isMulti) {
-      // Multi-product drawn: keep today's behaviour (burn marks onto a COPY; `normalized` stays clean for the
-      // composite + before image) until per-stroke product mapping lands (M-R5).
-      try {
-        const burned = await burnAnnotation(normalized, annotation);
-        roomForModel = { bytes: burned.bytes, contentType: burned.contentType };
-      } catch (err) {
-        deps.reportError?.(err, { generationId, stage: 'annotate' });
-      }
-    }
-
     const composed = await deps.orchestrator.compose({
-      room: roomForModel,
+      room: { url: roomUrl },
       product: productImages[0]!,
       // Multi-product: hand the model every product image + per-product facts; the prompt switches to a
       // multi-object placement task. Single-product callers omit these and behave exactly as before.
@@ -595,10 +554,6 @@ export async function processGeneration(
       mode,
       target: isMulti ? undefined : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
-      // Draw-to-place: the region routes to the fal Seedream chain + the generic region_edit prompt.
-      ...(region ? { region } : {}),
-      // Multi-product drawn still surfaces the burned marks by colour (single-product uses `region` instead).
-      ...(annotation && isMulti ? { annotation: { color: annotation.color } } : {}),
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       policy: resolvePolicy(plan, genPlan),
@@ -610,26 +565,14 @@ export async function processGeneration(
     // else stays byte-identical to the upload (no re-frame/rotation/drift). surface_covering changes most of
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
-    // Draw-to-place: ship the model's full frame as-is (owner decision 2026-06-23). The generic prompt keeps
-    // the room's lighting/exposure unchanged, so we trust the raw rather than containing it (containment made
-    // glow blobs when the model relit, and erased misplaced products). Drift is logged for observability only.
-    let finalImage: { bytes: Uint8Array; contentType: string };
-    if (region) {
-      const drift = await driftOutsideRegion(normalized, composed.bytes, region.box);
-      finalImage = { bytes: composed.bytes, contentType: composed.contentType };
-      console.info(
-        '[gen] region',
-        JSON.stringify({ generationId, placement: region.placement, drift: Number(drift.toFixed(3)) }),
-      );
-    } else if (mode === 'surface_covering') {
-      finalImage = { bytes: composed.bytes, contentType: composed.contentType };
-    } else {
-      finalImage = await keepOnlyProductChange(
-        normalized,
-        composed,
-        isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
-      );
-    }
+    const finalImage =
+      mode === 'surface_covering'
+        ? { bytes: composed.bytes, contentType: composed.contentType }
+        : await keepOnlyProductChange(
+            normalized,
+            composed,
+            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
+          );
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.
     const outputVerdict = await moderation.moderateOutput(

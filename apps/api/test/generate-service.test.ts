@@ -243,46 +243,6 @@ describe('createGeneration — multi-product (F2)', () => {
   });
 });
 
-describe('createGeneration — annotation (F3)', () => {
-  const annotation = {
-    color: '#5A55D6',
-    alpha: 0.6,
-    width: 0.012,
-    strokes: [{ points: [{ x: 0.2, y: 0.3 }, { x: 0.6, y: 0.7 }] }],
-  };
-
-  it('persists the annotation in metadata and keys it distinctly from an un-annotated render', async () => {
-    const merchantId = await newMerchant(5);
-    const room = `rooms/${merchantId}/ann.jpg`;
-
-    const plain = await createGeneration(ctx.db, deps(), { merchantId, inlineProduct, roomKey: room });
-    const annotated = await createGeneration(ctx.db, deps(), {
-      merchantId,
-      inlineProduct,
-      roomKey: room,
-      annotation,
-    });
-
-    expect(annotated.generationId).not.toBe(plain.generationId); // annotation folds into the idempotency key
-    const row = firstOrThrow(
-      await ctx.db.select().from(generations).where(eq(generations.id, annotated.generationId)),
-    );
-    expect((row.metadata as { annotation?: { color?: string } }).annotation?.color).toBe('#5A55D6');
-    expect(await balance(merchantId)).toBe(3); // two distinct renders billed
-  });
-
-  it('collapses an identical annotated request onto the same row (no double bill)', async () => {
-    const merchantId = await newMerchant(5);
-    const input = { merchantId, inlineProduct, roomKey: `rooms/${merchantId}/ann2.jpg`, annotation };
-
-    const first = await createGeneration(ctx.db, deps(), input);
-    const second = await createGeneration(ctx.db, deps(), input);
-
-    expect(second.generationId).toBe(first.generationId);
-    expect(await balance(merchantId)).toBe(4); // billed once
-  });
-});
-
 describe('low-credits notification', () => {
   function depsWithNotify(): GenerateDeps & { notified: { type: string; data?: unknown }[] } {
     const notified: { type: string; data?: unknown }[] = [];

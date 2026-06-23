@@ -74,26 +74,42 @@ export function selectPlannerProvider(env: Record<string, string | undefined>): 
 }
 
 /**
- * Build the draw-to-place (region_edit) provider chain from env. When `FAL_KEY` is present the fal Seedream
- * editor leads (spike winner: faithful product, ~$0.04/~30s) with `fallback` (the gateway quality provider)
- * behind it; without a key the chain is just `[fallback]` so drawing still works (lower fidelity) and nothing
- * crashes. The fal call stays behind `AIProvider.compose()` (HARD RULE #8); the key is only ever sent in the
- * Authorization header. Model/cost are env-configurable (`FAL_IMAGE_MODEL`, `FAL_COST_CENTS`).
+ * The cross-provider compose fallback (fal.ai Seedream). When `FAL_KEY` is present it's appended to every
+ * compose chain so a full AI-Gateway outage still produces a result. It runs the SAME prompt and the SAME
+ * pixel-perfect composite as the Gemini primary, so the shopper sees no quality/speed difference vs Gemini
+ * (a faithful reference editor at ~$0.04 / ~30s). Absent ⇒ undefined (gemini-only, no crash). Behind
+ * `AIProvider.compose()` (HARD RULE #8); the key only ever rides the Authorization header. Model/cost are
+ * env-configurable (`FAL_IMAGE_MODEL`, `FAL_COST_CENTS`).
  */
-export function selectRegionChain(
-  env: Record<string, string | undefined>,
-  fallback: AIProvider,
-): AIProvider[] {
+export function selectFalFallback(env: Record<string, string | undefined>): AIProvider | undefined {
   if (!env.FAL_KEY) {
-    return [fallback];
+    return undefined;
   }
-  const fal = new FalProvider({
+  return new FalProvider({
     name: 'fal-seedream',
     model: env.FAL_IMAGE_MODEL ?? 'fal-ai/bytedance/seedream/v4.5/edit',
     costCents: Number(env.FAL_COST_CENTS ?? 4),
     falKey: env.FAL_KEY,
   });
-  return [fal, fallback];
+}
+
+/**
+ * Assemble the per-policy compose chains (primary first, then fallbacks; the orchestrator tries each in
+ * order on error). `quality` leads the quality/balanced policies, `fast` leads the fast policy, and the
+ * optional cross-provider `fallback` (fal) is appended LAST to every policy as the outage safety net — so
+ * a single provider being down never hard-fails a generation.
+ */
+export function buildComposeChains(
+  quality: AIProvider,
+  fast: AIProvider,
+  fallback?: AIProvider,
+): Record<RoutingPolicy, AIProvider[]> {
+  const tail = fallback ? [fallback] : [];
+  return {
+    quality: [quality, fast, ...tail],
+    balanced: [quality, fast, ...tail],
+    fast: [fast, quality, ...tail],
+  };
 }
 
 /**
@@ -109,7 +125,6 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     const mock = new MockProvider({ name: 'mock', model: 'mock-compose', costCents: 0 });
     return new AIOrchestrator({
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
-      regionChain: [mock],
       bgRemoval: new MockBgRemovalProvider(),
       planner: new MockPlannerProvider(),
       quantity: new MockQuantityProvider(),
@@ -134,11 +149,9 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     apiKey,
   });
 
-  const chains: Record<RoutingPolicy, AIProvider[]> = {
-    quality: [quality, fast],
-    balanced: [quality, fast],
-    fast: [fast, quality],
-  };
+  // Gemini leads (the proven 7/7 quality path); fal is appended as the cross-provider fallback when a
+  // FAL_KEY is configured, so a gateway outage still yields a result at equivalent quality/speed.
+  const chains = buildComposeChains(quality, fast, selectFalFallback(env));
   // A cheap text+vision pass for coverage products (tiles/decor/renovation/outdoor); single-unit
   // categories short-circuit to 1 in the orchestrator without ever calling it.
   const quantity = new GatewayQuantityProvider({
@@ -147,7 +160,6 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
   });
   return new AIOrchestrator({
     chains,
-    regionChain: selectRegionChain(env, quality),
     bgRemoval: selectBgRemovalProvider(env),
     planner: selectPlannerProvider(env),
     quantity,

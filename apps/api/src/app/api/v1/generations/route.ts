@@ -85,7 +85,6 @@ export async function POST(request: Request): Promise<Response> {
       clientId: req.clientId,
       placementHint: req.placementHint,
       customInstructions: req.customInstructions,
-      ...(req.annotation ? { annotation: req.annotation } : {}),
       metadata: { source: 'studio' },
     });
     const core = GenerateResponseSchema.parse({

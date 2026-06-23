@@ -72,8 +72,6 @@ describe('ConfirmStep', () => {
       h(ConfirmStep, {
         t,
         productName: 'Aura Lamp',
-        accent: '#5a55d6',
-        onSetAnnotation: vi.fn(),
         onSetHint: vi.fn(),
         onSetInstructions,
         onGenerate: vi.fn(),

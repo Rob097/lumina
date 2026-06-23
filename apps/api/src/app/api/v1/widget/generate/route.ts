@@ -59,7 +59,6 @@ export async function POST(request: Request): Promise<Response> {
       roomKey: req.roomKey,
       placementHint: req.placementHint,
       customInstructions: req.customInstructions,
-      ...(req.annotation ? { annotation: req.annotation } : {}),
       anonId: req.anonId,
       pageUrl: req.pageUrl,
       metadata: req.metadata,

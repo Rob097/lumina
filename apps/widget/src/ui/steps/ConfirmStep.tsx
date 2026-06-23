@@ -1,6 +1,4 @@
-import type { Annotation } from '@lumina/shared';
 import type { Translate, StringKey } from '../../core/i18n.js';
-import { DrawCanvas } from './DrawCanvas.js';
 
 /**
  * Step 2 — confirm the product + pick a placement hint (§3). The chips map to short English phrases fed
@@ -18,9 +16,6 @@ export interface ConfirmStepProps {
   t: Translate;
   productName?: string;
   roomPreviewUrl?: string;
-  /** Stroke color for the draw layer (the merchant's resolved accent). */
-  accent: string;
-  onSetAnnotation: (annotation: Annotation | null) => void;
   activeHint?: string;
   onSetHint: (hint: string) => void;
   customInstructions?: string;
@@ -32,8 +27,6 @@ export function ConfirmStep({
   t,
   productName,
   roomPreviewUrl,
-  accent,
-  onSetAnnotation,
   activeHint,
   onSetHint,
   customInstructions,
@@ -43,9 +36,7 @@ export function ConfirmStep({
   return (
     <div class="lumina-state lumina-confirm">
       <h2 class="lumina-title">{t('confirm.title', { product: productName ?? '' })}</h2>
-      {roomPreviewUrl ? (
-        <DrawCanvas t={t} imageUrl={roomPreviewUrl} color={accent} onChange={onSetAnnotation} />
-      ) : null}
+      {roomPreviewUrl ? <img class="lumina-preview" src={roomPreviewUrl} alt="" /> : null}
       <p class="lumina-muted">{t('confirm.placementLabel')}</p>
       <div class="lumina-chips">
         {PLACEMENTS.map((p) => (

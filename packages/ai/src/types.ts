@@ -1,5 +1,4 @@
 import type {
-  DrawnRegionBox,
   GenerationMode,
   GenerationPlan,
   PlanRepetition,
@@ -70,22 +69,6 @@ export interface ComposeInput {
   repetition?: PlanRepetition;
   /** Indoor vs outdoor — adds exterior-aware guidance to the prompt (facades, gardens, entrances). */
   sceneType?: SceneType;
-  /**
-   * Freehand annotation (F3): the shopper burned translucent marks onto the room image. Surfaced to the
-   * prompt by its color so the model treats the marked areas as guidance and does NOT keep the marks.
-   */
-  annotation?: { color: string };
-  /**
-   * Draw-to-place (F3, region_edit): the region the shopper drew on the room, derived from the annotation
-   * strokes (never burned into the image). Its presence routes the compose to the region provider chain
-   * (fal) and switches the prompt to the generic region_edit task. `placement` is the geometry-derived
-   * phrase; `productKind` is a SOFT prompt hint only (never a code branch).
-   */
-  region?: {
-    box: DrawnRegionBox;
-    placement: string;
-    productKind?: 'object' | 'surface';
-  };
   /** Output aspect ratio pinned to the room photo (e.g. '4:3') so the model can't re-frame/rotate it. */
   aspectRatio?: string;
   policy: RoutingPolicy;

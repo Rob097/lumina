@@ -1,12 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
-import { MAX_PRODUCTS_PER_GENERATION, type Client, type Point, type Product } from '@lumina/shared';
+import { useRef, useState } from 'react';
+import { MAX_PRODUCTS_PER_GENERATION, type Client, type Product } from '@lumina/shared';
 import { Icon } from '@/components/ui/Icon';
-import { annotationColor, buildAnnotation } from '@/lib/annotation';
 import { BeforeAfter } from '../../generations/BeforeAfter';
-import { RoomAnnotator } from './RoomAnnotator';
 import {
   createStudioClientAction,
   emailStudioResultAction,
@@ -43,14 +41,7 @@ export function NewVisualization({
   const [clientId, setClientId] = useState<string>(preselectClientId ?? '');
   const [productIds, setProductIds] = useState<string[]>(products[0] ? [products[0].id] : []);
   const [room, setRoom] = useState<RoomFile | null>(null);
-  const [strokes, setStrokes] = useState<Point[][]>([]);
-  // The annotation stroke color, resolved from the live theme accent (canvas can't use a CSS var directly).
-  const [accent, setAccent] = useState<string>(() => annotationColor(null));
   const [uploading, setUploading] = useState(false);
-
-  useEffect(() => {
-    setAccent(annotationColor(getComputedStyle(document.documentElement).getPropertyValue('--accent')));
-  }, []);
 
   const [phase, setPhase] = useState<Phase>('compose');
   const [generationId, setGenerationId] = useState<string | null>(null);
@@ -135,12 +126,10 @@ export function NewVisualization({
     setError(null);
     setResult(null);
     setEmailState('idle');
-    const annotation = buildAnnotation(strokes, accent);
     const res = await startStudioGenerationAction({
       productIds,
       roomKey: room.roomKey,
       ...(clientId ? { clientId } : {}),
-      ...(annotation ? { annotation } : {}),
     });
     if ('error' in res) {
       setError(mapError(res.error));
@@ -187,7 +176,6 @@ export function NewVisualization({
 
   function onReset(): void {
     setRoom(null);
-    setStrokes([]);
     setResult(null);
     setGenerationId(null);
     setPhase('compose');
@@ -354,15 +342,8 @@ export function NewVisualization({
         <label className="studio-label">Room photo</label>
         {room ? (
           <div className="studio-room">
-            <RoomAnnotator imageUrl={room.previewUrl} color={accent} onChange={setStrokes} />
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => {
-                setRoom(null);
-                setStrokes([]);
-              }}
-            >
+            <img src={room.previewUrl} alt="Room" className="studio-room-img" />
+            <button type="button" className="btn btn-ghost" onClick={() => setRoom(null)}>
               Choose another
             </button>
           </div>

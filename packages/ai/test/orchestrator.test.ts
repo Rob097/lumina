@@ -73,41 +73,6 @@ describe('AIOrchestrator.compose', () => {
   });
 });
 
-describe('AIOrchestrator.compose — region routing (draw-to-place)', () => {
-  const region = { box: { x: 0.6, y: 0.2, w: 0.3, h: 0.6 }, placement: 'in the right part of the scene' };
-
-  it('routes a region edit to the regionChain, not the policy chain', async () => {
-    const policy = new MockProvider({ name: 'policy', model: 'gemini' });
-    const fal = new MockProvider({ name: 'region', model: 'seedream' });
-    const orch = new AIOrchestrator({ chains: chains(policy), regionChain: [fal], sleep: noSleep });
-
-    const result = await orch.compose({ ...input, region });
-    expect(result.model).toBe('seedream');
-    expect(fal.callCount).toBe(1);
-    expect(policy.callCount).toBe(0);
-  });
-
-  it('uses the policy chain when there is no region', async () => {
-    const policy = new MockProvider({ name: 'policy', model: 'gemini' });
-    const fal = new MockProvider({ name: 'region', model: 'seedream' });
-    const orch = new AIOrchestrator({ chains: chains(policy), regionChain: [fal], sleep: noSleep });
-
-    const result = await orch.compose(input);
-    expect(result.model).toBe('gemini');
-    expect(policy.callCount).toBe(1);
-    expect(fal.callCount).toBe(0);
-  });
-
-  it('falls back to the policy chain when no regionChain is configured', async () => {
-    const policy = new MockProvider({ name: 'policy', model: 'gemini' });
-    const orch = new AIOrchestrator({ chains: chains(policy), sleep: noSleep });
-
-    const result = await orch.compose({ ...input, region });
-    expect(result.model).toBe('gemini');
-    expect(policy.callCount).toBe(1);
-  });
-});
-
 describe('optional steps', () => {
   it('plan returns null without a provider, a neutral plan with one', async () => {
     const primary = new MockProvider({ name: 'primary' });

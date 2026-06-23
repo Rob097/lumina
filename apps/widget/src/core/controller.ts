@@ -1,5 +1,4 @@
 import type {
-  Annotation,
   EventBeaconRequest,
   FeedbackRating,
   FeedbackRequest,
@@ -60,8 +59,6 @@ export class LuminaController {
   private readonly listeners = new Set<Listener>();
   private readonly previewUrls: string[] = [];
   private room?: { blob: Blob; contentType: string };
-  /** Freehand marks the shopper drew over the room photo (F3); included in the generate request. */
-  private annotation?: Annotation;
   private cancelWatch?: () => void;
 
   private readonly config: EffectiveConfig;
@@ -128,19 +125,12 @@ export class LuminaController {
     this.dispatch({ type: 'SET_INSTRUCTIONS', text });
   }
 
-  /** Store (or clear) the freehand annotation the shopper drew on the room photo (F3). */
-  setAnnotation(annotation: Annotation | null): void {
-    this.annotation = annotation ?? undefined;
-  }
-
   setQuantity(quantity: number): void {
     this.dispatch({ type: 'SET_QUANTITY', quantity });
   }
 
   async selectRoom(file: Blob, source: 'file' | 'camera'): Promise<void> {
     this.emitter.emit('upload:start', { source });
-    // A new photo invalidates any marks drawn on the previous one.
-    this.annotation = undefined;
     try {
       const processed = await this.processImage(file);
       if (processed.blob.size > this.config.limits.maxUploadBytes) {
@@ -256,7 +246,6 @@ export class LuminaController {
       ...(this.state.customInstructions?.trim()
         ? { customInstructions: this.state.customInstructions.trim() }
         : {}),
-      ...(this.annotation ? { annotation: this.annotation } : {}),
       anonId: this.anonId,
       ...(this.pageUrl ? { pageUrl: this.pageUrl } : {}),
       ...(opts.metadata ? { metadata: opts.metadata } : {}),

@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { AnnotationSchema } from './annotation.js';
 
 /**
  * Studio clients (#8) — a lightweight contact list for the physical-store use case. A merchant
@@ -74,8 +73,6 @@ export const StudioGenerateRequestSchema = z
     clientId: z.string().uuid().optional(),
     placementHint: z.string().max(120).optional(),
     customInstructions: z.string().max(280).optional(),
-    /** Freehand marks drawn over the room photo (F3) — guidance for where to focus the edit. */
-    annotation: AnnotationSchema.optional(),
   })
   .transform(({ productId, productIds, ...rest }) => ({
     ...rest,

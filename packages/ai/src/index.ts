@@ -59,8 +59,8 @@ export { ReplicateProvider } from './providers/replicate.js';
 export {
   FalProvider,
   falImageSize,
-  type FalProviderOptions,
-  type FalRunner,
-  type FalCallArgs,
   type FalImage,
+  type FalCallArgs,
+  type FalRunner,
+  type FalProviderOptions,
 } from './providers/fal.js';

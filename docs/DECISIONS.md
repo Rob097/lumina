@@ -855,3 +855,22 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   today's gateway path untouched (multi-product stroke→product auto-mapping is deferred to M-R5). Plan:
   `docs/superpowers/plans/2026-06-23-draw-to-place-region-edit.md`. Owner-set: Phase-2 (migrate non-drawn modes to
   Seedream) is approved but gated on the upgraded golden eval staying ≥ baseline 7/7.
+
+- **D84 — Roll back the whole draw-to-place feature; restore the proven 7/7 engine + add fal as an equivalent
+  cross-provider fallback.** The draw-on-room feature (`de3f958`→`d7caa84`: F3 + the D83 fal region_edit) never
+  reached acceptable quality, and because the widget Confirm step *invites* drawing, drawn generations routed
+  through the broken region path → the app was unusable in practice. Decision (owner, 2026-06-23): stop iterating
+  on draw and make the **core generation engine** excellent first. Restored every draw-modified file to the last
+  proven-good state **`5ef528e`** (the Gen-v3 engine that scored **7/7 👍** on the golden set —
+  standard/tilted/dark/blurry/exterior/coverage, ~43s, owner-confirmed) and deleted the draw-only files
+  (`images/region.ts`+`annotate.ts`, shared `annotation.ts`+`region.ts`, `DrawCanvas`/`RoomAnnotator`, the
+  `spike-fal/` scripts, and their tests). **Kept:** F1 (CSV dimensions), F2 (multi-product), and
+  `packages/ai/src/providers/fal.ts`. No Supabase change — the annotation only ever rode in `generations.metadata`
+  JSONB (no column/migration). **Provider strategy:** Gemini (`gemini-3-pro-image`) remains the proven primary;
+  **fal Seedream is appended to every compose chain as the cross-provider fallback** (`selectFalFallback` +
+  `buildComposeChains`, FAL_KEY-gated) running the SAME compose prompt and the SAME `keepOnlyProductChange`
+  composite, so quality/speed are equivalent whichever provider serves and a full gateway outage never hard-fails
+  a generation. **Supersedes D83.** Next: push the engine beyond 7/7 and validate via the golden eval through BOTH
+  providers; drawing may return later only as an isolated strategy behind the eval gate. Definitive goal: env
+  (room/house/garden/person) + 1+ products → faithful product, environment untouched where nothing is added,
+  < 1 min, robust to imperfect (non-straight / non-4K) inputs.

@@ -85,23 +85,6 @@ function sceneFacts(input: ComposeInput): string[] {
 }
 
 /**
- * Freehand annotation guidance (F3): the shopper drew translucent marks on the room to point at where the
- * edit should happen. Reference the exact color so the model can pick the marks out, and make clear they're
- * guidance to be removed — never rendered into the result. Shared by single- and multi-product tasks.
- */
-function annotationFact(input: ComposeInput): string[] {
-  if (!input.annotation) {
-    return [];
-  }
-  const { color } = input.annotation;
-  return [
-    `- The user highlighted region(s) on the room photo with translucent ${color} strokes. Treat the marked` +
-      ' areas as where to focus the edit — place/replace the product there, or apply the change there. The' +
-      ` strokes are guidance ONLY: do NOT render, draw, or keep the ${color} marks in the output.`,
-  ];
-}
-
-/**
  * The (untrusted, subordinated) shopper free-text. Quoted and subordinated to the HARD RULES so it can
  * refine placement/style but never relax product identity, environment integrity, scale, or framing.
  * Collapse quotes so it can't break the wrapper. Shared by every task.
@@ -133,7 +116,7 @@ function requestFacts(input: ComposeInput): string[] {
     lines.push(`- Real-world product dimensions: ${dims}. Match scale to these relative to visible references.`);
   }
 
-  lines.push(...sceneFacts(input), ...annotationFact(input), ...customPreference(input));
+  lines.push(...sceneFacts(input), ...customPreference(input));
   return lines;
 }
 
@@ -151,39 +134,6 @@ export function buildComposeTask(input: ComposeInput): string {
     `OPERATION: object placement. Task: ${where} at correct real-world scale given its dimensions, with` +
       " physically correct contact shadows and lighting consistent with the scene. Preserve the product's" +
       ' exact identity. Keep the room and the original framing/aspect ratio exactly.',
-    '',
-    'REQUEST DETAILS for this generation:',
-    ...requestFacts(input),
-  ].join('\n');
-}
-
-/**
- * `region_edit` task (draw-to-place / F3, Option A): the shopper drew a region on their room; place the
- * product THERE and nowhere else, faithfully, while keeping the rest of the room intact. ONE generic rule
- * block for ANY product and ANY environment — the only per-request variation is the geometry-derived
- * placement phrase and the product facts. The model handles surface-vs-object on its own (no branching),
- * and the strokes are never burned, so there is nothing to "remove".
- */
-export function buildRegionEditTask(input: ComposeInput): string {
-  const placement = input.region?.placement ?? 'in the area the shopper indicated';
-  return [
-    'OPERATION: draw-to-place. Add the supplied product into THIS room photo, only in the area the shopper indicated. Output one photorealistic image.',
-    '',
-    'RULES (apply to ANY product and ANY room):',
-    '1. PRODUCT FIDELITY — Reproduce the product EXACTLY as in the reference image(s): same shape,' +
-      ' proportions, colour, material, texture and finish. If a reference shows only part of it, faithfully' +
-      ' reconstruct the rest in the same style. Never substitute, restyle, recolour, or invent a different product.',
-    `2. PLACEMENT — Put the product ${placement}. Keep it within that area; do not recentre it or move it elsewhere.`,
-    '3. SCALE & FIT — Size it to plausibly fill the indicated area, respecting real-world proportions and the' +
-      " room's perspective. A surface finish should clad the indicated surface; a discrete object should rest" +
-      ' in a physically plausible spot there with a natural contact shadow.',
-    '4. PRESERVE THE ROOM — Change nothing else: keep every existing wall, floor, window, door, furniture' +
-      ' item, fixture, colour, and the layout exactly as photographed. Add only the product and its own shadow.',
-    "5. KEEP THE ROOM'S OWN LIGHT — Match the room's perspective and existing lighting. Keep the room's overall" +
-      ' brightness, exposure and colour exactly as in the original photo: do NOT darken or dim the room, do NOT' +
-      ' add a colour cast, bloom, lens flare, or blown highlights. A lamp or light MAY appear switched on, but' +
-      ' only as a subtle local accent — it must NOT change how bright the rest of the room looks. The result' +
-      ' must look like a real photograph of THIS room with the product added.',
     '',
     'REQUEST DETAILS for this generation:',
     ...requestFacts(input),
@@ -257,7 +207,6 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     '',
     'REQUEST DETAILS for this generation:',
     ...sceneFacts(input),
-    ...annotationFact(input),
     ...customPreference(input),
   ].join('\n');
 }
