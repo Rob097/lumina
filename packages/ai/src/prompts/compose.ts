@@ -11,7 +11,7 @@ import type { ComposeInput, Dimensions } from '../types.js';
  */
 
 const EXTERIOR_NOTE =
-  'EXTERIOR scene: seat the product on the real ground plane and respect the building geometry, the sky and the sun direction; keep vegetation and outdoor surfaces unchanged.';
+  'EXTERIOR scene: seat the product on the real ground plane and respect the building geometry, the sky and the sun direction; keep vegetation and outdoor surfaces unchanged. Anchor the product size to the largest reliable reference in frame — a door (~200 cm), one storey (~300 cm), a car or a person — so a small fixture stays small against the facade and is never scaled up to fill the frame.';
 
 /**
  * Below this confidence the scene analysis (Phase 2 / D64) is dropped and we compose without its facts —

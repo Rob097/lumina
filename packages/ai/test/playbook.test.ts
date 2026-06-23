@@ -14,4 +14,15 @@ describe('generation playbook (owner-editable tuning rules)', () => {
     expect(block).toMatch(/entire|whole/); // surfacing products clad the WHOLE surface (panels fix)
     expect(block).toMatch(/scale|size/); // realistic real-world scale (giant-lamp fix)
   });
+
+  it('seeds the observed-failure fixes: light-fixture form, pattern orientation, no product-photo background', () => {
+    const block = playbookRules().toLowerCase();
+    // a lamp must stay a physical fixture, not become a glowing blob/halo (exterior facade lamp case)
+    expect(block).toMatch(/light fixture|lamp/);
+    expect(block).toMatch(/glow|blob|halo|sphere/);
+    // a surfacing pattern keeps its orientation (slats rendered rotated case)
+    expect(block).toMatch(/orientation|vertical|rotate/);
+    // the product photo's own background/props must never leak into the scene
+    expect(block).toMatch(/product photo|background|props/);
+  });
 });

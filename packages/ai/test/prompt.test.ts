@@ -104,6 +104,12 @@ describe('buildComposePrompt', () => {
     expect(exterior).toMatch(/ground plane|sky|sun/i);
   });
 
+  it('anchors exterior product scale to in-frame references so it is not blown up to fill the frame', () => {
+    const exterior = buildComposePrompt({ ...base, sceneType: 'exterior', category: 'outdoor' });
+    expect(exterior).toMatch(/anchor|reference|facade|door/i);
+    expect(exterior).toMatch(/fill the frame|scaled up|stays small|small against/i);
+  });
+
   it('includes real-world dimensions when provided', () => {
     const p = buildComposePrompt({ ...base, dimensions: { w: 40, h: 150, unit: 'cm' } });
     expect(p).toMatch(/40/);
