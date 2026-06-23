@@ -620,8 +620,13 @@ describe('processGeneration — mode-specific surface_covering (Phase 2)', () =>
 // to object placement; exactly one credit was debited (at creation) and no extra credit is charged here.
 describe('processGeneration — multi-product (F2)', () => {
   it('sends every product image + per-product info to compose, one cutout each, forced object placement', async () => {
+    // enterprise plan would resolve to the QUALITY tier for a single product — so a 'fast' policy here proves
+    // the multi-product override (not just the free-tier default).
     const merchantId = firstOrThrow(
-      await ctx.db.insert(merchants).values({ name: 'Multi', slug: `m-${randomUUID()}`, creditsBalance: 4 }).returning(),
+      await ctx.db
+        .insert(merchants)
+        .values({ name: 'Multi', slug: `m-${randomUUID()}`, creditsBalance: 4, plan: 'enterprise' })
+        .returning(),
     ).id;
     const [lamp, sofa] = await ctx.db
       .insert(products)
@@ -651,13 +656,14 @@ describe('processGeneration — multi-product (F2)', () => {
     ).id;
     await ctx.db.insert(creditLedger).values({ merchantId, amount: -1, reason: 'generation', generationId });
 
-    const captured: { products?: ImageRef[]; productInfos?: { name: string }[]; mode?: string } = {};
+    const captured: { products?: ImageRef[]; productInfos?: { name: string }[]; mode?: string; policy?: string } = {};
     const provider: AIProvider = {
       name: 'cap',
       compose: async (input) => {
         captured.products = input.products;
         captured.productInfos = input.productInfos;
         captured.mode = input.mode;
+        captured.policy = input.policy;
         return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
       },
     };
@@ -673,6 +679,9 @@ describe('processGeneration — multi-product (F2)', () => {
     expect(captured.products).toHaveLength(2);
     expect(captured.productInfos?.map((p) => p.name)).toEqual(['Lamp', 'Sofa']);
     expect(captured.mode).toBe('object_placement');
+    // Multi-product always routes to the fast tier: the quality model takes 69–133s on a multi set (>1 min
+    // hard limit) with no visible quality gain over fast (~18s). See D86.
+    expect(captured.policy).toBe('fast');
     expect(removeBackground).toHaveBeenCalledTimes(2); // one cutout per product
 
     const gen = firstOrThrow(await ctx.db.select().from(generations).where(eq(generations.id, generationId)));

@@ -889,3 +889,14 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   Pro**), fast = `google/gemini-3.1-flash-image-preview`; the router picks fast for easy scenes and escalates
   to Nano Banana Pro for hard ones. The `FAL_KEY` on Vercel/`.env.dev` is now unused (owner can remove it).
   Supersedes the fal-fallback half of D84.
+
+- **D86 — Multi-product generations are pinned to the FAST tier.** Validating the multi-product panels fix on
+  the owner's real bedroom (lamp + acoustic slat panels), the quality model (`gemini-3-pro-image`, Nano Banana
+  Pro) took **69–133s** on the multi set (room + 2 product images) — over the **<1 min hard requirement** — with
+  **no visible quality gain** over the fast tier (`gemini-3.1-flash-image-preview`), which produced an equally
+  good result (panels cladding the whole wall, lamp at realistic scale, room preserved) in **~18s at half the
+  cost**. A multi-object compose inherently sends more input images, so it's structurally the slowest path;
+  single-product keeps the adaptive routing (`resolvePolicy`: fast common, escalate to quality on difficult
+  scenes — measured 38–49s, within budget). Change: `workflow.ts` composes multi with `policy: 'fast'`
+  unconditionally (`isMulti ? 'fast' : resolvePolicy(...)`). Decided autonomously per the owner's standing
+  "own the technical how + prove with visual evidence" + "<1 min" mandates.

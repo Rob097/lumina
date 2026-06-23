@@ -559,7 +559,9 @@ export async function processGeneration(
       repetition: isMulti ? undefined : genPlan.repetition,
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
-      policy: resolvePolicy(plan, genPlan),
+      // Multi-product is pinned to the FAST tier (D86): the quality model takes 69–133s on a multi set (over the
+      // <1 min hard limit) with no visible quality gain over fast (~18s) on the lamp+panels case.
+      policy: isMulti ? 'fast' : resolvePolicy(plan, genPlan),
       watermark: plan === 'free',
     });
 
