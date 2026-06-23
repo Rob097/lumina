@@ -108,6 +108,13 @@ function customPreference(input: ComposeInput): string[] {
 function requestFacts(input: ComposeInput): string[] {
   const lines: string[] = [];
 
+  // Product description/analysis (from the planner): a textual identity anchor so the model reconstructs
+  // the exact product even from a messy/in-context product photo. Listed first — it's the strongest cue.
+  const productDescription = input.productDescription?.trim();
+  if (productDescription) {
+    lines.push(`- PRODUCT (insert this exact item; preserve its identity): ${productDescription}`);
+  }
+
   // Category is a soft, possibly-wrong hint — never a switch. The model still decides the archetype.
   lines.push(`- Product category (approximate merchant hint, may be inaccurate): ${input.category}.`);
 

@@ -49,6 +49,12 @@ describe('buildPlannerPrompt', () => {
     expect(p).toContain('Acoustic wood panel');
     expect(p).toMatch(/60/); // dimensions echoed
   });
+
+  it('asks for a productAnalysis: what the product is, its visual identity, how it installs, its scale', () => {
+    const p = buildPlannerPrompt(input);
+    expect(p).toMatch(/productAnalysis/);
+    expect(p).toMatch(/identity|material|colou?r|installed|placed|finish/i);
+  });
 });
 
 describe('GatewayPlannerProvider', () => {

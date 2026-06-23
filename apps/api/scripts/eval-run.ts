@@ -131,6 +131,8 @@ async function main(): Promise<void> {
         ...(scene ? { scene } : {}),
         // The mode-specific task (§4.2) is what makes covering work without a hint — drive it from the plan.
         ...(plan ? { mode: plan.mode, target: plan.target, repetition: plan.repetition } : {}),
+        // The planner's product analysis → a textual identity anchor for the compositor (mirrors the workflow).
+        ...(plan?.productAnalysis ? { productDescription: plan.productAnalysis } : {}),
         ...(room.aspectRatio ? { aspectRatio: room.aspectRatio } : {}),
         // Phase 3 routing: derive fast/quality from the plan (fast common path, escalate on difficulty).
         policy: plan ? resolvePolicy(process.env.GW_MERCHANT_PLAN ?? 'starter', plan) : policy,

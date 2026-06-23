@@ -84,6 +84,13 @@ export const GenerationPlanSchema = z.object({
   repetition: PlanRepetitionSchema,
   scale: PlanScaleSchema,
   sceneFacts: SceneFactsSchema,
+  /**
+   * A concise description of the PRODUCT the planner reads off its image — what it is, its visual identity
+   * (form, material, colour, finish, distinctive parts), how it is normally installed/placed, and its
+   * typical real-world size. Fed to the compositor as a textual identity anchor (it disambiguates messy or
+   * in-context product photos). Optional so a planner that omits it still validates (best-effort).
+   */
+  productAnalysis: z.string().optional(),
   notes: z.string().optional(),
   /** 0..1 — a low-confidence plan is dropped by the caller in favour of {@link neutralGenerationPlan}. */
   confidence: z.number().min(0).max(1),
@@ -108,6 +115,7 @@ export function neutralGenerationPlan(): GenerationPlan {
       tiltDegrees: 0,
       quality: { blurry: false, dark: false, cluttered: false },
     },
+    productAnalysis: '',
     confidence: 0,
   };
 }

@@ -423,18 +423,20 @@ describe('processGeneration — planner (Phase 1)', () => {
       tiltDegrees: 0,
       quality: { blurry: false, dark: false, cluttered: false },
     },
+    productAnalysis: 'a slatted acoustic wood wall panel',
     confidence: 0.8,
   };
 
-  /** An orchestrator whose compose records the scene facts it received + a configurable planner. */
+  /** An orchestrator whose compose records the scene facts + product description it received. */
   function orchestratorCapturingScene(
     planFn: () => Promise<GenerationPlan>,
-    captured: { scene?: SceneAnalysis },
+    captured: { scene?: SceneAnalysis; productDescription?: string },
   ): AIOrchestrator {
     const provider: AIProvider = {
       name: 'capture',
       compose: async (input) => {
         captured.scene = input.scene;
+        captured.productDescription = input.productDescription;
         return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
       },
     };
@@ -447,7 +449,7 @@ describe('processGeneration — planner (Phase 1)', () => {
   it('runs the planner and feeds its per-image facts into compose', async () => {
     const { generationId } = await queued(5);
     const planFn = vi.fn(async () => plan);
-    const captured: { scene?: SceneAnalysis } = {};
+    const captured: { scene?: SceneAnalysis; productDescription?: string } = {};
     const orch = orchestratorCapturingScene(planFn, captured);
 
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
@@ -455,11 +457,13 @@ describe('processGeneration — planner (Phase 1)', () => {
     expect(captured.scene?.lighting.direction).toBe('top-left');
     expect(captured.scene?.suggestedPlacement?.region).toBe('the back wall');
     expect(captured.scene?.confidence).toBe(0.8);
+    // The planner's product analysis flows into compose as the identity anchor.
+    expect(captured.productDescription).toBe('a slatted acoustic wood wall panel');
   });
 
   it('degrades to a successful generation when the planner throws (best-effort neutral plan)', async () => {
     const { generationId } = await queued(5);
-    const captured: { scene?: SceneAnalysis } = {};
+    const captured: { scene?: SceneAnalysis; productDescription?: string } = {};
     const orch = orchestratorCapturingScene(async () => {
       throw new Error('planner down');
     }, captured);

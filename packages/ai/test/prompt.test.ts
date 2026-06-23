@@ -114,6 +114,19 @@ describe('buildComposePrompt', () => {
     expect(buildComposePrompt(base)).toMatch(/avoid:.*cartoonish/i);
   });
 
+  it('injects the product description/analysis as an identity anchor when provided', () => {
+    const p = buildComposePrompt({
+      ...base,
+      productDescription: 'a white articulated Anglepoise floor lamp with a conical shade',
+    });
+    expect(p).toContain('a white articulated Anglepoise floor lamp with a conical shade');
+    expect(p).toMatch(/insert this exact/i);
+  });
+
+  it('omits the product-description line when none is provided', () => {
+    expect(buildComposePrompt(base)).not.toMatch(/insert this exact/i);
+  });
+
   it('includes shopper custom instructions as a soft preference, after the hard rules', () => {
     const p = buildComposePrompt({ ...base, customInstructions: 'near the reading nook by the window' });
     expect(p).toContain('near the reading nook by the window');

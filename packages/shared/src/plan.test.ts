@@ -28,6 +28,15 @@ describe('GenerationPlanSchema', () => {
     expect(p.scale.productDimensionsCm?.w).toBe(60);
   });
 
+  it('parses a productAnalysis string, and defaults it to "" when the planner omits it (best-effort)', () => {
+    expect(
+      GenerationPlanSchema.parse({ ...valid, productAnalysis: 'white articulated floor lamp, metal' })
+        .productAnalysis,
+    ).toBe('white articulated floor lamp, metal');
+    // Optional: a planner response without the field still validates (undefined downstream).
+    expect(GenerationPlanSchema.parse(valid).productAnalysis).toBeUndefined();
+  });
+
   it('accepts a minimal object_placement plan (optionals omitted)', () => {
     const p = GenerationPlanSchema.parse({
       mode: 'object_placement',
@@ -83,5 +92,6 @@ describe('neutralGenerationPlan', () => {
     expect(p.confidence).toBe(0);
     expect(p.sceneFacts.surfaces).toEqual([]);
     expect(p.sceneFacts.isExterior).toBe(false);
+    expect(p.productAnalysis).toBe('');
   });
 });

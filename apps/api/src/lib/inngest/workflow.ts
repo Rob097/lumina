@@ -549,6 +549,9 @@ export async function processGeneration(
       category,
       placementHint: gen.placementHint ?? undefined,
       customInstructions: gen.customInstructions ?? undefined,
+      // Product identity anchor (the planner's read of the product image), so the model reconstructs the
+      // exact item even from a messy/in-context product photo. Single-product only — multi uses productInfos.
+      ...(!isMulti && genPlan.productAnalysis ? { productDescription: genPlan.productAnalysis } : {}),
       dimensions: snapshot.dimensions,
       scene,
       mode,

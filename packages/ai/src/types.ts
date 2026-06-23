@@ -54,6 +54,11 @@ export interface ComposeInput {
   productInfos?: MultiProductInfo[];
   category: ProductCategory;
   placementHint?: string;
+  /**
+   * A concise product description/analysis (from the planner) — a textual identity anchor injected into the
+   * prompt so the model reconstructs the exact product even from a messy/in-context product photo.
+   */
+  productDescription?: string;
   /** Free-text shopper guidance, rendered as a soft preference that can't override the hard rules. */
   customInstructions?: string;
   dimensions?: Dimensions;
