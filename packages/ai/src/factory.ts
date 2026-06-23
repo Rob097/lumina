@@ -95,15 +95,26 @@ export function selectFalFallback(env: Record<string, string | undefined>): AIPr
 
 /**
  * Assemble the per-policy compose chains (primary first, then fallbacks; the orchestrator tries each in
- * order on error). `quality` leads the quality/balanced policies, `fast` leads the fast policy, and the
- * optional cross-provider `fallback` (fal) is appended LAST to every policy as the outage safety net — so
- * a single provider being down never hard-fails a generation.
+ * order on error). Default (`primary: 'gemini'`): `quality` leads the quality/balanced policies, `fast`
+ * leads the fast policy, and the optional cross-provider `fallback` (fal) is appended LAST to every policy
+ * as the outage safety net — so a single provider being down never hard-fails a generation. With
+ * `primary: 'fal'` (and a `fallback` present) fal leads every policy and the Gemini pair becomes the
+ * fallback — same prompt + composite either way, so the shopper sees no quality/speed difference; this is
+ * the env-flippable lever (`COMPOSE_PRIMARY`) to promote fal once the golden eval proves it ≥ Gemini.
  */
 export function buildComposeChains(
   quality: AIProvider,
   fast: AIProvider,
   fallback?: AIProvider,
+  opts?: { primary?: 'gemini' | 'fal' },
 ): Record<RoutingPolicy, AIProvider[]> {
+  if (opts?.primary === 'fal' && fallback) {
+    return {
+      quality: [fallback, quality, fast],
+      balanced: [fallback, quality, fast],
+      fast: [fallback, fast, quality],
+    };
+  }
   const tail = fallback ? [fallback] : [];
   return {
     quality: [quality, fast, ...tail],
@@ -151,7 +162,10 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
 
   // Gemini leads (the proven 7/7 quality path); fal is appended as the cross-provider fallback when a
   // FAL_KEY is configured, so a gateway outage still yields a result at equivalent quality/speed.
-  const chains = buildComposeChains(quality, fast, selectFalFallback(env));
+  // `COMPOSE_PRIMARY=fal` flips fal to lead (Gemini becomes the fallback) — the evidence-gated lever to
+  // promote fal once the golden eval proves it ≥ Gemini; default stays the proven Gemini-first order.
+  const primary = env.COMPOSE_PRIMARY === 'fal' ? 'fal' : 'gemini';
+  const chains = buildComposeChains(quality, fast, selectFalFallback(env), { primary });
   // A cheap text+vision pass for coverage products (tiles/decor/renovation/outdoor); single-unit
   // categories short-circuit to 1 in the orchestrator without ever calling it.
   const quantity = new GatewayQuantityProvider({

@@ -49,4 +49,28 @@ describe('buildComposeChains — fal as an equivalent cross-provider fallback', 
     expect(chains.fast.map((p) => p.name)).toEqual(['gateway-fast', 'gateway-quality']);
     expect(chains.balanced.some((p) => p.name === 'fal-seedream')).toBe(false);
   });
+
+  it('puts fal FIRST across every policy when primary=fal (fal leads, gemini becomes the fallback)', () => {
+    const chains = buildComposeChains(quality, fast, fal, { primary: 'fal' });
+    expect(chains.quality.map((p) => p.name)).toEqual([
+      'fal-seedream',
+      'gateway-quality',
+      'gateway-fast',
+    ]);
+    expect(chains.balanced.map((p) => p.name)).toEqual([
+      'fal-seedream',
+      'gateway-quality',
+      'gateway-fast',
+    ]);
+    expect(chains.fast.map((p) => p.name)).toEqual([
+      'fal-seedream',
+      'gateway-fast',
+      'gateway-quality',
+    ]);
+  });
+
+  it('ignores primary=fal when no fal is configured (stays the proven gemini-first order)', () => {
+    const chains = buildComposeChains(quality, fast, undefined, { primary: 'fal' });
+    expect(chains.quality.map((p) => p.name)).toEqual(['gateway-quality', 'gateway-fast']);
+  });
 });
