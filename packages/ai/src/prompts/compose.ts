@@ -223,3 +223,41 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     ...customPreference(input),
   ].join('\n');
 }
+
+/**
+ * `accessory_placement` task (the FASHION / person path): add the supplied accessory to the SUBJECT (the
+ * person in the uploaded photo), matching their pose. The HUMAN-SUBJECT anchor REPLACES the scene/exterior
+ * anchoring — `sceneFacts()` and the EXTERIOR note are intentionally NOT called here, so no room/door/scene
+ * scale reasoning can leak into a portrait. Reuses the product-identity anchor and the subordinated shopper
+ * free-text only. Paired with `COMPOSE_SYSTEM_INSTRUCTION_FASHION`.
+ */
+export function buildAccessoryPlacementTask(input: ComposeInput): string {
+  const where = input.placementHint
+    ? `place the supplied accessory ${input.placementHint}`
+    : "place the supplied accessory held in the subject's hand by its handle/strap, matching the subject's pose";
+  const lines: string[] = [
+    `OPERATION: accessory placement on a person. Task: ${where}, sized to the subject's hand and forearm` +
+      ' (NOT to any room, door, wall, or car), with the fingers and thumb wrapping OVER the handle/strap, a' +
+      ' soft contact shadow where the accessory meets the body, and lighting matching the existing light on' +
+      " the person. Preserve the accessory's exact identity. Preserve the subject — face, hair, body, pose," +
+      ' hands, and clothing — and the entire background and the original framing/aspect ratio exactly. Add' +
+      ' ONLY the accessory.',
+    '',
+    'HUMAN-SUBJECT ANCHOR: the first image is a PERSON, not a room. Size and position the accessory relative' +
+      " to the person's hand and forearm; introduce no room or scene scale reasoning.",
+    '',
+    'REQUEST DETAILS for this generation:',
+  ];
+
+  const productDescription = input.productDescription?.trim();
+  if (productDescription) {
+    lines.push(`- PRODUCT (insert this exact accessory; preserve its identity): ${productDescription}`);
+  }
+  lines.push(`- Product category (approximate merchant hint, may be inaccurate): ${input.category}.`);
+  const dims = input.dimensions ? describeDimensions(input.dimensions) : '';
+  if (dims) {
+    lines.push(`- Real-world accessory dimensions: ${dims}. Use to keep its size realistic in the hand.`);
+  }
+  lines.push(...customPreference(input));
+  return lines.join('\n');
+}

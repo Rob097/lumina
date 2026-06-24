@@ -70,6 +70,10 @@ describe('GenerationPlanSchema', () => {
     expect(count(3.7)).toBe(4);
   });
 
+  it('parses the accessory_placement mode (fashion / person path)', () => {
+    expect(GenerationPlanSchema.parse({ ...valid, mode: 'accessory_placement' }).mode).toBe('accessory_placement');
+  });
+
   it('rejects an unknown mode', () => {
     expect(() => GenerationPlanSchema.parse({ ...valid, mode: 'teleport' })).toThrow();
   });

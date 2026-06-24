@@ -21,6 +21,8 @@ export const GenerationModeSchema = z.enum([
   'object_replacement',
   /** Place the product once at the natural or specified location (lamp, sofa, mirror, chandelier). */
   'object_placement',
+  /** Place a wearable accessory on the PERSON in the photo (fashion path) — preserves the human subject. */
+  'accessory_placement',
 ]);
 export type GenerationMode = z.infer<typeof GenerationModeSchema>;
 

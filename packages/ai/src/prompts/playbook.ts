@@ -42,3 +42,27 @@ export function playbookRules(): string {
     '\n',
   );
 }
+
+/**
+ * FASHION playbook — the owner-editable tuning loop for the person/accessory path, kept SEPARATE from the
+ * furniture rules above so the furniture-specific scale rules (floor-lamp heights, door references, surface
+ * cladding) never leak into a portrait prompt. Add one generic line here when a fashion generation comes out
+ * wrong; it is injected into every fashion compose prompt. Same format/usage as `GENERATION_RULES`.
+ */
+export const FASHION_GENERATION_RULES: string[] = [
+  // case: bag rendered too large relative to the hand on a half/full-body selfie
+  "Keep the accessory realistically small relative to the person's hand — a small handbag is about the size of two hands; never enlarge it to fill the torso or the frame.",
+  // case: fingers rendered behind the handle instead of gripping it / bag fused into the clothing
+  'Render the gripping fingers and thumb OVER the handle or strap; the hand holds the accessory — it never floats in front of the hand and never fuses into the clothing.',
+];
+
+/** The fashion playbook rules rendered as one always-apply block (empty string when there are none). */
+export function fashionPlaybookRules(): string {
+  if (FASHION_GENERATION_RULES.length === 0) {
+    return '';
+  }
+  return [
+    'TEAM TUNING RULES (always apply, in addition to the HARD RULES):',
+    ...FASHION_GENERATION_RULES.map((r) => `- ${r}`),
+  ].join('\n');
+}

@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { GENERATION_RULES, playbookRules } from '../src/prompts/playbook.js';
+import {
+  FASHION_GENERATION_RULES,
+  GENERATION_RULES,
+  fashionPlaybookRules,
+  playbookRules,
+} from '../src/prompts/playbook.js';
 
 describe('generation playbook (owner-editable tuning rules)', () => {
   it('renders the seeded rules as a single always-apply block', () => {
@@ -24,5 +29,21 @@ describe('generation playbook (owner-editable tuning rules)', () => {
     expect(block).toMatch(/orientation|vertical|rotate/);
     // the product photo's own background/props must never leak into the scene
     expect(block).toMatch(/product photo|background|props/);
+  });
+});
+
+describe('fashion generation playbook (separate from the furniture rules)', () => {
+  it('renders the fashion rules as a single always-apply block', () => {
+    const block = fashionPlaybookRules();
+    expect(block).toMatch(/TUNING RULES/i);
+    expect(FASHION_GENERATION_RULES.length).toBeGreaterThan(0);
+    for (const rule of FASHION_GENERATION_RULES) expect(block).toContain(rule);
+  });
+
+  it('anchors scale to the body (hand/fingers) and keeps furniture-only scale rules OUT', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/hand|two hands|fingers|grip/);
+    // furniture scale cues (floor-lamp heights, door references) must never leak into a portrait prompt
+    expect(block).not.toMatch(/floor lamp|1\.5|1\.8|door/);
   });
 });

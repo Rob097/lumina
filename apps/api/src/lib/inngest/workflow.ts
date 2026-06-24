@@ -1,8 +1,10 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
+  isFashionCategory,
   planToSceneAnalysis,
   resolvePolicy,
+  resolvePolicyFashion,
   type AIOrchestrator,
   type ImageRef,
   type ModerationProvider,
@@ -148,6 +150,13 @@ const CHANGE_MAX_FRACTION = Number(process.env.CHANGE_MAX_FRACTION ?? 0.6);
 // Several distinct products legitimately change more of the scene than one object, so the localized-change
 // guard is looser for multi-product renders (F2) before it bails to the full model output.
 const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?? 0.85);
+// The fashion/person path is a localized change (an accessory at the hand + its contact shadow). Keep the
+// mask path engaged for a normal placement — which guarantees the shopper's face/identity and background are
+// the ORIGINAL pixels (a quality + privacy win) — while a pathological full-image repaint still bails out.
+const CHANGE_MAX_FRACTION_FASHION = Number(process.env.CHANGE_MAX_FRACTION_FASHION ?? 0.5);
+// Fashion routing: default the person path to the fast tier (the face comes from the original pixels via the
+// composite, so the quality-sensitive region is never model-rendered). Set true to force the quality model.
+const FASHION_QUALITY_TIER = (process.env.FASHION_QUALITY_TIER ?? 'false').toLowerCase() === 'true';
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
@@ -469,20 +478,30 @@ export async function processGeneration(
     // reads as the one-element [productSnapshot], so the single path is byte-identical to before.
     const productList: ProductSnapshot[] = gen.productSnapshots ?? [gen.productSnapshot];
     const isMulti = productList.length > 1;
+    // The fashion / person path (e.g. a handbag on a shopper's selfie) is fully isolated behind `isFashion`.
+    const isFashion = isFashionCategory(category);
 
     // The planner (§4.1) and the coverage estimate run in parallel (both best-effort). The product cutout
     // depends on the operation the planner decides, so it follows. (Phase 3 re-parallelizes the independent
     // pre-passes once routing lands.) Coverage is a single-product concept — skipped for a multi set.
+    // Fashion SKIPS the planner: a furniture-oriented planner mis-reads a selfie as a room (it would
+    // hallucinate walls/floors or flag isExterior, dragging scene/exterior anchoring into the prompt) and
+    // skipping the flash call also shaves latency; a neutral plan keeps normalizeRoom a no-op (no deskew on a
+    // portrait). Coverage is furniture-only too.
     const [genPlan, estimate] = await Promise.all([
-      planSafe(deps, gen, roomUrl),
-      isMulti
+      isFashion ? Promise.resolve(neutralGenerationPlan()) : planSafe(deps, gen, roomUrl),
+      isMulti || isFashion
         ? Promise.resolve<QuantityEstimate | null>(null)
         : estimateCoverageSafe(deps, gen, category, roomUrl),
     ]);
-    // A multi-product render is always a multi-object placement: the planner's covering/replacement
-    // operations are single-object by construction, so force object_placement (its scene facts still feed
-    // the compositor). Feed the plan's per-image facts into the compositor via the SceneAnalysis it consumes.
-    const mode: GenerationMode = isMulti ? 'object_placement' : genPlan.mode;
+    // Force the operation: fashion → accessory_placement (person path); a multi-product render is always a
+    // multi-object placement (the planner's covering/replacement ops are single-object), else the planner's
+    // mode. The plan's per-image facts still feed the compositor via the SceneAnalysis it consumes.
+    const mode: GenerationMode = isFashion
+      ? 'accessory_placement'
+      : isMulti
+        ? 'object_placement'
+        : genPlan.mode;
     const scene = planToSceneAnalysis(genPlan);
 
     // Run the independent post-plan pre-passes in parallel (Phase 3 speed): the mode-dependent product
@@ -535,8 +554,9 @@ export async function processGeneration(
       room: { url: roomUrl },
       product: productImages[0]!,
       // Multi-product: hand the model every product image + per-product facts; the prompt switches to a
-      // multi-object placement task. Single-product callers omit these and behave exactly as before.
-      ...(isMulti
+      // multi-object placement task. Single-product callers omit these and behave exactly as before. Fashion
+      // is single-accessory in v1, so it never takes the multi-object path even if a row carries several.
+      ...(isMulti && !isFashion
         ? {
             products: productImages,
             productInfos: productList.map((p) => ({
@@ -560,8 +580,13 @@ export async function processGeneration(
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
       // Multi-product is pinned to the FAST tier (D86): the quality model takes 69–133s on a multi set (over the
-      // <1 min hard limit) with no visible quality gain over fast (~18s) on the lamp+panels case.
-      policy: isMulti ? 'fast' : resolvePolicy(plan, genPlan),
+      // <1 min hard limit) with no visible quality gain over fast (~18s) on the lamp+panels case. Fashion has no
+      // planner to escalate on and the face comes from the original pixels via the composite → fast by default.
+      policy: isFashion
+        ? resolvePolicyFashion(plan, FASHION_QUALITY_TIER)
+        : isMulti
+          ? 'fast'
+          : resolvePolicy(plan, genPlan),
       watermark: plan === 'free',
     });
 
@@ -576,7 +601,11 @@ export async function processGeneration(
         : await keepOnlyProductChange(
             normalized,
             composed,
-            isMulti ? { maxFraction: CHANGE_MAX_FRACTION_MULTI } : {},
+            isFashion
+              ? { maxFraction: CHANGE_MAX_FRACTION_FASHION }
+              : isMulti
+                ? { maxFraction: CHANGE_MAX_FRACTION_MULTI }
+                : {},
           );
 
     // Step 5 — moderate the final output before persisting; an unsafe composite is never billed.

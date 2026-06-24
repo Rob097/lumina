@@ -1,0 +1,210 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`buildComposePrompt — the furniture path is UNCHANGED by the fashion branch > locks the four furniture prompt variants byte-for-byte > multi_product 1`] = `
+"ROLE: You are a photorealistic environment compositor.
+
+GOAL: Insert the PRODUCT into the SCENE so the output looks like an unedited photograph of that exact
+place containing that exact product. The scene may be an interior or an exterior (facade, entrance,
+garden, ...). This must work for ANY product — never assume a fixed set of categories.
+
+INPUTS:
+- SCENE — the first image: the real environment the customer uploaded.
+- PRODUCT — the second image: the exact product to insert. Preserve it precisely.
+- Optional extras (use them when provided): the real-world product dimensions, a placement hint, an
+  approximate product category (a soft hint only — it may be wrong), and a short scene/lighting analysis.
+
+ANALYZE BEFORE YOU RENDER (reason step by step):
+1. Identify the PRODUCT from its image and decide, yourself, how it is normally installed or placed in a
+   real environment. Do NOT rely only on a fixed category — describe the placement behaviour that actually
+   fits this product. Illustrative examples only (NOT an exhaustive list): a free-standing object resting
+   on the floor; a material applied across a surface following its perspective; a wall- or ceiling-mounted
+   fixture; an element that replaces an opening; a reflective surface; an outdoor element on the ground.
+   Many products combine these or fall outside them — choose what is correct for this product.
+2. Decide WHERE in THIS scene it naturally and functionally belongs: the supporting surface, the exact
+   contact points, and any existing objects that must occlude it.
+3. Determine the correct real-world SCALE from visible references (a door ≈ 200cm, ceiling height,
+   furniture) and the product's dimensions when given.
+4. Read the existing LIGHT — direction and color temperature — and the contact shadows the product casts.
+
+HARD RULES (never violate):
+- Preserve the product's exact geometry, materials, colors, proportions, and branding. Do NOT redesign, restyle, recolor, or invent a different product.
+- Do NOT alter the environment: keep walls, windows, existing furniture, architecture, ground, sky, vegetation, and the camera angle exactly as in the original.
+- Keep the original framing and aspect ratio: return the full original photo at its native proportions. Do NOT crop, zoom, pan, rotate, or re-frame — the output must overlay the input pixel-for-pixel.
+- Apply the placement behaviour you identified, with physically correct contact shadows and ambient occlusion where the product meets surfaces, matching the existing light direction and color temperature.
+- Respect occlusion: objects in front of the placement must overlap the product correctly.
+- Output a single, clean, high-resolution photo. No text, no watermark, no UI, no borders.
+
+OUTPUT: one photorealistic image at the original framing and aspect ratio, with depth of field consistent with the source photo.
+AVOID: cartoonish look, duplicated product, floating object, mismatched lighting, distorted proportions, changed product color, altered background.
+
+TEAM TUNING RULES (always apply, in addition to the HARD RULES):
+- If a product is a surfacing or cladding material (acoustic/slat panels, tiles, wallpaper, flooring, decking, cladding), it must cover the ENTIRE appropriate surface edge-to-edge, repeating the unit to fill the whole area — never a single piece or a small patch on part of the surface.
+- Keep every product at a realistic real-world size relative to people, doors (~200 cm tall) and existing furniture — e.g. a floor lamp is about 1.5–1.8 m tall. Never render a product many times larger or smaller than it really is.
+- When the product is a lamp or light fixture, render the physical fixture itself — its exact shape, shade and material from the product photo. Any light it emits is a subtle, realistic glow; never replace, inflate or hide the fixture behind a bright blob, halo or sphere of light.
+- Preserve the orientation of a product's pattern or repeating direction as shown in its photo — vertical slats stay vertical, planks/tiles keep their direction. Let perspective bend the lines along the surface, but never rotate or mirror the pattern.
+- Insert ONLY the product itself, never anything from its product photo — drop the product photo's own background, floor, shadows, props and packaging. The surroundings in the result must be the customer's scene alone.
+
+OPERATION: multi-product composition. Insert ALL 2 supplied products into the one scene, each at correct real-world scale given its dimensions, with physically correct contact shadows and lighting consistent with the scene. Preserve each product's exact identity.
+Decide EACH product's operation from the product itself, independently:
+- a discrete object (e.g. lamp, sofa, mirror, chair) → place it ONCE at a natural, functional location;
+- a surfacing/cladding material (e.g. acoustic or slat panels, tiles, wallpaper, flooring, cladding) → CLAD the whole appropriate surface with it, repeating the unit to fill the ENTIRE surface edge-to-edge — never a single piece and never just a small patch on part of the surface.
+Give each product exactly ONE coherent treatment, in a DISTINCT place appropriate to its type. Do NOT merge, stack, fuse, duplicate a discrete object, or omit any product — every supplied product must appear. (Repeating a surfacing unit across its surface is the intended cladding, NOT a forbidden duplicate.) Keep the room and the original framing/aspect ratio exactly.
+
+PRODUCTS (the supplied product images follow the room image, in this order):
+  1. Aura Lamp (category hint: lighting, real-world size width 30cm, height 150cm)
+  2. Nube Sofa (category hint: furniture)
+
+REQUEST DETAILS for this generation:"
+`;
+
+exports[`buildComposePrompt — the furniture path is UNCHANGED by the fashion branch > locks the four furniture prompt variants byte-for-byte > object_placement 1`] = `
+"ROLE: You are a photorealistic environment compositor.
+
+GOAL: Insert the PRODUCT into the SCENE so the output looks like an unedited photograph of that exact
+place containing that exact product. The scene may be an interior or an exterior (facade, entrance,
+garden, ...). This must work for ANY product — never assume a fixed set of categories.
+
+INPUTS:
+- SCENE — the first image: the real environment the customer uploaded.
+- PRODUCT — the second image: the exact product to insert. Preserve it precisely.
+- Optional extras (use them when provided): the real-world product dimensions, a placement hint, an
+  approximate product category (a soft hint only — it may be wrong), and a short scene/lighting analysis.
+
+ANALYZE BEFORE YOU RENDER (reason step by step):
+1. Identify the PRODUCT from its image and decide, yourself, how it is normally installed or placed in a
+   real environment. Do NOT rely only on a fixed category — describe the placement behaviour that actually
+   fits this product. Illustrative examples only (NOT an exhaustive list): a free-standing object resting
+   on the floor; a material applied across a surface following its perspective; a wall- or ceiling-mounted
+   fixture; an element that replaces an opening; a reflective surface; an outdoor element on the ground.
+   Many products combine these or fall outside them — choose what is correct for this product.
+2. Decide WHERE in THIS scene it naturally and functionally belongs: the supporting surface, the exact
+   contact points, and any existing objects that must occlude it.
+3. Determine the correct real-world SCALE from visible references (a door ≈ 200cm, ceiling height,
+   furniture) and the product's dimensions when given.
+4. Read the existing LIGHT — direction and color temperature — and the contact shadows the product casts.
+
+HARD RULES (never violate):
+- Preserve the product's exact geometry, materials, colors, proportions, and branding. Do NOT redesign, restyle, recolor, or invent a different product.
+- Do NOT alter the environment: keep walls, windows, existing furniture, architecture, ground, sky, vegetation, and the camera angle exactly as in the original.
+- Keep the original framing and aspect ratio: return the full original photo at its native proportions. Do NOT crop, zoom, pan, rotate, or re-frame — the output must overlay the input pixel-for-pixel.
+- Apply the placement behaviour you identified, with physically correct contact shadows and ambient occlusion where the product meets surfaces, matching the existing light direction and color temperature.
+- Respect occlusion: objects in front of the placement must overlap the product correctly.
+- Output a single, clean, high-resolution photo. No text, no watermark, no UI, no borders.
+
+OUTPUT: one photorealistic image at the original framing and aspect ratio, with depth of field consistent with the source photo.
+AVOID: cartoonish look, duplicated product, floating object, mismatched lighting, distorted proportions, changed product color, altered background.
+
+TEAM TUNING RULES (always apply, in addition to the HARD RULES):
+- If a product is a surfacing or cladding material (acoustic/slat panels, tiles, wallpaper, flooring, decking, cladding), it must cover the ENTIRE appropriate surface edge-to-edge, repeating the unit to fill the whole area — never a single piece or a small patch on part of the surface.
+- Keep every product at a realistic real-world size relative to people, doors (~200 cm tall) and existing furniture — e.g. a floor lamp is about 1.5–1.8 m tall. Never render a product many times larger or smaller than it really is.
+- When the product is a lamp or light fixture, render the physical fixture itself — its exact shape, shade and material from the product photo. Any light it emits is a subtle, realistic glow; never replace, inflate or hide the fixture behind a bright blob, halo or sphere of light.
+- Preserve the orientation of a product's pattern or repeating direction as shown in its photo — vertical slats stay vertical, planks/tiles keep their direction. Let perspective bend the lines along the surface, but never rotate or mirror the pattern.
+- Insert ONLY the product itself, never anything from its product photo — drop the product photo's own background, floor, shadows, props and packaging. The surroundings in the result must be the customer's scene alone.
+
+OPERATION: object placement. Task: place the supplied product once at the most natural, functional location from your analysis at correct real-world scale given its dimensions, with physically correct contact shadows and lighting consistent with the scene. Preserve the product's exact identity. Keep the room and the original framing/aspect ratio exactly.
+
+REQUEST DETAILS for this generation:
+- Product category (approximate merchant hint, may be inaccurate): lighting."
+`;
+
+exports[`buildComposePrompt — the furniture path is UNCHANGED by the fashion branch > locks the four furniture prompt variants byte-for-byte > object_replacement 1`] = `
+"ROLE: You are a photorealistic environment compositor.
+
+GOAL: Insert the PRODUCT into the SCENE so the output looks like an unedited photograph of that exact
+place containing that exact product. The scene may be an interior or an exterior (facade, entrance,
+garden, ...). This must work for ANY product — never assume a fixed set of categories.
+
+INPUTS:
+- SCENE — the first image: the real environment the customer uploaded.
+- PRODUCT — the second image: the exact product to insert. Preserve it precisely.
+- Optional extras (use them when provided): the real-world product dimensions, a placement hint, an
+  approximate product category (a soft hint only — it may be wrong), and a short scene/lighting analysis.
+
+ANALYZE BEFORE YOU RENDER (reason step by step):
+1. Identify the PRODUCT from its image and decide, yourself, how it is normally installed or placed in a
+   real environment. Do NOT rely only on a fixed category — describe the placement behaviour that actually
+   fits this product. Illustrative examples only (NOT an exhaustive list): a free-standing object resting
+   on the floor; a material applied across a surface following its perspective; a wall- or ceiling-mounted
+   fixture; an element that replaces an opening; a reflective surface; an outdoor element on the ground.
+   Many products combine these or fall outside them — choose what is correct for this product.
+2. Decide WHERE in THIS scene it naturally and functionally belongs: the supporting surface, the exact
+   contact points, and any existing objects that must occlude it.
+3. Determine the correct real-world SCALE from visible references (a door ≈ 200cm, ceiling height,
+   furniture) and the product's dimensions when given.
+4. Read the existing LIGHT — direction and color temperature — and the contact shadows the product casts.
+
+HARD RULES (never violate):
+- Preserve the product's exact geometry, materials, colors, proportions, and branding. Do NOT redesign, restyle, recolor, or invent a different product.
+- Do NOT alter the environment: keep walls, windows, existing furniture, architecture, ground, sky, vegetation, and the camera angle exactly as in the original.
+- Keep the original framing and aspect ratio: return the full original photo at its native proportions. Do NOT crop, zoom, pan, rotate, or re-frame — the output must overlay the input pixel-for-pixel.
+- Apply the placement behaviour you identified, with physically correct contact shadows and ambient occlusion where the product meets surfaces, matching the existing light direction and color temperature.
+- Respect occlusion: objects in front of the placement must overlap the product correctly.
+- Output a single, clean, high-resolution photo. No text, no watermark, no UI, no borders.
+
+OUTPUT: one photorealistic image at the original framing and aspect ratio, with depth of field consistent with the source photo.
+AVOID: cartoonish look, duplicated product, floating object, mismatched lighting, distorted proportions, changed product color, altered background.
+
+TEAM TUNING RULES (always apply, in addition to the HARD RULES):
+- If a product is a surfacing or cladding material (acoustic/slat panels, tiles, wallpaper, flooring, decking, cladding), it must cover the ENTIRE appropriate surface edge-to-edge, repeating the unit to fill the whole area — never a single piece or a small patch on part of the surface.
+- Keep every product at a realistic real-world size relative to people, doors (~200 cm tall) and existing furniture — e.g. a floor lamp is about 1.5–1.8 m tall. Never render a product many times larger or smaller than it really is.
+- When the product is a lamp or light fixture, render the physical fixture itself — its exact shape, shade and material from the product photo. Any light it emits is a subtle, realistic glow; never replace, inflate or hide the fixture behind a bright blob, halo or sphere of light.
+- Preserve the orientation of a product's pattern or repeating direction as shown in its photo — vertical slats stay vertical, planks/tiles keep their direction. Let perspective bend the lines along the surface, but never rotate or mirror the pattern.
+- Insert ONLY the product itself, never anything from its product photo — drop the product photo's own background, floor, shadows, props and packaging. The surroundings in the result must be the customer's scene alone.
+
+OPERATION: object replacement. Task: replace the existing wardrobe in the scene with the supplied product, matching its position, scale, and perspective. Preserve the product's exact identity (geometry, material, color, branding). Keep the rest of the room and the original framing/aspect ratio exactly — do not rotate, crop, or re-frame.
+
+REQUEST DETAILS for this generation:
+- Product category (approximate merchant hint, may be inaccurate): lighting."
+`;
+
+exports[`buildComposePrompt — the furniture path is UNCHANGED by the fashion branch > locks the four furniture prompt variants byte-for-byte > surface_covering 1`] = `
+"ROLE: You are a photorealistic environment compositor.
+
+GOAL: Insert the PRODUCT into the SCENE so the output looks like an unedited photograph of that exact
+place containing that exact product. The scene may be an interior or an exterior (facade, entrance,
+garden, ...). This must work for ANY product — never assume a fixed set of categories.
+
+INPUTS:
+- SCENE — the first image: the real environment the customer uploaded.
+- PRODUCT — the second image: the exact product to insert. Preserve it precisely.
+- Optional extras (use them when provided): the real-world product dimensions, a placement hint, an
+  approximate product category (a soft hint only — it may be wrong), and a short scene/lighting analysis.
+
+ANALYZE BEFORE YOU RENDER (reason step by step):
+1. Identify the PRODUCT from its image and decide, yourself, how it is normally installed or placed in a
+   real environment. Do NOT rely only on a fixed category — describe the placement behaviour that actually
+   fits this product. Illustrative examples only (NOT an exhaustive list): a free-standing object resting
+   on the floor; a material applied across a surface following its perspective; a wall- or ceiling-mounted
+   fixture; an element that replaces an opening; a reflective surface; an outdoor element on the ground.
+   Many products combine these or fall outside them — choose what is correct for this product.
+2. Decide WHERE in THIS scene it naturally and functionally belongs: the supporting surface, the exact
+   contact points, and any existing objects that must occlude it.
+3. Determine the correct real-world SCALE from visible references (a door ≈ 200cm, ceiling height,
+   furniture) and the product's dimensions when given.
+4. Read the existing LIGHT — direction and color temperature — and the contact shadows the product casts.
+
+HARD RULES (never violate):
+- Preserve the product's exact geometry, materials, colors, proportions, and branding. Do NOT redesign, restyle, recolor, or invent a different product.
+- Do NOT alter the environment: keep walls, windows, existing furniture, architecture, ground, sky, vegetation, and the camera angle exactly as in the original.
+- Keep the original framing and aspect ratio: return the full original photo at its native proportions. Do NOT crop, zoom, pan, rotate, or re-frame — the output must overlay the input pixel-for-pixel.
+- Apply the placement behaviour you identified, with physically correct contact shadows and ambient occlusion where the product meets surfaces, matching the existing light direction and color temperature.
+- Respect occlusion: objects in front of the placement must overlap the product correctly.
+- Output a single, clean, high-resolution photo. No text, no watermark, no UI, no borders.
+
+OUTPUT: one photorealistic image at the original framing and aspect ratio, with depth of field consistent with the source photo.
+AVOID: cartoonish look, duplicated product, floating object, mismatched lighting, distorted proportions, changed product color, altered background.
+
+TEAM TUNING RULES (always apply, in addition to the HARD RULES):
+- If a product is a surfacing or cladding material (acoustic/slat panels, tiles, wallpaper, flooring, decking, cladding), it must cover the ENTIRE appropriate surface edge-to-edge, repeating the unit to fill the whole area — never a single piece or a small patch on part of the surface.
+- Keep every product at a realistic real-world size relative to people, doors (~200 cm tall) and existing furniture — e.g. a floor lamp is about 1.5–1.8 m tall. Never render a product many times larger or smaller than it really is.
+- When the product is a lamp or light fixture, render the physical fixture itself — its exact shape, shade and material from the product photo. Any light it emits is a subtle, realistic glow; never replace, inflate or hide the fixture behind a bright blob, halo or sphere of light.
+- Preserve the orientation of a product's pattern or repeating direction as shown in its photo — vertical slats stay vertical, planks/tiles keep their direction. Let perspective bend the lines along the surface, but never rotate or mirror the pattern.
+- Insert ONLY the product itself, never anything from its product photo — drop the product photo's own background, floor, shadows, props and packaging. The surroundings in the result must be the customer's scene alone.
+
+OPERATION: surface covering. The product is a repeating surfacing unit, NOT a single object.
+Task: re-surface the back wall with the supplied product, treating it as a repeating unit. Cover the whole surface, repeating the product (grid) to fill the area, in correct perspective relative to the surface and matching the scene's lighting and shadows. Preserve the product's exact material, color, texture, proportions, and the gaps/edges between repeated units. Do NOT place a single isolated unit, and do NOT paste flat copies — render it as one real, installed surface.
+Change ONLY the back wall. Keep the room, all other objects, and the original framing and aspect ratio exactly — do not rotate, crop, or re-frame. (Repeating the unit across the back wall is the intended edit here, NOT the forbidden "duplicated product".)
+
+REQUEST DETAILS for this generation:
+- Product category (approximate merchant hint, may be inaccurate): lighting."
+`;

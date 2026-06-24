@@ -10,7 +10,7 @@ import {
   type QuantityProvider,
   type SceneAnalysis,
 } from '@lumina/ai';
-import type { GenerationPlan } from '@lumina/shared';
+import { neutralGenerationPlan, type GenerationPlan } from '@lumina/shared';
 import { eq } from 'drizzle-orm';
 import {
   creditLedger,
@@ -695,6 +695,42 @@ describe('processGeneration — multi-product (F2)', () => {
     const balance = firstOrThrow(await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)))
       .creditsBalance;
     expect(balance).toBe(4); // unchanged — one credit, charged at creation
+  });
+});
+
+// Fashion / person path (Relievum): a `fashion` category isolates the wearable-on-a-person behaviour. The
+// (furniture-oriented) planner and the coverage estimate are skipped, the operation is forced to
+// accessory_placement, and routing defaults to the fast tier (the face comes from the original pixels via
+// the pixel-perfect composite). The furniture path is untouched (its own tests above still pass).
+describe('processGeneration — fashion accessory placement (person path)', () => {
+  it('skips the planner + coverage, forces accessory_placement, and routes to the fast tier', async () => {
+    const { generationId } = await queued(5, {
+      name: 'Borsa Diana',
+      category: 'fashion',
+      imageUrl: 'https://shop.test/bag.png',
+    });
+    const planFn = vi.fn(async () => neutralGenerationPlan());
+    const quantity = new MockQuantityProvider();
+    const captured: { mode?: string; policy?: string } = {};
+    const provider: AIProvider = {
+      name: 'cap',
+      compose: async (input) => {
+        captured.mode = input.mode;
+        captured.policy = input.policy;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
+      },
+    };
+    const orch = new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      planner: { plan: planFn },
+      quantity,
+    });
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    expect(captured.mode).toBe('accessory_placement');
+    expect(captured.policy).toBe('fast');
+    expect(planFn).not.toHaveBeenCalled(); // the furniture planner is skipped for the person path
+    expect(quantity.callCount).toBe(0); // coverage is furniture-only
   });
 });
 

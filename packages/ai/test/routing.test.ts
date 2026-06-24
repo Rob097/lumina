@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { GenerationPlan } from '@lumina/shared';
-import { resolvePolicy, resolveImageSizes } from '../src/routing.js';
+import { resolvePolicy, resolvePolicyFashion, resolveImageSizes } from '../src/routing.js';
 
 function plan(quality: Partial<GenerationPlan['sceneFacts']['quality']> = {}, confidence = 0.8): GenerationPlan {
   return {
@@ -43,6 +43,25 @@ describe('resolvePolicy', () => {
   it('keeps the free tier on the fast model even for a difficult scene (cost-controlled, watermarked)', () => {
     expect(resolvePolicy('free', plan())).toBe('fast');
     expect(resolvePolicy('free', plan({ dark: true }, 0.1))).toBe('fast');
+  });
+});
+
+describe('resolvePolicyFashion', () => {
+  it('defaults the person path to the fast tier (the face comes from the original pixels via the composite)', () => {
+    expect(resolvePolicyFashion('starter')).toBe('fast');
+    expect(resolvePolicyFashion('growth')).toBe('fast');
+    // no GenerationPlan to escalate on (planner skipped) → fast even for the top tier, unlike furniture
+    expect(resolvePolicyFashion('enterprise')).toBe('fast');
+  });
+
+  it('keeps the free tier fast regardless of the quality flag', () => {
+    expect(resolvePolicyFashion('free')).toBe('fast');
+    expect(resolvePolicyFashion('free', true)).toBe('fast');
+  });
+
+  it('forces the quality model store-wide when the flag is set (except free)', () => {
+    expect(resolvePolicyFashion('starter', true)).toBe('quality');
+    expect(resolvePolicyFashion('enterprise', true)).toBe('quality');
   });
 });
 

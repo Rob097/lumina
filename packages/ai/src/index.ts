@@ -5,6 +5,7 @@
  * Vercel AI Gateway ↔ fal.ai ↔ Vertex is a one-file change behind the `AIProvider` interface.
  */
 export * from './types.js';
+export * from './fashion.js';
 export * from './prompt.js';
 export * from './quantity.js';
 export * from './orchestrator.js';
