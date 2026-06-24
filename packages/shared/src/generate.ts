@@ -17,6 +17,23 @@ export const SignUploadResponseSchema = z.object({
 });
 export type SignUploadResponse = z.infer<typeof SignUploadResponseSchema>;
 
+/**
+ * `POST /v1/uploads/guide` — presigned R2 PUT for a merchant's pre-upload guide image. Unlike a room photo
+ * (private, short-lived signed reads), the guide image is shopper-facing and must stay reachable, so the
+ * response also carries a STABLE public URL (served by the guide proxy route) to store in the widget config.
+ */
+export const SignGuideUploadRequestSchema = z.object({
+  contentType: z.string().min(1),
+});
+export type SignGuideUploadRequest = z.infer<typeof SignGuideUploadRequestSchema>;
+
+export const SignGuideUploadResponseSchema = z.object({
+  uploadUrl: z.string().url(),
+  publicUrl: z.string().url(),
+  expiresIn: z.number().int().positive(),
+});
+export type SignGuideUploadResponse = z.infer<typeof SignGuideUploadResponseSchema>;
+
 /** `POST /v1/widget/generate` (§6.2): either a registered productId or an inline product is required. */
 export const GenerateRequestSchema = z
   .object({

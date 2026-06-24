@@ -3,6 +3,8 @@ import {
   FeedbackRequestSchema,
   GenerateRequestSchema,
   GenerateResponseSchema,
+  SignGuideUploadRequestSchema,
+  SignGuideUploadResponseSchema,
   SignUploadRequestSchema,
   StatusResponseSchema,
 } from './generate.js';
@@ -13,6 +15,24 @@ describe('sign-upload', () => {
       'room',
     );
     expect(() => SignUploadRequestSchema.parse({ contentType: 'image/jpeg', kind: 'avatar' })).toThrow();
+  });
+});
+
+describe('sign guide-upload', () => {
+  it('accepts a content type and carries a stable public URL back', () => {
+    expect(SignGuideUploadRequestSchema.parse({ contentType: 'image/png' }).contentType).toBe('image/png');
+    const res = SignGuideUploadResponseSchema.parse({
+      uploadUrl: 'https://r2.example.com/put?sig=1',
+      publicUrl: 'https://api.example.com/api/v1/widget/guide/m1/abc.png',
+      expiresIn: 600,
+    });
+    expect(res.publicUrl).toContain('/widget/guide/');
+  });
+
+  it('rejects a response missing the public URL', () => {
+    expect(() =>
+      SignGuideUploadResponseSchema.parse({ uploadUrl: 'https://r2/put', expiresIn: 600 }),
+    ).toThrow();
   });
 });
 

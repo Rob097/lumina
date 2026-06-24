@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache';
 import { WidgetSettingsSchema, type WidgetSettings } from '@lumina/shared';
-import { saveWidgetConfig } from '@/lib/api';
+import { saveWidgetConfig, signGuideUpload } from '@/lib/api';
 
 export type SaveResult = { ok: true; settings: WidgetSettings } | { ok: false; error: string };
 
@@ -18,4 +18,12 @@ export async function saveWidgetSettingsAction(input: unknown): Promise<SaveResu
   }
   revalidatePath('/widget');
   return { ok: true, settings: saved };
+}
+
+/**
+ * Presign a guide-image upload for the Widget Settings editor. The browser then PUTs the file straight to R2
+ * and stores the returned `publicUrl` as the guide image. Returns null on failure.
+ */
+export async function signGuideUploadAction(contentType: string): Promise<{ uploadUrl: string; publicUrl: string } | null> {
+  return signGuideUpload(contentType);
 }

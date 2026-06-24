@@ -1,12 +1,16 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useMemo, useRef, useState, useTransition } from 'react';
 import { LOCALES, type Locale, type WidgetGuide, type WidgetSettings } from '@lumina/shared';
 import { useEnv } from '@/lib/providers';
 import { CTA_PLATFORMS, type CtaPreset } from '@/lib/platforms';
 import { BrandIcon } from '@/components/ui/BrandIcon';
 import { WidgetPreview } from './WidgetPreview';
-import { saveWidgetSettingsAction } from './actions';
+import { saveWidgetSettingsAction, signGuideUploadAction } from './actions';
+
+/** Guide image upload limits (mirrors the API's accepted types). */
+const GUIDE_IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+const MAX_GUIDE_IMAGE_BYTES = 5 * 1024 * 1024;
 
 const SWATCHES = ['#5a55d6', '#111317', '#0b7d83', '#7a3a66', '#c2410c', '#be185d'];
 
@@ -42,6 +46,9 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [guideUploading, setGuideUploading] = useState(false);
+  const [guideUploadError, setGuideUploadError] = useState<string | null>(null);
+  const guideFileRef = useRef<HTMLInputElement | null>(null);
 
   const dirty = useMemo(() => JSON.stringify(s) !== JSON.stringify(baseline), [s, baseline]);
 
@@ -82,6 +89,44 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
       const next: WidgetGuide = { ...base, ...p };
       return { ...prev, guide: next.imageUrl.trim() ? next : null };
     });
+  }
+
+  /**
+   * Upload a guide image: presign → browser PUTs straight to R2 → store the returned stable public URL as the
+   * guide image. The merchant can still just paste a hosted link instead (both write `guide.imageUrl`).
+   */
+  async function onPickGuideImage(file: File): Promise<void> {
+    setGuideUploadError(null);
+    if (!GUIDE_IMAGE_TYPES.includes(file.type)) {
+      setGuideUploadError('Use a PNG, JPEG or WebP image.');
+      return;
+    }
+    if (file.size > MAX_GUIDE_IMAGE_BYTES) {
+      setGuideUploadError('Image is too large (max 5 MB).');
+      return;
+    }
+    setGuideUploading(true);
+    try {
+      const signed = await signGuideUploadAction(file.type);
+      if (!signed) {
+        setGuideUploadError("Couldn't start the upload. Please try again.");
+        return;
+      }
+      const put = await fetch(signed.uploadUrl, {
+        method: 'PUT',
+        headers: { 'content-type': file.type },
+        body: file,
+      });
+      if (!put.ok) {
+        setGuideUploadError('Upload failed. Please try again.');
+        return;
+      }
+      setGuide({ imageUrl: signed.publicUrl, enabled: true });
+    } catch {
+      setGuideUploadError('Upload failed. Please try again.');
+    } finally {
+      setGuideUploading(false);
+    }
   }
 
   function save() {
@@ -383,8 +428,8 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
               </div>
               <div className="set-row">
                 <div className="set-label">
-                  Image URL
-                  <div className="sub">A hosted reference image (e.g. the pose/framing to copy).</div>
+                  Image
+                  <div className="sub">Paste a hosted image link, or upload one (PNG/JPEG/WebP, max 5 MB).</div>
                 </div>
                 <div className="set-control">
                   <input
@@ -393,6 +438,33 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
                     value={s.guide?.imageUrl ?? ''}
                     onChange={(e) => setGuide({ imageUrl: e.target.value })}
                   />
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+                    <input
+                      ref={guideFileRef}
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void onPickGuideImage(f);
+                        e.target.value = '';
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      disabled={guideUploading}
+                      onClick={() => guideFileRef.current?.click()}
+                    >
+                      {guideUploading ? 'Uploading…' : 'Upload image'}
+                    </button>
+                    <span className="sub">or paste a link above</span>
+                  </div>
+                  {guideUploadError ? (
+                    <div className="sub" style={{ color: 'var(--danger)', marginTop: 6 }}>
+                      {guideUploadError}
+                    </div>
+                  ) : null}
                 </div>
               </div>
               {s.guide?.imageUrl.trim() ? (

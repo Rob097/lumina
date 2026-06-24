@@ -959,3 +959,17 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   (`STRIPE_PRICE_PRO` etc.) are an **owner task** (live account, HARD RULE #10) — commands + the enforced-vs-
   backlog limit breakdown (overage €0.49, multi-shop caps, feature gates — all NOT implemented) are in
   `docs/lumina/relievum-project/pricing-backlog.md`.
+
+- **D90 — Guide image: paste a link OR upload (served via a public proxy, bucket stays private).** The
+  pre-upload guide (D88) accepted only a hosted URL; merchants without a host pasted a Google-Drive *view*
+  link, which is an HTML page (not image bytes) so `<img>` never loads. Added an upload option that keeps the
+  paste-a-link option (both write `guide.imageUrl`). Flow mirrors the Studio room upload: `POST
+  /v1/uploads/guide` presigns an R2 PUT under `guides/{merchant_id}/` (HARD RULE #1; only PNG/JPEG/WebP) and
+  the browser PUTs straight to R2. **The R2 bucket is private (D50 — room photos are people's homes), so the
+  guide image — a deliberately published, shopper-facing asset — can't use a signed/expiring URL.** It is
+  served by a new public proxy `GET /v1/widget/guide/{merchantId}/{id}.{ext}` that streams the object with
+  `Cache-Control: public, max-age=31536000, immutable` (the id is random → content never changes). The sign
+  route returns that stable `publicUrl` to store in the widget config; the widget/config assembly and the
+  `WidgetGuide` schema are unchanged (still just a URL string). No new env (the proxy origin is derived from
+  the request). Defense-in-depth: the proxy validates `merchantId`/`id` are UUIDs and re-checks the key's
+  tenant via `merchantIdForKey` before reading.

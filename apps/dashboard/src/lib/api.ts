@@ -15,6 +15,7 @@ import {
   GenerationsListResponseSchema,
   MeResponseSchema,
   SignUploadResponseSchema,
+  SignGuideUploadResponseSchema,
   NotificationListResponseSchema,
   NotificationPrefsResponseSchema,
   ProductSchema,
@@ -361,6 +362,21 @@ export async function signStudioUpload(contentType: string): Promise<SignUploadR
     body: JSON.stringify({ contentType, kind: 'room' }),
   });
   return res.ok ? SignUploadResponseSchema.parse(await res.json()) : null;
+}
+
+/**
+ * Presign a guide-image upload (Widget Settings). The browser PUTs the file to R2 directly; `publicUrl` is a
+ * stable URL (served by the guide proxy) to store as the guide image. Returns null on any failure.
+ */
+export async function signGuideUpload(contentType: string): Promise<{ uploadUrl: string; publicUrl: string } | null> {
+  const res = await apiFetch('/uploads/guide', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ contentType }),
+  });
+  if (!res.ok) return null;
+  const { uploadUrl, publicUrl } = SignGuideUploadResponseSchema.parse(await res.json());
+  return { uploadUrl, publicUrl };
 }
 
 /** Start an authenticated (Studio) generation. Returns the id, or an error code for the UI. */
