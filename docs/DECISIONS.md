@@ -900,3 +900,62 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   scenes — measured 38–49s, within budget). Change: `workflow.ts` composes multi with `policy: 'fast'`
   unconditionally (`isMulti ? 'fast' : resolvePolicy(...)`). Decided autonomously per the owner's standing
   "own the technical how + prove with visual evidence" + "<1 min" mandates.
+
+## Relievum — fashion / person path (2026-06-24)
+
+- **D87 — Fashion ("wear/hold the product on a person") is an isolated path keyed solely on
+  `category === 'fashion'`.** New client Relievum (3D-printed handbags) needs the shopper's own selfie +
+  the bag composited into their hand. The furniture/environment path must not regress (the #1 constraint),
+  so the wearable path is gated entirely behind one predicate `isFashionCategory()` (`packages/ai/src/fashion.ts`):
+  every fashion branch has an `else` that is the unchanged environment behaviour, and no existing string or
+  function is rewritten in place. **What the fashion branch does, and nothing else:** (1) a separate master
+  prompt `COMPOSE_SYSTEM_INSTRUCTION_FASHION` — the upload is a *person/SUBJECT*, not a room; preserve face/
+  hair/body/pose/hands/clothing/background pixel-for-pixel and *add ONLY the accessory*; scale to the hand/
+  forearm (never a door/room); fingers occlude the handle; soft contact shadow on the body. (2) a new
+  `accessory_placement` task that **never** calls `sceneFacts()`/`EXTERIOR_NOTE` (no interior/exterior
+  anchoring leaks into a portrait). (3) a separate owner-editable `FASHION_GENERATION_RULES` playbook (the
+  furniture scale rules — floor-lamp heights, door references — must not appear in a person prompt). (4) the
+  workflow **skips the furniture-oriented planner + coverage** for fashion (a planner would mis-read a selfie
+  as a room) and forces `mode='accessory_placement'`; this also makes `normalizeRoom` a no-op (no deskew on a
+  selfie) and shaves one flash call. **Moderation is already compatible** — `FACE_OK_CATEGORIES = {'fashion'}`
+  already lets selfies (low scene-score, face-dominant) pass; no moderation change. **Why fast tier
+  (`resolvePolicyFashion`, default fast; `FASHION_QUALITY_TIER` env to force quality):** the pixel-perfect
+  composite keeps only the changed region (bag + its contact shadow) over the ORIGINAL upload, so the
+  quality-sensitive region — the shopper's face — is **never model-rendered** (a quality + privacy guarantee:
+  the output face is provably the user's real face), de-risking the fast model; `CHANGE_MAX_FRACTION_FASHION`
+  (≈0.5) keeps the mask path engaged for a normal placement while a pathological full repaint still bails out.
+  **Activation requirement:** Relievum's products must be `category='fashion'` or none of this engages.
+  Furniture prompts are **snapshot-locked** (`packages/ai/test/prompt-fashion.test.ts`) as a regression
+  tripwire. **Not yet validated on a real generation** — gated on the owner's eval (credits constraint).
+
+- **D88 — Generic, merchant-configurable pre-upload guide (NOT fashion-specific).** A new optional widget
+  step shown BEFORE upload, fully owner-configurable so any merchant/category can use it (a tiles shop:
+  "frame the wall like this"; Relievum: "hold the bag like this"). Stored as a `guide` jsonb on
+  `widget_configs` (`{ enabled, imageUrl, title?, body? }`, migration `0011`); a new `WidgetGuideSchema` in
+  `packages/shared/src/widget.ts` feeds both the settings PUT and the public `GET /v1/widget/config` (the
+  route only surfaces it when `enabled && imageUrl`). **No domain/"pose" wording anywhere in code** — the
+  copy is verbatim merchant text; only the CTA button is localized (`guide.cta`, 5 locales). **Image is a
+  plain hosted URL** (same pattern as product `imageUrl`), NOT an R2 upload — chosen to match the existing
+  product-image pattern and avoid presign/public-bucket complexity; **R2 file-upload-for-guide is backlogged**
+  (`docs/lumina/relievum-project/pricing-backlog.md` / future). **Rendered as a pure view-layer gate in
+  `App.tsx`** (a one-time overlay before the upload step, reset on close) — deliberately NO reducer/controller
+  changes, so the existing upload→confirm→generate flow and its tests are untouched. Shown in the live widget
+  and the dashboard preview (new conditional "Guide" tab), **never in the Studio** (it doesn't render the
+  widget step tree). Widget bundle after the change: **36.7 KB gzip (< 45 KB)**. Decoupled from the engine:
+  the guide passes nothing to generation; the fashion behaviour (D87) keys only on `category==='fashion'`.
+
+- **D89 — New EUR pricing (Starter/Growth/Pro/Enterprise) + free trial, no card.** Encoded the cofounder's
+  public pricing page into `PLAN_CATALOG`/`PLAN_PRESENTATION` (`packages/shared/src/plans.ts`): Starter
+  €149/300 viz · Growth €349/1,000 (highlighted) · **Pro €699/3,000 (new tier)** · Enterprise from
+  €1,499/10,000. Credits = "visualizations". **`pro` added to the `plan_tier` enum via a non-destructive
+  `ALTER TYPE … ADD VALUE` (migration `0012`)** — appended last in `PLAN_TIERS` so the migration is append-only;
+  display/price ranking is now an **explicit** map in the dashboard `planRank` (not the enum storage order).
+  **`scale` retired** (no longer sold) but kept in the enum + catalog so legacy subs still resolve and the PG
+  enum value isn't removed. New `SELLABLE_PLAN_TIERS = [starter, growth, pro, enterprise]` drives the billing
+  cards (`buildBillingPlans` no longer iterates all tiers); `free`/`scale` are never shown. Currency switched
+  to **€** (`formatPrice`). **Free trial, no card, all plans:** checkout sets `payment_method_collection:
+  'if_required'` + `subscription_data.trial_period_days` (env `TRIAL_PERIOD_DAYS`, default 14; Relievum uses
+  30) + `trial_settings.end_behavior.missing_payment_method: 'cancel'`. Stripe products/prices + env
+  (`STRIPE_PRICE_PRO` etc.) are an **owner task** (live account, HARD RULE #10) — commands + the enforced-vs-
+  backlog limit breakdown (overage €0.49, multi-shop caps, feature gates — all NOT implemented) are in
+  `docs/lumina/relievum-project/pricing-backlog.md`.
