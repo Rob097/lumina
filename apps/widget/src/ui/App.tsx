@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import type { FeedbackRating } from '@lumina/shared';
-import type { EffectiveConfig } from '../core/config.js';
+import { YUZUVIEW_URL, YUZUVIEW_PRIVACY_URL, type EffectiveConfig } from '../core/config.js';
 import type { Translate } from '../core/i18n.js';
 import { Modal } from './Modal.js';
 import { GuideStep } from './steps/GuideStep.js';
@@ -55,6 +55,10 @@ export function App({ controller, config, t }: AppProps) {
       onClose={() => controller.close('user')}
       watermark={config.watermark}
       poweredByLabel={t('poweredBy')}
+      poweredByHref={YUZUVIEW_URL}
+      legalNotice={t('legal.notice')}
+      privacyLabel={t('legal.privacy')}
+      privacyHref={YUZUVIEW_PRIVACY_URL}
       closeLabel={t('close')}
       wide={state.step === 'result'}
     >

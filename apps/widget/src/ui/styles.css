@@ -111,11 +111,30 @@
   padding: 22px 18px 16px;
 }
 
+.lumina-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 18px 14px;
+  text-align: center;
+}
 .lumina-powered {
-  padding: 6px 18px 16px;
   font-size: 10px;
   color: color-mix(in srgb, var(--lumina-muted) 75%, transparent);
-  text-align: center;
+  text-decoration: none;
+}
+.lumina-powered:hover {
+  text-decoration: underline;
+}
+.lumina-legal {
+  margin: 0;
+  font-size: 9px;
+  line-height: 1.35;
+  color: color-mix(in srgb, var(--lumina-muted) 62%, transparent);
+}
+.lumina-legal-link {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .lumina-state {

@@ -36,3 +36,29 @@ export function createRateLimiter(env: Record<string, string | undefined>): Rate
     checkAnon: async (anonId) => (await anonDaily.limit(anonId)).success,
   };
 }
+
+/** Per-merchant support-submission throttle (its own bucket, separate from generation limits). */
+export interface SupportLimiter {
+  check(merchantId: string): Promise<boolean>;
+}
+
+const SUPPORT_ALLOW_ALL: SupportLimiter = { check: async () => true };
+
+/**
+ * Throttle support-form submissions per merchant (default 5/hour) to prevent the contact form from
+ * being used to spam our inbox. Permissive no-op when Redis isn't configured (local/tests).
+ */
+export function createSupportLimiter(env: Record<string, string | undefined>): SupportLimiter {
+  const url = env.UPSTASH_REDIS_REST_URL;
+  const token = env.UPSTASH_REDIS_REST_TOKEN;
+  if (!url || !token) {
+    return SUPPORT_ALLOW_ALL;
+  }
+  const redis = new Redis({ url, token });
+  const limiter = new Ratelimit({
+    redis,
+    limiter: Ratelimit.fixedWindow(Number(env.SUPPORT_PER_HOUR ?? 5), '1 h'),
+    prefix: 'rl:support',
+  });
+  return { check: async (merchantId) => (await limiter.limit(merchantId)).success };
+}

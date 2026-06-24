@@ -44,6 +44,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { key: 'widget', label: 'Widget settings', href: '/widget', group: 'configure', icon: 'widget' },
   { key: 'billing', label: 'Credits & billing', href: '/billing', group: 'configure', icon: 'billing' },
   { key: 'settings', label: 'Settings', href: '/settings', group: 'configure', icon: 'settings' },
+  { key: 'support', label: 'Support', href: '/support', group: 'configure', icon: 'support' },
 ] as const;
 
 /** Widget Settings live-preview states (§ Widget Settings prototype). */

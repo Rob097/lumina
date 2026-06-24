@@ -45,6 +45,7 @@ import {
   type MeResponse,
   type NotificationListResponse,
   type NotificationPrefs,
+  type SupportRequest,
   type TeamMember,
   type TimeseriesResponse,
   type WidgetSettings,
@@ -440,4 +441,14 @@ export async function saveNotificationPrefs(prefs: NotificationPrefs): Promise<N
     body: JSON.stringify({ prefs }),
   });
   return res.ok ? NotificationPrefsResponseSchema.parse(await res.json()).prefs : null;
+}
+
+/** Relay a technical-support request to the YuzuView team. Returns false on validation/send failure. */
+export async function submitSupport(req: SupportRequest): Promise<boolean> {
+  const res = await apiFetch('/support', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+  return res.ok;
 }

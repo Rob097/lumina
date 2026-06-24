@@ -20,6 +20,14 @@ import {
  * and the watermark (forced on for the free plan).
  */
 
+/**
+ * Public YuzuView links shown in the widget footer. Fixed branding/legal URLs (not merchant-configurable),
+ * so they live as constants rather than in the server config. The "Powered by" attribution links here.
+ */
+export const YUZUVIEW_URL = 'https://yuzu-view.base44.app/';
+/** Privacy/terms page covering how shopper images are processed + the retention window. */
+export const YUZUVIEW_PRIVACY_URL = 'https://yuzu-view.base44.app/privacy';
+
 /** `auto` binds `[data-lumina-trigger]` elements; `manual` leaves binding to the developer (§3.5). */
 export type WidgetMode = 'auto' | 'manual';
 
