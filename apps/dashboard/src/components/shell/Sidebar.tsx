@@ -1,7 +1,8 @@
 'use client';
 
+import { useTransition } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { NAV_GROUPS, NAV_ITEMS, activeNavKey } from '@lumina/ui';
 import { Icon } from '@/components/ui/Icon';
 import { Menu } from '@/components/ui/Menu';
@@ -9,9 +10,19 @@ import { BrandGlyph } from '@/components/ui/BrandMark';
 import { useNav } from '@/lib/providers';
 import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
+import { createWorkspaceAction, switchWorkspaceAction } from '@/lib/workspace-actions';
+
+export interface WorkspaceOption {
+  id: string;
+  name: string;
+  plan: string;
+  initials: string;
+}
 
 export interface SidebarProps {
   merchant: { name: string; plan: string; initials: string };
+  workspaces?: WorkspaceOption[];
+  activeMerchantId?: string;
   credits: { balance: number; included: number; usedPct: number; level: CreditLevel };
   account: { name: string; email: string; initials: string };
   counts?: Record<string, number>;
@@ -20,9 +31,36 @@ export interface SidebarProps {
 const BADGE = { ok: 'badge-neutral', warn: 'badge-warning', danger: 'badge-danger' } as const;
 const FILL = { ok: '', warn: ' warn', danger: ' danger' } as const;
 
-export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
+export function Sidebar({
+  merchant,
+  workspaces = [],
+  activeMerchantId,
+  credits,
+  account,
+  counts,
+}: SidebarProps) {
   const active = activeNavKey(usePathname());
   const { open, setOpen } = useNav();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+
+  function switchTo(id: string) {
+    if (id === activeMerchantId) return;
+    startTransition(async () => {
+      await switchWorkspaceAction(id);
+      router.refresh();
+    });
+  }
+
+  function createWorkspace() {
+    const name = window.prompt('Name your new workspace');
+    if (!name?.trim()) return;
+    startTransition(async () => {
+      const res = await createWorkspaceAction(name.trim());
+      if (!res.ok) window.alert(res.error);
+      else router.refresh();
+    });
+  }
 
   return (
     <>
@@ -46,18 +84,38 @@ export function Sidebar({ merchant, credits, account, counts }: SidebarProps) {
             </>
           }
         >
-          <div className="menu-head">Workspace</div>
-          <div className="menu-item is-current">
-            <span className="merchant-logo sm">{merchant.initials}</span>
-            <span className="grow">{merchant.name}</span>
-            <Icon name="arrow-up-right" size={14} strokeWidth={2} />
-          </div>
+          <div className="menu-head">Workspaces</div>
+          {workspaces.map((w) => (
+            <button
+              key={w.id}
+              type="button"
+              role="menuitem"
+              className={`menu-item${w.id === activeMerchantId ? ' is-current' : ''}`}
+              disabled={pending}
+              onClick={() => switchTo(w.id)}
+            >
+              <span className="merchant-logo sm">{w.initials}</span>
+              <span className="grow">{w.name}</span>
+              {w.id === activeMerchantId ? (
+                <Icon name="arrow-up-right" size={14} strokeWidth={2} />
+              ) : null}
+            </button>
+          ))}
           <div className="menu-sep" />
+          <button
+            type="button"
+            role="menuitem"
+            className="menu-item"
+            disabled={pending}
+            onClick={createWorkspace}
+          >
+            <Icon name="overview" size={15} strokeWidth={1.8} />
+            New workspace
+          </button>
           <Link className="menu-item" href="/settings" role="menuitem">
             <Icon name="settings" size={15} strokeWidth={1.8} />
             Workspace settings
           </Link>
-          <div className="menu-note">Multiple stores on one account — coming soon.</div>
         </Menu>
       </div>
 

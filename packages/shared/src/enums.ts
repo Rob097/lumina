@@ -43,9 +43,17 @@ export const KEY_ENVS = ['test', 'live'] as const;
 export const KeyEnvSchema = z.enum(KEY_ENVS);
 export type KeyEnv = z.infer<typeof KeyEnvSchema>;
 
-export const MEMBER_ROLES = ['owner', 'admin', 'member'] as const;
+// Append-only (Postgres enum ALTER is append-only). `support` = the internal YuzuView technical-support
+// account — it can do everything; the role just marks "who's who" in a workspace's member list. `owner`
+// keeps the billing/delete authority; `admin` is legacy (kept so existing rows resolve).
+export const MEMBER_ROLES = ['owner', 'admin', 'member', 'support'] as const;
 export const MemberRoleSchema = z.enum(MEMBER_ROLES);
 export type MemberRole = z.infer<typeof MemberRoleSchema>;
+
+/** Invitation lifecycle (Settings → Team invites). Stored as text (no PG enum), like subscription status. */
+export const INVITE_STATUSES = ['pending', 'accepted', 'revoked', 'expired'] as const;
+export const InviteStatusSchema = z.enum(INVITE_STATUSES);
+export type InviteStatus = z.infer<typeof InviteStatusSchema>;
 
 export const LEDGER_REASONS = [
   'purchase',

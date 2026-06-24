@@ -1,6 +1,12 @@
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { memberships, merchants, type Database } from '@lumina/db';
-import { ERROR_CODES, type ErrorCode, type MeMerchant, type PlanTier } from '@lumina/shared';
+import {
+  ERROR_CODES,
+  type ErrorCode,
+  type MeMerchant,
+  type MemberRole,
+  type PlanTier,
+} from '@lumina/shared';
 import { isAllowedOrigin } from './cors.js';
 import { verifyKey } from './key-service.js';
 
@@ -88,14 +94,48 @@ export async function resolveBySecretKey(
  * Resolve the merchants a Supabase-authenticated user belongs to. The route handler authenticates the
  * session (verifies the JWT / cookie via @supabase/ssr) and passes the resolved `userId`.
  */
-/** The merchant a session user acts on (first membership). M1 assumes one merchant per user. */
+/** The merchant a session user acts on (first membership). Fallback when no active workspace is chosen. */
 export async function getActiveMerchantId(db: Database, userId: string): Promise<string | null> {
   const rows = await db
     .select({ id: memberships.merchantId })
     .from(memberships)
     .where(eq(memberships.userId, userId))
+    .orderBy(memberships.createdAt)
     .limit(1);
   return rows[0]?.id ?? null;
+}
+
+export interface ActiveMembership {
+  merchantId: string;
+  role: MemberRole;
+}
+
+/**
+ * Resolve which workspace a session user is acting on, for multi-workspace support. When `requestedId`
+ * (the `active_merchant` cookie) names a workspace the user is actually a member of, that wins; otherwise
+ * we fall back to their first membership. The cookie is NEVER trusted without this membership check
+ * (tenant isolation, HARD RULE #1). Returns the membership role too, so callers know "who's who".
+ */
+export async function resolveActiveMembership(
+  db: Database,
+  userId: string,
+  requestedId?: string | null,
+): Promise<ActiveMembership | null> {
+  if (requestedId) {
+    const [m] = await db
+      .select({ merchantId: memberships.merchantId, role: memberships.role })
+      .from(memberships)
+      .where(and(eq(memberships.userId, userId), eq(memberships.merchantId, requestedId)))
+      .limit(1);
+    if (m) return m;
+  }
+  const [first] = await db
+    .select({ merchantId: memberships.merchantId, role: memberships.role })
+    .from(memberships)
+    .where(eq(memberships.userId, userId))
+    .orderBy(memberships.createdAt)
+    .limit(1);
+  return first ?? null;
 }
 
 export async function resolveSessionMerchants(db: Database, userId: string): Promise<MeMerchant[]> {

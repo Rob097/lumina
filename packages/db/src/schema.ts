@@ -80,6 +80,36 @@ export const memberships = pgTable(
   (t) => [unique('memberships_merchant_user_uq').on(t.merchantId, t.userId)],
 );
 
+/**
+ * Team invitations (Settings → Team). A pending invite emails a tokenized accept link; accepting creates a
+ * `memberships` row. The `invited_by` FK → auth.users(id) + RLS read policy are hand-authored (the auth
+ * schema is Supabase-managed and Drizzle can't model RLS). Writes go through the privileged API.
+ */
+export const invitations = pgTable(
+  'invitations',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    merchantId: uuid('merchant_id')
+      .notNull()
+      .references(() => merchants.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    role: memberRole('role').notNull().default('member'),
+    /** Random opaque accept token (emailed in the link; stored as-is). */
+    token: text('token').notNull(),
+    /** pending | accepted | revoked | expired (see INVITE_STATUSES). */
+    status: text('status').notNull().default('pending'),
+    // FK → auth.users(id) added in the hand-authored migration.
+    invitedBy: uuid('invited_by').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    createdAt: createdAt(),
+    acceptedAt: timestamp('accepted_at', { withTimezone: true }),
+  },
+  (t) => [
+    index('invitations_merchant_idx').on(t.merchantId),
+    index('invitations_token_idx').on(t.token),
+  ],
+);
+
 // ───────────────────────────── api keys ─────────────────────────────
 export const apiKeys = pgTable(
   'api_keys',

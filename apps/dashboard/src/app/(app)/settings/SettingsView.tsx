@@ -5,6 +5,8 @@ import Link from 'next/link';
 import {
   PLAN_CATALOG,
   type ApiKeySummary,
+  type InvitableRole,
+  type InvitationSummary,
   type NotificationPrefs,
   type PlanTier,
   type TeamMember,
@@ -14,6 +16,7 @@ import { KeysSection } from './KeysSection';
 import { DomainsSection } from './DomainsSection';
 import { NotificationPrefsSection } from './NotificationPrefsSection';
 import { deleteAccountAction, renameMerchantAction } from './actions';
+import { inviteTeammateAction, revokeInviteAction } from './team-actions';
 
 function AccountSection({
   name,
@@ -86,23 +89,64 @@ function AccountSection({
   );
 }
 
-function TeamSection({ members }: { members: TeamMember[] }) {
+function roleBadgeClass(role: string): string {
+  if (role === 'owner') return 'badge-accent';
+  if (role === 'support') return 'badge-warning'; // the internal YuzuView support account — "who's who"
+  return '';
+}
+
+function TeamSection({
+  members,
+  invitations,
+  canInvite,
+}: {
+  members: TeamMember[];
+  invitations: InvitationSummary[];
+  canInvite: boolean;
+}) {
+  const [invites, setInvites] = useState<InvitationSummary[]>(invitations);
+  const [email, setEmail] = useState('');
+  const [role, setRole] = useState<InvitableRole>('member');
+  const [error, setError] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+  const pendingInvites = invites.filter((i) => i.status === 'pending');
+
+  function invite() {
+    setError(null);
+    start(async () => {
+      const res = await inviteTeammateAction({ email: email.trim(), role });
+      if (res.ok) {
+        setInvites((prev) => [res.invitation, ...prev]);
+        setEmail('');
+        setRole('member');
+      } else {
+        setError(res.error);
+      }
+    });
+  }
+
+  function revoke(id: string) {
+    start(async () => {
+      const res = await revokeInviteAction(id);
+      if (res.ok) {
+        setInvites((prev) => prev.map((i) => (i.id === id ? { ...i, status: 'revoked' } : i)));
+      }
+    });
+  }
+
   return (
     <section className="card settings-section">
       <div className="card-head">
         <h3>Team</h3>
-        <span className="badge badge-neutral" title="Invites are coming soon">
-          Invites coming soon
-        </span>
       </div>
-      <div className="card-pad">
+      <div className="card-pad col" style={{ gap: 14 }}>
         {members.length > 0 ? (
           <ul className="team-list">
             {members.map((m) => (
               <li key={m.userId}>
                 <span className="team-email">{m.email ?? m.userId}</span>
                 <span className="team-meta">
-                  <span className={`badge ${m.role === 'owner' ? 'badge-accent' : ''}`}>{m.role}</span>
+                  <span className={`badge ${roleBadgeClass(m.role)}`}>{m.role}</span>
                   <span className="t-muted text-sm">joined {shortDate(new Date(m.joinedAt))}</span>
                 </span>
               </li>
@@ -110,6 +154,63 @@ function TeamSection({ members }: { members: TeamMember[] }) {
           </ul>
         ) : (
           <p className="t-muted settings-empty">No team members found.</p>
+        )}
+
+        {canInvite && (
+          <div className="col" style={{ gap: 8 }}>
+            <div className="field-label">Invite a teammate</div>
+            <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <input
+                className="input"
+                style={{ flex: '1 1 220px' }}
+                type="email"
+                placeholder="teammate@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.currentTarget.value)}
+              />
+              <select
+                className="select"
+                value={role}
+                onChange={(e) => setRole(e.currentTarget.value as InvitableRole)}
+              >
+                <option value="member">Member</option>
+                <option value="support">Support (YuzuView)</option>
+              </select>
+              <button
+                className="btn btn-primary"
+                type="button"
+                disabled={pending || email.trim().length < 3}
+                onClick={invite}
+              >
+                {pending ? 'Sending…' : 'Send invite'}
+              </button>
+            </div>
+            {error && <p className="field-error">{error}</p>}
+          </div>
+        )}
+
+        {pendingInvites.length > 0 && (
+          <ul className="team-list">
+            {pendingInvites.map((i) => (
+              <li key={i.id}>
+                <span className="team-email">{i.email}</span>
+                <span className="team-meta">
+                  <span className={`badge ${roleBadgeClass(i.role)}`}>{i.role}</span>
+                  <span className="t-muted text-sm">pending</span>
+                  {canInvite && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      type="button"
+                      disabled={pending}
+                      onClick={() => revoke(i.id)}
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </span>
+              </li>
+            ))}
+          </ul>
         )}
       </div>
     </section>
@@ -210,6 +311,8 @@ export function SettingsView({
   keys,
   domains,
   team,
+  invitations,
+  canInvite,
   notificationPrefs,
 }: {
   merchantName: string;
@@ -219,6 +322,8 @@ export function SettingsView({
   keys: ApiKeySummary[];
   domains: string[];
   team: TeamMember[];
+  invitations: InvitationSummary[];
+  canInvite: boolean;
   notificationPrefs: NotificationPrefs;
 }) {
   return (
@@ -227,7 +332,7 @@ export function SettingsView({
       <KeysSection initial={keys} />
       <DomainsSection initial={domains} />
       <NotificationPrefsSection initial={notificationPrefs} />
-      <TeamSection members={team} />
+      <TeamSection members={team} invitations={invitations} canInvite={canInvite} />
       <DangerZone merchantName={merchantName} />
     </div>
   );

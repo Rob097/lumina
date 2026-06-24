@@ -14,6 +14,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { Topbar } from '@/components/shell/Topbar';
 import { creditMeter, initials } from '@/lib/shell';
+import { resolveActiveMerchant } from '@/lib/workspace';
 
 /**
  * Authed app shell: gates the session, provisions the merchant on first login, and renders the
@@ -34,7 +35,8 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     fetchProducts(),
     fetchGenerations({ limit: '1' }),
   ]);
-  const merchant = me?.merchants[0];
+  const merchants = me?.merchants ?? [];
+  const merchant = await resolveActiveMerchant(merchants);
 
   const balance = credits?.balance ?? merchant?.creditsBalance ?? 0;
   const included = credits?.included ?? (merchant ? PLAN_CATALOG[merchant.plan].includedCredits : 0);
@@ -51,6 +53,13 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           plan: merchant ? PLAN_CATALOG[merchant.plan].label : 'Free',
           initials: initials(merchant?.name ?? 'YV'),
         }}
+        workspaces={merchants.map((m) => ({
+          id: m.id,
+          name: m.name,
+          plan: PLAN_CATALOG[m.plan].label,
+          initials: initials(m.name),
+        }))}
+        activeMerchantId={merchant?.id ?? ''}
         credits={{ balance, included, usedPct: meter.usedPct, level: meter.level }}
         account={{ name: accountName, email, initials: initials(accountName) }}
         counts={{ products: products.total, generations: generations.total }}

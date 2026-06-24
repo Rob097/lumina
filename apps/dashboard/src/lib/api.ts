@@ -14,6 +14,9 @@ import {
   GenerationDetailSchema,
   GenerationsListResponseSchema,
   MeResponseSchema,
+  MeMerchantSchema,
+  InvitationSummarySchema,
+  InvitationsListResponseSchema,
   SignUploadResponseSchema,
   SignGuideUploadResponseSchema,
   NotificationListResponseSchema,
@@ -46,6 +49,9 @@ import {
   type NotificationListResponse,
   type NotificationPrefs,
   type SupportRequest,
+  type CreateInvite,
+  type InvitationSummary,
+  type MeMerchant,
   type TeamMember,
   type TimeseriesResponse,
   type WidgetSettings,
@@ -128,6 +134,53 @@ export async function updateMerchant(name: string): Promise<boolean> {
     body: JSON.stringify({ name }),
   });
   return res.ok;
+}
+
+// ───────────────────────────── multi-workspace + invitations ─────────────────────────────
+
+/** Create another workspace; the user becomes its owner. Returns the new workspace, or null on failure. */
+export async function createWorkspace(name: string): Promise<MeMerchant | null> {
+  const res = await apiFetch('/workspaces', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ name }),
+  });
+  return res.ok ? MeMerchantSchema.parse(await res.json()) : null;
+}
+
+export async function fetchInvitations(): Promise<InvitationSummary[]> {
+  const res = await apiFetch('/team/invitations');
+  if (!res.ok) {
+    return [];
+  }
+  return InvitationsListResponseSchema.parse(await res.json()).invitations;
+}
+
+export async function createInvite(req: CreateInvite): Promise<InvitationSummary | null> {
+  const res = await apiFetch('/team/invitations', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+  return res.ok ? InvitationSummarySchema.parse(await res.json()) : null;
+}
+
+export async function revokeInvite(id: string): Promise<boolean> {
+  const res = await apiFetch(`/team/invitations/${id}`, { method: 'DELETE' });
+  return res.ok;
+}
+
+/** Accept an invite token (invitee must be signed in). Returns the joined workspace id, or null. */
+export async function acceptInvite(token: string): Promise<string | null> {
+  const res = await apiFetch('/team/invitations/accept', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  if (!res.ok) {
+    return null;
+  }
+  return z.object({ merchantId: z.string() }).parse(await res.json()).merchantId;
 }
 
 /** GDPR erasure of the active workspace (owner-only, server-enforced). */

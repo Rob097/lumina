@@ -1,5 +1,11 @@
 import { z } from 'zod';
-import { KeyEnvSchema, KeyKindSchema, MemberRoleSchema, PlanTierSchema } from './enums.js';
+import {
+  InviteStatusSchema,
+  KeyEnvSchema,
+  KeyKindSchema,
+  MemberRoleSchema,
+  PlanTierSchema,
+} from './enums.js';
 
 /**
  * Hostname (no scheme, no path) for the merchant's allowed-domains list. Accepts `localhost`,
@@ -80,3 +86,51 @@ export const MerchantUpdateSchema = z.object({
   name: z.string().min(1).max(80),
 });
 export type MerchantUpdate = z.infer<typeof MerchantUpdateSchema>;
+
+// ───────────────────────────── multi-workspace + invitations ─────────────────────────────
+
+/** `POST /v1/workspaces` — create another workspace for the current user (becomes its owner). */
+export const CreateWorkspaceSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+});
+export type CreateWorkspace = z.infer<typeof CreateWorkspaceSchema>;
+
+/** `POST /v1/workspaces/switch` — set the active workspace (must be one the user belongs to). */
+export const SwitchWorkspaceSchema = z.object({
+  merchantId: z.string().uuid(),
+});
+export type SwitchWorkspace = z.infer<typeof SwitchWorkspaceSchema>;
+
+/** Roles assignable when inviting a teammate. `owner` is structural (set on creation), so it's excluded. */
+export const INVITABLE_ROLES = ['member', 'support'] as const;
+export const InvitableRoleSchema = z.enum(INVITABLE_ROLES);
+export type InvitableRole = z.infer<typeof InvitableRoleSchema>;
+
+/** `POST /v1/team/invitations` — invite a teammate by email with a role. */
+export const CreateInviteSchema = z.object({
+  email: z.string().trim().email().max(254),
+  role: InvitableRoleSchema.default('member'),
+});
+export type CreateInvite = z.infer<typeof CreateInviteSchema>;
+
+/** `POST /v1/team/invitations/accept` — accept an invite via its emailed token. */
+export const AcceptInviteSchema = z.object({
+  token: z.string().min(1),
+});
+export type AcceptInvite = z.infer<typeof AcceptInviteSchema>;
+
+/** A pending/past invitation shown in Settings → Team. */
+export const InvitationSummarySchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  role: MemberRoleSchema,
+  status: InviteStatusSchema,
+  expiresAt: z.string(),
+  createdAt: z.string(),
+});
+export type InvitationSummary = z.infer<typeof InvitationSummarySchema>;
+
+export const InvitationsListResponseSchema = z.object({
+  invitations: z.array(InvitationSummarySchema),
+});
+export type InvitationsListResponse = z.infer<typeof InvitationsListResponseSchema>;
