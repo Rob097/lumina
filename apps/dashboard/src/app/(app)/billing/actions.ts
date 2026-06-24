@@ -10,11 +10,11 @@ export async function checkoutAction(plan: unknown): Promise<RedirectResult> {
   if (!parsed.success) {
     return { ok: false, error: 'Unknown plan.' };
   }
-  const url = await startCheckout(parsed.data);
-  if (!url) {
-    return { ok: false, error: 'Billing is not configured yet. Try again later.' };
+  const result = await startCheckout(parsed.data);
+  if ('error' in result) {
+    return { ok: false, error: result.error };
   }
-  return { ok: true, url };
+  return { ok: true, url: result.url };
 }
 
 export async function portalAction(): Promise<RedirectResult> {

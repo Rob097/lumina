@@ -141,17 +141,18 @@ export async function fetchBillingPlans(): Promise<BillingPlansResponse | null> 
   return res.ok ? BillingPlansResponseSchema.parse(await res.json()) : null;
 }
 
-/** Start a Stripe Checkout for a plan; returns the redirect URL, or null. */
-export async function startCheckout(plan: string): Promise<string | null> {
+/** Start a Stripe Checkout for a plan; returns the redirect URL, or the API's real error message. */
+export async function startCheckout(plan: string): Promise<{ url: string } | { error: string }> {
   const res = await apiFetch('/billing/checkout', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ plan }),
   });
   if (!res.ok) {
-    return null;
+    const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+    return { error: body?.error?.message ?? 'Billing is not configured yet. Try again later.' };
   }
-  return z.object({ checkoutUrl: z.string() }).parse(await res.json()).checkoutUrl;
+  return { url: z.object({ checkoutUrl: z.string() }).parse(await res.json()).checkoutUrl };
 }
 
 /** Open the Stripe billing portal; returns the redirect URL, or null. */
