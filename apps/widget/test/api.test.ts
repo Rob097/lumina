@@ -30,6 +30,7 @@ const configBody = {
   watermark: false,
   limits: { anonDailyCap: 5, maxUploadBytes: 10_485_760, maxImageEdgePx: 2048 },
   resultCta: null,
+  guide: null,
 };
 
 function client(fetchFn: ReturnType<typeof fakeFetch>['fn']) {

@@ -10,6 +10,7 @@ const DEFAULTS: WidgetSettings = {
   i18n: {},
   watermark: true,
   resultCta: null,
+  guide: null,
 };
 
 export default async function WidgetSettingsPage() {

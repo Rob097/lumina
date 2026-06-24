@@ -4,6 +4,7 @@ import { h } from 'preact';
 import type { WidgetLimits } from '@lumina/shared';
 import { createTranslator } from '../src/core/i18n.js';
 import { validateUpload, UploadStep } from '../src/ui/steps/UploadStep.js';
+import { GuideStep } from '../src/ui/steps/GuideStep.js';
 import { ConfirmStep } from '../src/ui/steps/ConfirmStep.js';
 import { GeneratingStep } from '../src/ui/steps/GeneratingStep.js';
 import { ResultStep } from '../src/ui/steps/ResultStep.js';
@@ -62,6 +63,35 @@ describe('UploadStep', () => {
     input.dispatchEvent(new Event('change', { bubbles: true }));
     await tick();
     expect(onSelectRoom).toHaveBeenCalledWith(ok, 'file');
+  });
+});
+
+describe('GuideStep', () => {
+  it('renders the merchant image + optional title/body and routes Continue to onContinue', () => {
+    const onContinue = vi.fn();
+    const el = mount(
+      h(GuideStep, {
+        t,
+        guide: { enabled: true, imageUrl: 'https://cdn.test/pose.png', title: 'Pose like this', body: 'Hold the bag.' },
+        onContinue,
+      }),
+    );
+    const img = el.querySelector('img.lumina-guide-img') as HTMLImageElement;
+    expect(img?.getAttribute('src')).toBe('https://cdn.test/pose.png');
+    expect(el.textContent).toContain('Pose like this');
+    expect(el.textContent).toContain('Hold the bag.');
+    const cta = Array.from(el.querySelectorAll('button')).find((b) => b.textContent === t('guide.cta'));
+    cta?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    expect(onContinue).toHaveBeenCalledOnce();
+  });
+
+  it('omits the title/body when the merchant left them empty (generic, no required copy)', () => {
+    const el = mount(
+      h(GuideStep, { t, guide: { enabled: true, imageUrl: 'https://cdn.test/x.png' }, onContinue: vi.fn() }),
+    );
+    expect(el.querySelector('h2.lumina-title')).toBeNull();
+    expect(el.querySelector('p.lumina-guide-body')).toBeNull();
+    expect(el.querySelector('img.lumina-guide-img')).toBeTruthy();
   });
 });
 

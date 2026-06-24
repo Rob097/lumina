@@ -1,5 +1,6 @@
 import { render, type VNode } from 'preact';
-import type { Locale, ResultCta, Theme, WidgetLimits } from '@lumina/shared';
+import type { Locale, ResultCta, Theme, WidgetGuide, WidgetLimits } from '@lumina/shared';
+import { GuideStep } from './ui/steps/GuideStep.js';
 import { UploadStep } from './ui/steps/UploadStep.js';
 import { ResultStep } from './ui/steps/ResultStep.js';
 import { themeVars } from './ui/theme.js';
@@ -14,7 +15,7 @@ import widgetStyles from './ui/styles.css?inline';
  * preact and reuses the widget stylesheet, so the React dashboard just calls `mountWidgetPreview`.
  */
 
-export type PreviewView = 'button' | 'modal' | 'result';
+export type PreviewView = 'button' | 'guide' | 'modal' | 'result';
 
 export interface PreviewSettings {
   theme: Theme;
@@ -23,6 +24,8 @@ export interface PreviewSettings {
   i18n: Record<string, string>;
   watermark: boolean;
   resultCta: ResultCta | null;
+  /** Pre-upload guide; the dashboard only offers the 'guide' view when this is set + enabled. */
+  guide?: WidgetGuide | null;
 }
 
 export interface PreviewOptions {
@@ -85,6 +88,8 @@ function viewVNode(opts: PreviewOptions, t: ReturnType<typeof createTranslator>)
         onFeedback={noop}
         onCta={noop}
       />
+    ) : view === 'guide' && settings.guide ? (
+      <GuideStep t={t} guide={settings.guide} onContinue={noop} />
     ) : (
       <UploadStep t={t} limits={PREVIEW_LIMITS} onSelectRoom={noop} />
     );

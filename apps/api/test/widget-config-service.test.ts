@@ -31,6 +31,7 @@ const SETTINGS: WidgetSettings = {
   i18n: { 'upload.title': 'Carica una foto' },
   watermark: false,
   resultCta: { label: 'Aggiungi al carrello', urlTemplate: '/cart/add?id={productId}' },
+  guide: { enabled: true, imageUrl: 'https://cdn.test/pose.png', title: 'Pose like this' },
 };
 
 describe('getWidgetSettings', () => {

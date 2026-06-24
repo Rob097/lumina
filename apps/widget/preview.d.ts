@@ -1,8 +1,8 @@
-import type { Locale, ResultCta, Theme } from '@lumina/shared';
+import type { Locale, ResultCta, Theme, WidgetGuide } from '@lumina/shared';
 
 /** Public types for `@lumina/widget/preview` (built by tsup.preview.config.ts). */
 
-export type PreviewView = 'button' | 'modal' | 'result';
+export type PreviewView = 'button' | 'guide' | 'modal' | 'result';
 
 export interface PreviewSettings {
   theme: Theme;
@@ -11,6 +11,8 @@ export interface PreviewSettings {
   i18n: Record<string, string>;
   watermark: boolean;
   resultCta: ResultCta | null;
+  /** Pre-upload guide; the dashboard only offers the 'guide' view when this is set + enabled. */
+  guide?: WidgetGuide | null;
 }
 
 export interface PreviewOptions {

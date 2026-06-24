@@ -7,6 +7,7 @@ import { RealWidgetPreview } from './RealWidgetPreview';
 
 const STATES: { key: PreviewView; label: string }[] = [
   { key: 'button', label: 'Button' },
+  { key: 'guide', label: 'Guide' },
   { key: 'modal', label: 'Modal' },
   { key: 'result', label: 'Result' },
 ];
@@ -18,6 +19,11 @@ const STATES: { key: PreviewView; label: string }[] = [
 export function WidgetPreview({ settings, env }: { settings: WidgetSettings; env: 'live' | 'test' }) {
   const [view, setView] = useState<PreviewView>('button');
 
+  // The Guide tab only appears once a guide is configured — keeps the preview honest about what ships.
+  const hasGuide = Boolean(settings.guide?.enabled && settings.guide?.imageUrl);
+  const states = hasGuide ? STATES : STATES.filter((s) => s.key !== 'guide');
+  const activeView: PreviewView = view === 'guide' && !hasGuide ? 'button' : view;
+
   return (
     <div className="preview-rail">
       <div className="preview-card">
@@ -27,11 +33,11 @@ export function WidgetPreview({ settings, env }: { settings: WidgetSettings; env
             Live preview
           </div>
           <div className="segmented" style={{ padding: '2px' }}>
-            {STATES.map((s) => (
+            {states.map((s) => (
               <button
                 key={s.key}
                 type="button"
-                aria-selected={view === s.key}
+                aria-selected={activeView === s.key}
                 onClick={() => setView(s.key)}
               >
                 {s.label}
@@ -41,7 +47,7 @@ export function WidgetPreview({ settings, env }: { settings: WidgetSettings; env
         </div>
 
         <div className="preview-stage">
-          <RealWidgetPreview settings={settings} view={view} onViewChange={setView} />
+          <RealWidgetPreview settings={settings} view={activeView} onViewChange={setView} />
         </div>
 
         <div

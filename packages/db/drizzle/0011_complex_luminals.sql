@@ -1,0 +1,1 @@
+ALTER TABLE "widget_configs" ADD COLUMN "guide" jsonb;

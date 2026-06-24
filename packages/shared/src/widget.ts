@@ -9,6 +9,20 @@ export const ResultCtaSchema = z.object({
 });
 export type ResultCta = z.infer<typeof ResultCtaSchema>;
 
+/**
+ * Generic pre-upload guide (any merchant, any category): an instructional screen shown in the widget
+ * BEFORE the photo upload. Fully merchant-defined — an image plus optional free-text title/body — so a
+ * tiles shop can show "frame the wall like this" and a fashion shop "hold the bag like this". The image is
+ * a plain hosted URL (same pattern as product images); copy is verbatim, never run through the i18n table.
+ */
+export const WidgetGuideSchema = z.object({
+  enabled: z.boolean(),
+  imageUrl: z.string().url(),
+  title: z.string().max(80).optional(),
+  body: z.string().max(280).optional(),
+});
+export type WidgetGuide = z.infer<typeof WidgetGuideSchema>;
+
 /** Limits surfaced to the widget so it can pre-validate uploads + show caps (§3.9). */
 export const WidgetLimitsSchema = z.object({
   anonDailyCap: z.number().int().nonnegative(),
@@ -40,6 +54,8 @@ export const WidgetSettingsSchema = z.object({
   i18n: z.record(z.string(), z.string()),
   watermark: z.boolean(),
   resultCta: ResultCtaSchema.nullable(),
+  // Optional + defaulted so existing payloads (and tests) without a guide still validate to `null`.
+  guide: WidgetGuideSchema.nullable().default(null),
 });
 export type WidgetSettings = z.infer<typeof WidgetSettingsSchema>;
 
@@ -53,5 +69,6 @@ export const WidgetConfigResponseSchema = z.object({
   watermark: z.boolean(),
   limits: WidgetLimitsSchema,
   resultCta: ResultCtaSchema.nullable(),
+  guide: WidgetGuideSchema.nullable().default(null),
 });
 export type WidgetConfigResponse = z.infer<typeof WidgetConfigResponseSchema>;

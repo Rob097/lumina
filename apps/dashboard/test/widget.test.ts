@@ -15,6 +15,7 @@ const BASE: WidgetSettings = {
   i18n: {},
   watermark: true,
   resultCta: null,
+  guide: null,
 };
 
 describe('hexToRgba', () => {

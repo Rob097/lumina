@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState, useTransition } from 'react';
-import { LOCALES, type Locale, type WidgetSettings } from '@lumina/shared';
+import { LOCALES, type Locale, type WidgetGuide, type WidgetSettings } from '@lumina/shared';
 import { useEnv } from '@/lib/providers';
 import { CTA_PLATFORMS, type CtaPreset } from '@/lib/platforms';
 import { BrandIcon } from '@/components/ui/BrandIcon';
@@ -70,6 +70,18 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
   /** Quick-fill both CTA fields with a platform's typical values; the merchant can still edit them. */
   function applyCtaPreset(cta: CtaPreset) {
     setS((prev) => ({ ...prev, resultCta: { ...cta } }));
+  }
+
+  /**
+   * Patch the generic pre-upload guide. Stored as null whenever there's no image URL (a guide always needs
+   * one); an image URL with `enabled: false` is kept but won't be shown to shoppers (server gates on both).
+   */
+  function setGuide(p: Partial<WidgetGuide>) {
+    setS((prev) => {
+      const base: WidgetGuide = prev.guide ?? { enabled: true, imageUrl: '' };
+      const next: WidgetGuide = { ...base, ...p };
+      return { ...prev, guide: next.imageUrl.trim() ? next : null };
+    });
   }
 
   function save() {
@@ -339,6 +351,91 @@ export function WidgetSettingsEditor({ initial }: { initial: WidgetSettings }) {
                     placeholder="/cart/add?id={productId}"
                     value={s.resultCta?.urlTemplate ?? ''}
                     onChange={(e) => setCta('urlTemplate', e.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pre-upload guide (generic: any merchant/category) */}
+          <div className="card set-card">
+            <div className="card-head">
+              <h3>Pre-upload guide</h3>
+              <span className="badge badge-accent">Shown before upload →</span>
+            </div>
+            <div className="card-pad" style={{ paddingTop: '6px' }}>
+              <div className="set-row">
+                <div className="set-label">
+                  Enable guide
+                  <div className="sub">An instructional screen shown to shoppers before they upload.</div>
+                </div>
+                <div className="set-control">
+                  <label className="switch">
+                    <input
+                      type="checkbox"
+                      checked={s.guide?.enabled ?? false}
+                      onChange={(e) => setGuide({ enabled: e.target.checked })}
+                    />
+                    <span className="track" />
+                    <span className="thumb" />
+                  </label>
+                </div>
+              </div>
+              <div className="set-row">
+                <div className="set-label">
+                  Image URL
+                  <div className="sub">A hosted reference image (e.g. the pose/framing to copy).</div>
+                </div>
+                <div className="set-control">
+                  <input
+                    className="input mono text-sm"
+                    placeholder="https://cdn.example.com/guide.png"
+                    value={s.guide?.imageUrl ?? ''}
+                    onChange={(e) => setGuide({ imageUrl: e.target.value })}
+                  />
+                </div>
+              </div>
+              {s.guide?.imageUrl.trim() ? (
+                <div className="set-row">
+                  <div className="set-label">Preview</div>
+                  <div className="set-control">
+                    <img
+                      className="drawer-preview"
+                      src={s.guide.imageUrl}
+                      alt=""
+                      style={{ maxHeight: 160, width: 'auto', borderRadius: 8 }}
+                    />
+                  </div>
+                </div>
+              ) : null}
+              <div className="set-row">
+                <div className="set-label">
+                  Title
+                  <div className="sub">Optional heading above the image.</div>
+                </div>
+                <div className="set-control">
+                  <input
+                    className="input"
+                    maxLength={80}
+                    placeholder="e.g. Pose like this"
+                    value={s.guide?.title ?? ''}
+                    onChange={(e) => setGuide({ title: e.target.value || undefined })}
+                  />
+                </div>
+              </div>
+              <div className="set-row">
+                <div className="set-label">
+                  Body
+                  <div className="sub">Optional instructions below the image.</div>
+                </div>
+                <div className="set-control">
+                  <textarea
+                    className="input"
+                    maxLength={280}
+                    rows={2}
+                    placeholder="e.g. Upload a photo in this pose — our AI does the rest."
+                    value={s.guide?.body ?? ''}
+                    onChange={(e) => setGuide({ body: e.target.value || undefined })}
                   />
                 </div>
               </div>

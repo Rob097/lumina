@@ -44,6 +44,8 @@ export async function GET(request: Request): Promise<Response> {
       maxImageEdgePx: 2048,
     },
     resultCta: cfg?.resultCta ?? null,
+    // Pre-upload guide is shopper-facing config (image is a plain hosted URL); only surface it when enabled.
+    guide: cfg?.guide && cfg.guide.enabled && cfg.guide.imageUrl ? cfg.guide : null,
   });
   return jsonResponse(body, { headers: cors });
 }

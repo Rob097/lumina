@@ -3,6 +3,7 @@ import type { FeedbackRating } from '@lumina/shared';
 import type { EffectiveConfig } from '../core/config.js';
 import type { Translate } from '../core/i18n.js';
 import { Modal } from './Modal.js';
+import { GuideStep } from './steps/GuideStep.js';
 import { UploadStep } from './steps/UploadStep.js';
 import { ConfirmStep } from './steps/ConfirmStep.js';
 import { GeneratingStep } from './steps/GeneratingStep.js';
@@ -35,9 +36,19 @@ export interface AppProps {
 /** Top-level view: subscribes to the controller's flow state and routes the step component. */
 export function App({ controller, config, t }: AppProps) {
   const [state, setState] = useState<FlowState>(initialState);
+  // One-time pre-upload guide gate (a pure view-layer overlay, so the reducer/controller flow is untouched).
+  // Reset on close so it shows again on the next open.
+  const [guideDone, setGuideDone] = useState(false);
   useEffect(() => controller.subscribe(setState), [controller]);
+  useEffect(() => {
+    if (state.step === 'idle') setGuideDone(false);
+  }, [state.step]);
 
   if (state.step === 'idle') return null;
+
+  const guide = config.guide;
+  const showGuide =
+    state.step === 'upload' && !guideDone && Boolean(guide?.enabled && guide?.imageUrl);
 
   return (
     <Modal
@@ -52,6 +63,11 @@ export function App({ controller, config, t }: AppProps) {
   );
 
   function renderStep() {
+    // The configured guide precedes the upload step (shown once per open). It carries no controller state —
+    // dismissing it just reveals the real UploadStep.
+    if (showGuide && guide) {
+      return <GuideStep t={t} guide={guide} onContinue={() => setGuideDone(true)} />;
+    }
     switch (state.step) {
       case 'upload':
         return (

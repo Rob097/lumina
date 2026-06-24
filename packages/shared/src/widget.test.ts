@@ -18,6 +18,22 @@ describe('WidgetSettingsSchema', () => {
     expect(cfg.resultCta?.label).toBe('Add to cart');
   });
 
+  it('defaults the pre-upload guide to null and accepts a full guide object', () => {
+    expect(WidgetSettingsSchema.parse(VALID).guide).toBeNull();
+    const withGuide = WidgetSettingsSchema.parse({
+      ...VALID,
+      guide: { enabled: true, imageUrl: 'https://cdn.test/pose.png', title: 'Pose like this', body: 'Hold the bag.' },
+    });
+    expect(withGuide.guide?.enabled).toBe(true);
+    expect(withGuide.guide?.imageUrl).toBe('https://cdn.test/pose.png');
+  });
+
+  it('rejects a guide image that is not a valid URL', () => {
+    expect(() =>
+      WidgetSettingsSchema.parse({ ...VALID, guide: { enabled: true, imageUrl: 'not-a-url' } }),
+    ).toThrow();
+  });
+
   it('allows a null result CTA and an empty theme/i18n', () => {
     const cfg = WidgetSettingsSchema.parse({
       buttonText: 'Anteprima',

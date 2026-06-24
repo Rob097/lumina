@@ -20,6 +20,7 @@ function config(): EffectiveConfig {
     i18n: {},
     limits: { anonDailyCap: 5, maxUploadBytes: 10_485_760, maxImageEdgePx: 2048 },
     resultCta: null,
+    guide: null,
   };
 }
 

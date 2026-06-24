@@ -24,6 +24,7 @@ import {
   type Dimensions,
   type NotificationPrefs,
   type ResultCta,
+  type WidgetGuide,
 } from '@lumina/shared';
 
 /**
@@ -144,6 +145,8 @@ export const widgetConfigs = pgTable(
     theme: jsonb('theme').$type<Record<string, unknown>>().notNull().default({}),
     i18n: jsonb('i18n').$type<Record<string, string>>().notNull().default({}),
     resultCta: jsonb('result_cta').$type<ResultCta>(),
+    // Generic pre-upload guide (image + optional title/body) shown in the widget before upload. Null = off.
+    guide: jsonb('guide').$type<WidgetGuide>(),
     watermark: boolean('watermark').notNull().default(true),
     createdAt: createdAt(),
   },

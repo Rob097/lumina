@@ -7,6 +7,7 @@ import {
   type ResultCta,
   type Theme,
   type WidgetConfigResponse,
+  type WidgetGuide,
   type WidgetLimits,
 } from '@lumina/shared';
 
@@ -38,6 +39,8 @@ export interface EffectiveConfig {
   i18n: Record<string, string>;
   limits: WidgetLimits;
   resultCta: ResultCta | null;
+  /** Generic pre-upload guide (image + optional title/body); null when the merchant hasn't enabled one. */
+  guide: WidgetGuide | null;
   defaultProductSelector?: string;
 }
 
@@ -97,6 +100,8 @@ export function mergeConfig(
     i18n: server.i18n,
     limits: server.limits,
     resultCta: server.resultCta,
+    // The pre-upload guide is owned by the server (merchant dashboard); the widget only displays it.
+    guide: server.guide ?? null,
     defaultProductSelector: local.defaultProductSelector,
   };
 }

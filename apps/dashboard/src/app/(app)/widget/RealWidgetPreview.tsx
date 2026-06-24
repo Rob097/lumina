@@ -32,6 +32,7 @@ export function RealWidgetPreview({
         i18n: settings.i18n,
         watermark: settings.watermark,
         resultCta: settings.resultCta,
+        guide: settings.guide,
       },
       onViewChange,
     });

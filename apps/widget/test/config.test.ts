@@ -12,6 +12,7 @@ function remote(overrides: Partial<WidgetConfigResponse> = {}): WidgetConfigResp
     watermark: false,
     limits: { anonDailyCap: 5, maxUploadBytes: 10_485_760, maxImageEdgePx: 2048 },
     resultCta: null,
+    guide: null,
     ...overrides,
   };
 }
@@ -83,6 +84,13 @@ describe('mergeConfig', () => {
   it('forces the watermark on when the remote (free plan) requires it', () => {
     const eff = mergeConfig({ siteKey: 'pk', watermark: false }, remote({ watermark: true }));
     expect(eff.watermark).toBe(true);
+  });
+
+  it('takes the pre-upload guide from the remote config (server-owned), defaulting to null', () => {
+    expect(mergeConfig({ siteKey: 'pk' }, remote()).guide).toBeNull();
+    const guide = { enabled: true, imageUrl: 'https://cdn.test/pose.png', title: 'Pose like this' };
+    const eff = mergeConfig({ siteKey: 'pk' }, remote({ guide }));
+    expect(eff.guide).toEqual(guide);
   });
 
   // The merchant's dashboard locale is authoritative: a host page's <html lang> (passed as the

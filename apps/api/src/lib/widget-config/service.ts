@@ -21,6 +21,7 @@ const DEFAULTS: WidgetSettings = {
   i18n: {},
   watermark: true,
   resultCta: null,
+  guide: null,
 };
 
 /** Coerce a stored (permissive) `widget_configs` row into the validated settings shape. */
@@ -34,6 +35,7 @@ function toSettings(row: typeof widgetConfigs.$inferSelect): WidgetSettings {
     i18n: row.i18n ?? {},
     watermark: row.watermark,
     resultCta: row.resultCta ?? null,
+    guide: row.guide ?? null,
   };
 }
 
@@ -62,6 +64,7 @@ export async function saveWidgetSettings(
     theme: settings.theme,
     i18n: settings.i18n,
     resultCta: settings.resultCta,
+    guide: settings.guide ?? null,
     watermark: settings.watermark,
   };
 
