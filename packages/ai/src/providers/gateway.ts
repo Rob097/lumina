@@ -41,6 +41,10 @@ export interface GatewayImage {
   contentType: string;
   width?: number;
   height?: number;
+  /** Real cost of the call in USD millionths, from `providerMetadata.gateway.cost`. */
+  costMicros?: number;
+  /** The gateway's generation id, for later reconciliation via its REST `/v1/generation` endpoint. */
+  gatewayGenerationId?: string;
 }
 
 /** Pick the first image file from a multimodal result, skipping any non-image parts. */
@@ -50,6 +54,28 @@ export function extractFirstImage(files: ReadonlyArray<GatewayFile>): GatewayIma
     throw new Error('gateway returned no image files');
   }
   return { bytes: image.uint8Array, contentType: image.mediaType };
+}
+
+/**
+ * Parse the REAL cost the AI Gateway reports per request. The gateway puts a USD amount (a string like
+ * "0.0045405", occasionally a number) at `providerMetadata.gateway.cost`. Returns USD millionths
+ * (micro-USD), or undefined when absent/unparseable. 1 USD = 1_000_000 micros.
+ */
+export function parseGatewayCostMicros(providerMetadata: unknown): number | undefined {
+  const gateway = (providerMetadata as { gateway?: { cost?: unknown } } | undefined)?.gateway;
+  const raw = gateway?.cost;
+  const usd = typeof raw === 'string' ? Number(raw) : typeof raw === 'number' ? raw : NaN;
+  if (!Number.isFinite(usd) || usd < 0) {
+    return undefined;
+  }
+  return Math.round(usd * 1_000_000);
+}
+
+/** Read the gateway's generation id from the response metadata, if present. */
+export function gatewayGenerationId(providerMetadata: unknown): string | undefined {
+  const id = (providerMetadata as { gateway?: { generationId?: unknown } } | undefined)?.gateway
+    ?.generationId;
+  return typeof id === 'string' ? id : undefined;
 }
 
 export interface GatewayCallArgs {
@@ -112,6 +138,8 @@ export class GatewayProvider implements AIProvider {
       contentType: image.contentType,
       model: this.opts.model,
       costCents: this.opts.costCents,
+      // Real per-request cost from the gateway when available; `costCents` is the estimate fallback.
+      ...(image.costMicros != null ? { costMicros: image.costMicros } : {}),
       width: image.width,
       height: image.height,
     };
@@ -147,6 +175,15 @@ function createGatewayRunner(opts: GatewayProviderOptions): GatewayRunner {
       messages: buildEditMessages(prompt, images),
       providerOptions: buildImageProviderOptions({ aspectRatio, imageSize }),
     });
-    return extractFirstImage(result.files);
+    const image = extractFirstImage(result.files);
+    // The gateway reports the REAL cost + a generation id on every request — capture them live so we never
+    // rely on a fixed per-tier estimate (these drive true margin accounting).
+    const costMicros = parseGatewayCostMicros(result.providerMetadata);
+    const genId = gatewayGenerationId(result.providerMetadata);
+    return {
+      ...image,
+      ...(costMicros != null ? { costMicros } : {}),
+      ...(genId ? { gatewayGenerationId: genId } : {}),
+    };
   };
 }

@@ -3,6 +3,7 @@ import {
   buildEditMessages,
   buildImageProviderOptions,
   extractFirstImage,
+  parseGatewayCostMicros,
   GatewayProvider,
 } from '../src/providers/gateway.js';
 import { createOrchestratorFromEnv } from '../src/factory.js';
@@ -72,7 +73,42 @@ describe('extractFirstImage', () => {
   });
 });
 
+describe('parseGatewayCostMicros', () => {
+  it('parses the gateway USD cost string into micro-USD', () => {
+    expect(parseGatewayCostMicros({ gateway: { cost: '0.0045405' } })).toBe(4541);
+    expect(parseGatewayCostMicros({ gateway: { cost: '0.139' } })).toBe(139000);
+  });
+
+  it('accepts a numeric cost too', () => {
+    expect(parseGatewayCostMicros({ gateway: { cost: 0.13 } })).toBe(130000);
+  });
+
+  it('returns undefined when the cost is absent or unparseable', () => {
+    expect(parseGatewayCostMicros(undefined)).toBeUndefined();
+    expect(parseGatewayCostMicros({ gateway: {} })).toBeUndefined();
+    expect(parseGatewayCostMicros({ gateway: { cost: 'oops' } })).toBeUndefined();
+    expect(parseGatewayCostMicros({ gateway: { cost: -1 } })).toBeUndefined();
+  });
+});
+
 describe('GatewayProvider.compose', () => {
+  it('surfaces the real per-request cost (costMicros) from the runner', async () => {
+    const run = vi.fn(async () => ({
+      bytes: new Uint8Array([7]),
+      contentType: 'image/jpeg',
+      costMicros: 139000,
+    }));
+    const provider = new GatewayProvider({
+      name: 'gateway-quality',
+      model: 'google/gemini-3-pro-image',
+      costCents: 13,
+      run,
+    });
+    const result = await provider.compose(baseInput(), 'PROMPT');
+    expect(result.costMicros).toBe(139000); // real cost
+    expect(result.costCents).toBe(13); // estimate kept as fallback
+  });
+
   it('sends ROOM first + PRODUCT second to the runner and maps the result', async () => {
     const run = vi.fn(async () => ({
       bytes: new Uint8Array([7]),

@@ -88,8 +88,14 @@ export interface ProviderResult {
   contentType: string;
   /** Model identifier, e.g. 'nano-banana-pro' | 'flux2-edit'. */
   model: string;
-  /** Our provider cost in cents (for margin analysis). */
+  /** Configured/estimated provider cost in cents — the fallback when the real cost isn't reported. */
   costCents: number;
+  /**
+   * The REAL cost of this call in USD millionths (micro-USD), read live from the gateway response
+   * (`providerMetadata.gateway.cost`). Undefined when the provider didn't report it (mock/BYOK/offline),
+   * in which case callers fall back to `costCents`. 1 cent = 10_000 micros.
+   */
+  costMicros?: number;
   width?: number;
   height?: number;
 }

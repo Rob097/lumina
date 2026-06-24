@@ -973,3 +973,31 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   `WidgetGuide` schema are unchanged (still just a URL string). No new env (the proxy origin is derived from
   the request). Defense-in-depth: the proxy validates `merchantId`/`id` are UUIDs and re-checks the key's
   tenant via `merchantIdForKey` before reading.
+
+- **D91 — Tiered, row-preserving data retention (TODO #2).** Keeping every uploaded room photo + result in R2
+  forever doesn't scale, but the old retention cron deleted the whole `generations` row after 90 days, so the
+  dashboard lost its history entirely. New model: on success the pipeline stores a small **long-lived WebP
+  thumbnail** of the result (`thumb_key`, ~512px, best-effort — never fails a generation) plus a `thumb`
+  asset row. The cron (`purgeExpiredAssets`, replacing `purgeGenerationsOlderThan`) now deletes only the
+  **heavy R2 originals** — room uploads past `RETENTION_ROOM_DAYS` (default **30**, a privacy win since rooms
+  are people's homes) and results past `RETENTION_RESULT_DAYS` (default **90**) — and flags the row
+  (`room_purged_at` / `originals_purged_at`); the **row, its metadata and the thumbnail survive** so the
+  gallery + analytics history stay intact. Idempotent + batched. Reads gate `roomUrl`/`resultUrl` on the
+  flags, always serve `thumbUrl`, and expose `originalsPurged`; the gallery falls back to the thumbnail and
+  the detail view shows a retention note. GDPR `purgeMerchant` also wipes `thumbs/`. Migration `0013`.
+  `RETENTION_DAYS` (legacy single window) still honored as the result-window fallback.
+
+- **D92 — Real per-generation cost from the AI Gateway, not a fixed estimate (TODO #6).** `cost_cents` used to
+  be a fixed per-tier env guess (13¢/6¢). The Vercel AI Gateway returns the **real** cost of every request at
+  `result.providerMetadata.gateway.cost` (USD), so the gateway runner now captures it live
+  (`parseGatewayCostMicros`) and stores it precisely in **`cost_micros`** (USD millionths — sub-cent calls
+  round to 0 in `cost_cents`); `cost_cents` is derived from it for the existing UI, and the env `costCents`
+  stays only as the fallback when the gateway didn't report a cost (mock/BYOK/offline). Migration `0014`.
+  `costSummary()` aggregates real cost per model for internal margin (gate any endpoint to the `support` role
+  — it reveals OUR cost, never a regular merchant). **Scope:** only the dominant **compose** call's real cost
+  is captured today; the auxiliary flash passes (planner/quantity) and Replicate bg-removal are sub-cent and
+  remain a documented follow-up (not yet summed). **Credit model decision:** keep **1 credit = 1 generation**
+  toward the customer (predictable); use the real cost only for internal margin/accounting. The infra for a
+  variable debit already exists (`debit_credits(merchant, amount, gen)` takes an amount), so switching to
+  per-model credits later is a one-call change. **Plan re-pricing** awaits the owner's target-margin decision
+  on real blended-cost data (no price numbers changed here).

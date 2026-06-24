@@ -1,0 +1,1 @@
+ALTER TABLE "generations" ADD COLUMN "cost_micros" integer;

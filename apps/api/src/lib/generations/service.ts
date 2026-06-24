@@ -151,6 +151,7 @@ export async function getGeneration(
     ...(await toSummary(row, deps)),
     anonId: row.anonId,
     costCents: row.costCents,
+    costMicros: row.costMicros,
     placementHint: row.placementHint,
     suggestedQuantity: row.suggestedQuantity,
     quantityRationale: row.quantityRationale,

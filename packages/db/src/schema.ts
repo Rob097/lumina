@@ -227,6 +227,12 @@ export const generations = pgTable(
     // accounting / ops
     creditsSpent: integer('credits_spent').notNull().default(1),
     costCents: integer('cost_cents'),
+    /**
+     * Real provider cost in USD millionths (micro-USD), read live from the AI Gateway response
+     * (`providerMetadata.gateway.cost`) — precise enough for sub-cent calls, unlike `cost_cents` which is
+     * the rounded view. Null for legacy rows / when the provider didn't report a real cost. 1¢ = 10_000.
+     */
+    costMicros: integer('cost_micros'),
     latencyMs: integer('latency_ms'),
     errorCode: text('error_code'),
     anonId: text('anon_id'),

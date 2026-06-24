@@ -101,12 +101,14 @@ describe('GenerationDetailSchema', () => {
       ...SUMMARY,
       anonId: 'anon_abc',
       costCents: 4,
+      costMicros: 45405,
       placementHint: 'floor',
       suggestedQuantity: 7,
       quantityRationale: 'About 7 panels to cover the wall.',
     });
     expect(d.placementHint).toBe('floor');
     expect(d.costCents).toBe(4);
+    expect(d.costMicros).toBe(45405);
     expect(d.suggestedQuantity).toBe(7);
   });
 
@@ -115,6 +117,7 @@ describe('GenerationDetailSchema', () => {
       ...SUMMARY,
       anonId: null,
       costCents: null,
+      costMicros: null,
       placementHint: null,
       suggestedQuantity: null,
       quantityRationale: null,

@@ -313,6 +313,8 @@ interface SuccessFields {
   thumbKey?: string | null;
   model: string;
   costCents: number;
+  /** Real cost in USD millionths (micro-USD) from the gateway; null when only the estimate is known. */
+  costMicros?: number | null;
   latencyMs: number;
   width?: number;
   height?: number;
@@ -332,6 +334,7 @@ export async function finalizeSuccess(db: Database, p: SuccessFields): Promise<v
         thumbKey: p.thumbKey ?? null,
         model: p.model,
         costCents: p.costCents,
+        costMicros: p.costMicros ?? null,
         latencyMs: p.latencyMs,
         suggestedQuantity: p.suggestedQuantity ?? null,
         quantityRationale: p.quantityRationale ?? null,
@@ -668,13 +671,19 @@ export async function processGeneration(
     // coverage estimate (> 1 unit); single-unit products and low confidence leave it null.
     const { suggestedQuantity, quantityRationale } = coverageStoreFields(estimate);
 
+    // Prefer the REAL gateway cost (micro-USD) over the per-tier estimate; derive the rounded cents view
+    // from whichever we have so cost_cents stays meaningful. (1¢ = 10_000 micros.)
+    const costMicros = composed.costMicros ?? composed.costCents * 10_000;
+    const costCents = Math.round(costMicros / 10_000);
+
     await finalizeSuccess(db, {
       generationId,
       merchantId: gen.merchantId,
       resultKey: key,
       thumbKey,
       model: composed.model,
-      costCents: composed.costCents,
+      costCents,
+      costMicros,
       latencyMs: composed.latencyMs,
       width: finalSize.width || composed.width,
       height: finalSize.height || composed.height,
@@ -687,7 +696,7 @@ export async function processGeneration(
         merchantId: gen.merchantId,
         status: 'succeeded',
         model: composed.model,
-        costCents: composed.costCents,
+        costCents,
         latencyMs: composed.latencyMs,
         creditsSpent: gen.creditsSpent,
       }),

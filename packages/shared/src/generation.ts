@@ -44,6 +44,8 @@ export type GenerationsListResponse = z.infer<typeof GenerationsListResponseSche
 export const GenerationDetailSchema = GenerationSummarySchema.extend({
   anonId: z.string().nullable(),
   costCents: z.number().int().nullable(),
+  /** Real provider cost in USD millionths (micro-USD) from the gateway; null when only the estimate exists. */
+  costMicros: z.number().int().nullable(),
   placementHint: z.string().nullable(),
   /** Coverage products (#7): how many units cover the surface, + a short rationale. Null otherwise. */
   suggestedQuantity: z.number().int().positive().nullable(),

@@ -42,9 +42,16 @@ export function GenerationDetailModal({
   const after =
     detail?.resultUrl ?? summary.resultUrl ?? detail?.thumbUrl ?? summary.thumbUrl;
   const originalsPurged = detail?.originalsPurged ?? summary.originalsPurged;
+  // Prefer the real micro-USD cost (precise for sub-cent calls) over the rounded cents view.
+  const realUsd =
+    detail?.costMicros != null
+      ? detail.costMicros / 1_000_000
+      : detail?.costCents != null
+        ? detail.costCents / 100
+        : null;
   const cost =
-    detail?.costCents != null
-      ? `${summary.creditsSpent} · $${(detail.costCents / 100).toFixed(2)}`
+    realUsd != null
+      ? `${summary.creditsSpent} · $${realUsd.toFixed(realUsd < 0.1 ? 4 : 2)}`
       : String(summary.creditsSpent);
   const suggestedQty = detail?.suggestedQuantity ?? null;
   const suggested =
