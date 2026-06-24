@@ -154,6 +154,10 @@ const CHANGE_MAX_FRACTION_MULTI = Number(process.env.CHANGE_MAX_FRACTION_MULTI ?
 // mask path engaged for a normal placement — which guarantees the shopper's face/identity and background are
 // the ORIGINAL pixels (a quality + privacy win) — while a pathological full-image repaint still bails out.
 const CHANGE_MAX_FRACTION_FASHION = Number(process.env.CHANGE_MAX_FRACTION_FASHION ?? 0.5);
+// A fashion accessory often matches the color of what it covers (a white bag over a white dress), so a low
+// diff there would drop those pixels and make the product look see-through. Use a lower change threshold on
+// the fashion path (plus hole-filling, below) so the product silhouette is captured solidly.
+const CHANGE_THRESHOLD_FASHION = Number(process.env.CHANGE_MASK_THRESHOLD_FASHION ?? 14);
 // Fashion routing: default the person path to the fast tier (the face comes from the original pixels via the
 // composite, so the quality-sensitive region is never model-rendered). Set true to force the quality model.
 const FASHION_QUALITY_TIER = (process.env.FASHION_QUALITY_TIER ?? 'false').toLowerCase() === 'true';
@@ -170,12 +174,13 @@ const AUTOLEVEL_ENABLED = (process.env.AUTOLEVEL_ENABLED ?? 'true').toLowerCase(
 async function keepOnlyProductChange(
   original: Uint8Array,
   composed: { bytes: Uint8Array; contentType: string },
-  opts: { maxFraction?: number } = {},
+  opts: { maxFraction?: number; threshold?: number; fillHoles?: boolean } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
     const change = await computeChangeMask(original, composed.bytes, {
-      threshold: CHANGE_THRESHOLD,
+      threshold: opts.threshold ?? CHANGE_THRESHOLD,
       feather: CHANGE_FEATHER,
+      fillHoles: opts.fillHoles ?? false,
     });
     if (
       !shouldComposite(change.changedFraction, {
@@ -602,7 +607,7 @@ export async function processGeneration(
             normalized,
             composed,
             isFashion
-              ? { maxFraction: CHANGE_MAX_FRACTION_FASHION }
+              ? { maxFraction: CHANGE_MAX_FRACTION_FASHION, threshold: CHANGE_THRESHOLD_FASHION, fillHoles: true }
               : isMulti
                 ? { maxFraction: CHANGE_MAX_FRACTION_MULTI }
                 : {},

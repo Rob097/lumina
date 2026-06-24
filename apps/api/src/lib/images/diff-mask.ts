@@ -21,11 +21,61 @@ export interface ChangeMaskOptions {
   threshold?: number;
   /** Feather (blur) radius in px applied to the mask edge so the composite seam is invisible. */
   feather?: number;
+  /**
+   * Fill interior holes of the changed region before feathering. A product whose color matches the
+   * background it covers (e.g. a white bag over a white dress) produces a sub-threshold diff there, so the
+   * mask drops those pixels and the composite re-blends the ORIGINAL back in — making the product look
+   * see-through. Filling holes that are fully enclosed by the changed silhouette keeps the product solid
+   * without growing the mask outward (so the preserved face/scene region, which opens to the border, is
+   * never touched). Used on the fashion path. See {@link fillInteriorHoles}.
+   */
+  fillHoles?: boolean;
 }
 
 const DEFAULT_THRESHOLD = 28;
 const DEFAULT_FEATHER = 6;
 const EMPTY: ChangeMaskResult = { mask: new Uint8Array(), changedFraction: 0, width: 0, height: 0 };
+
+/**
+ * Set every background (0) pixel that is NOT reachable from the image border to 255 — i.e. fill the holes
+ * fully enclosed by the changed (255) silhouette, leaving border-connected background untouched. Pure: a
+ * 4-connected flood from the border marks the "outside", then any unmarked 0-pixel is an interior hole.
+ * Operates on the BINARY mask (values 0/255) before feathering.
+ */
+export function fillInteriorHoles(mask: Uint8Array, width: number, height: number): Uint8Array {
+  const n = width * height;
+  if (n === 0 || mask.length < n) return mask;
+  const outside = new Uint8Array(n); // 1 = background pixel reachable from the border
+  const stack: number[] = [];
+  const seed = (i: number): void => {
+    if (mask[i] === 0 && outside[i] === 0) {
+      outside[i] = 1;
+      stack.push(i);
+    }
+  };
+  for (let x = 0; x < width; x += 1) {
+    seed(x); // top row
+    seed((height - 1) * width + x); // bottom row
+  }
+  for (let y = 0; y < height; y += 1) {
+    seed(y * width); // left column
+    seed(y * width + width - 1); // right column
+  }
+  while (stack.length > 0) {
+    const i = stack.pop()!;
+    const x = i % width;
+    const y = (i - x) / width;
+    if (x > 0) seed(i - 1);
+    if (x < width - 1) seed(i + 1);
+    if (y > 0) seed(i - width);
+    if (y < height - 1) seed(i + width);
+  }
+  const out = new Uint8Array(n);
+  for (let i = 0; i < n; i += 1) {
+    out[i] = mask[i] === 255 || outside[i] === 0 ? 255 : 0;
+  }
+  return out;
+}
 
 export async function computeChangeMask(
   original: Uint8Array,
@@ -65,7 +115,10 @@ export async function computeChangeMask(
     }
     const changedFraction = n > 0 ? changed / n : 0;
 
-    let maskImg = sharp(raw, { raw: { width, height, channels: 1 } });
+    // Solidify the product silhouette before feathering so a low-contrast product isn't dropped (fashion path).
+    const binary = opts.fillHoles ? Buffer.from(fillInteriorHoles(raw, width, height)) : raw;
+
+    let maskImg = sharp(binary, { raw: { width, height, channels: 1 } });
     if (feather > 0) {
       maskImg = sharp(await maskImg.png().toBuffer()).blur(feather);
     }
