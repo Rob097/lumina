@@ -39,9 +39,14 @@ function decodeCursor(cursor: string): { t: string; id: string } | null {
 }
 
 async function toSummary(row: GenerationRow, deps: GenerationDeps): Promise<GenerationSummary> {
-  const [resultUrl, roomUrl] = await Promise.all([
-    deps.imageUrl(row.resultKey),
-    deps.imageUrl(row.roomKey),
+  // Retention (§9): once the originals are purged we must not claim a URL we can't serve. The room URL is
+  // gated on `roomPurgedAt`, the result URL on `originalsPurgedAt`; the long-lived thumbnail always serves.
+  const resultPurged = row.originalsPurgedAt != null;
+  const roomPurged = row.roomPurgedAt != null;
+  const [resultUrl, roomUrl, thumbUrl] = await Promise.all([
+    resultPurged ? Promise.resolve(null) : deps.imageUrl(row.resultKey),
+    roomPurged ? Promise.resolve(null) : deps.imageUrl(row.roomKey),
+    deps.imageUrl(row.thumbKey),
   ]);
   return {
     id: row.id,
@@ -58,6 +63,8 @@ async function toSummary(row: GenerationRow, deps: GenerationDeps): Promise<Gene
     pageUrl: row.pageUrl,
     resultUrl,
     roomUrl,
+    thumbUrl,
+    originalsPurged: resultPurged,
     clientId: row.clientId,
   };
 }

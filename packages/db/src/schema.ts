@@ -215,6 +215,11 @@ export const generations = pgTable(
     idempotencyKey: text('idempotency_key').notNull(),
     // outputs
     resultKey: text('result_key'),
+    /**
+     * Small long-lived WebP preview of the result (retention §9). Kept indefinitely so the dashboard
+     * gallery still shows a visual after the full-resolution originals are purged. Null for legacy rows.
+     */
+    thumbKey: text('thumb_key'),
     model: text('model'),
     // AI coverage estimate (#7) — null for single-unit products
     suggestedQuantity: integer('suggested_quantity'),
@@ -229,6 +234,12 @@ export const generations = pgTable(
     metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
     finishedAt: timestamp('finished_at', { withTimezone: true }),
+    /**
+     * Tiered retention flags (§9). Set when the heavy R2 originals are purged; the row + metadata + the
+     * thumbnail survive so the dashboard keeps the history. Rooms purge sooner than results (privacy).
+     */
+    roomPurgedAt: timestamp('room_purged_at', { withTimezone: true }),
+    originalsPurgedAt: timestamp('originals_purged_at', { withTimezone: true }),
   },
   (t) => [
     index('gen_merchant_created_idx').on(t.merchantId, t.createdAt.desc()),

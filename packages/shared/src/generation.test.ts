@@ -20,6 +20,8 @@ const SUMMARY = {
   pageUrl: 'https://shop.it/p/aura',
   resultUrl: 'https://cdn.lumina.app/cdn-cgi/image/width=480/results/m1/g1.jpg',
   roomUrl: null,
+  thumbUrl: null,
+  originalsPurged: false,
   clientId: null,
 };
 
@@ -29,6 +31,20 @@ describe('GenerationSummarySchema', () => {
     expect(g.status).toBe('succeeded');
     expect(g.productName).toBe('Aura Floor Lamp');
     expect(g.resultUrl).toContain('results/m1');
+    expect(g.originalsPurged).toBe(false);
+  });
+
+  it('models a retention-purged generation (originals gone, thumbnail kept)', () => {
+    const g = GenerationSummarySchema.parse({
+      ...SUMMARY,
+      resultUrl: null,
+      roomUrl: null,
+      thumbUrl: 'https://cdn.lumina.app/thumbs/m1/g1.webp',
+      originalsPurged: true,
+    });
+    expect(g.resultUrl).toBeNull();
+    expect(g.thumbUrl).toContain('thumbs/');
+    expect(g.originalsPurged).toBe(true);
   });
 
   it('allows a null product id (product later deleted) but keeps the snapshot name', () => {

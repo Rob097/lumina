@@ -74,8 +74,8 @@ export function GenerationsGallery({
               return (
                 <button key={g.id} type="button" className="gen-card" onClick={() => setActive(g)}>
                   <div className="gen-thumb">
-                    {g.resultUrl ? (
-                      <img src={g.resultUrl} alt="" loading="lazy" />
+                    {g.resultUrl ?? g.thumbUrl ? (
+                      <img src={g.resultUrl ?? g.thumbUrl ?? undefined} alt="" loading="lazy" />
                     ) : (
                       <span className={`gen-thumb-fallback status-${g.status}`} />
                     )}

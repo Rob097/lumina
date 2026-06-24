@@ -22,6 +22,10 @@ export const GenerationSummarySchema = z.object({
   pageUrl: z.string().nullable(),
   resultUrl: z.string().nullable(),
   roomUrl: z.string().nullable(),
+  /** Long-lived small preview of the result; survives retention so the gallery always has a visual. */
+  thumbUrl: z.string().nullable(),
+  /** True once the full-resolution originals were purged by retention (room/result URLs are then null). */
+  originalsPurged: z.boolean(),
   /** Studio (#8): the linked walk-in client, or `null` for widget/unlinked renders. */
   clientId: z.string().uuid().nullable(),
 });

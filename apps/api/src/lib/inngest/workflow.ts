@@ -26,7 +26,8 @@ import {
   type GenerationPlan,
   type ProductCategory,
 } from '@lumina/shared';
-import { resultKey as buildResultKey } from '../storage/keys.js';
+import { resultKey as buildResultKey, thumbKey as buildThumbKey } from '../storage/keys.js';
+import { makeThumbnail } from '../images/thumbnail.js';
 import { contentTypeForKey } from '../images/exif.js';
 import { autoOrientAndStrip } from '../images/orient.js';
 import { nearestAspectRatio, readImageSize } from '../images/dimensions.js';
@@ -308,6 +309,8 @@ interface SuccessFields {
   generationId: string;
   merchantId: string;
   resultKey: string;
+  /** Long-lived WebP preview key (retention §9). Null when thumbnail generation failed (best-effort). */
+  thumbKey?: string | null;
   model: string;
   costCents: number;
   latencyMs: number;
@@ -326,6 +329,7 @@ export async function finalizeSuccess(db: Database, p: SuccessFields): Promise<v
       .set({
         status: 'succeeded',
         resultKey: p.resultKey,
+        thumbKey: p.thumbKey ?? null,
         model: p.model,
         costCents: p.costCents,
         latencyMs: p.latencyMs,
@@ -341,6 +345,13 @@ export async function finalizeSuccess(db: Database, p: SuccessFields): Promise<v
       width: p.width,
       height: p.height,
     });
+    if (p.thumbKey) {
+      await tx.insert(generationAssets).values({
+        generationId: p.generationId,
+        role: 'thumb',
+        storageKey: p.thumbKey,
+      });
+    }
     await tx
       .insert(usageEvents)
       .values({ merchantId: p.merchantId, type: 'success', generationId: p.generationId });
@@ -635,6 +646,20 @@ export async function processGeneration(
     const key = buildResultKey(gen.merchantId, generationId);
     await deps.storage.putObject(key, finalImage.bytes, finalImage.contentType);
 
+    // Long-lived thumbnail (retention §9): a tiny WebP preview kept even after the originals are purged,
+    // so the dashboard gallery still shows a visual. Best-effort — never let it fail a generation.
+    let thumbKey: string | null = null;
+    try {
+      const thumb = await makeThumbnail(finalImage.bytes);
+      if (thumb) {
+        thumbKey = buildThumbKey(gen.merchantId, generationId);
+        await deps.storage.putObject(thumbKey, thumb.bytes, thumb.contentType);
+      }
+    } catch (err) {
+      thumbKey = null;
+      deps.reportError?.(err, { generationId, stage: 'thumbnail' });
+    }
+
     // Measure the stored result's real pixel size (the provider result carries none), so the asset row has
     // true width/height — used by the dashboard and as the ground truth for diagnosing orientation.
     const finalSize = await readImageSize(finalImage.bytes);
@@ -647,6 +672,7 @@ export async function processGeneration(
       generationId,
       merchantId: gen.merchantId,
       resultKey: key,
+      thumbKey,
       model: composed.model,
       costCents: composed.costCents,
       latencyMs: composed.latencyMs,

@@ -16,6 +16,14 @@ export function resultKey(merchantId: string, generationId: string): string {
   return `results/${merchantId}/${generationId}.jpg`;
 }
 
+/**
+ * Small long-lived WebP preview of a result (retention §9). Tenant-prefixed (HARD RULE #1). Kept after
+ * the full-resolution originals are purged so the dashboard gallery still shows a visual.
+ */
+export function thumbKey(merchantId: string, generationId: string): string {
+  return `thumbs/${merchantId}/${generationId}.webp`;
+}
+
 /** Allowed image types for a merchant-uploaded guide image, mapped to their file extension. */
 const GUIDE_IMAGE_EXT: Record<string, string> = {
   'image/png': 'png',
@@ -48,6 +56,6 @@ export function guideKey(merchantId: string, id: string, ext: string): string {
 
 /** Extract the merchant id a key belongs to (defense-in-depth check). */
 export function merchantIdForKey(key: string): string | null {
-  const match = /^(?:rooms|products|results|guides)\/([^/]+)\//.exec(key);
+  const match = /^(?:rooms|products|results|guides|thumbs)\/([^/]+)\//.exec(key);
   return match ? match[1]! : null;
 }

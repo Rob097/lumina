@@ -37,7 +37,11 @@ export function GenerationDetailModal({
   }, [summary.id]);
 
   const before = detail?.roomUrl ?? summary.roomUrl;
-  const after = detail?.resultUrl ?? summary.resultUrl;
+  // After retention purges the full-res originals, fall back to the long-lived thumbnail so the gallery
+  // still shows the result; the room original has no thumbnail and simply disappears.
+  const after =
+    detail?.resultUrl ?? summary.resultUrl ?? detail?.thumbUrl ?? summary.thumbUrl;
+  const originalsPurged = detail?.originalsPurged ?? summary.originalsPurged;
   const cost =
     detail?.costCents != null
       ? `${summary.creditsSpent} · $${(detail.costCents / 100).toFixed(2)}`
@@ -80,6 +84,12 @@ export function GenerationDetailModal({
 
           {detail?.quantityRationale ? (
             <p className="gen-note">{detail.quantityRationale}</p>
+          ) : null}
+
+          {originalsPurged ? (
+            <p className="gen-note">
+              Full-resolution originals were removed per our data-retention policy. A preview is kept.
+            </p>
           ) : null}
 
           {summary.pageUrl ? (
