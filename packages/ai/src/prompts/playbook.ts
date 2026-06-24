@@ -54,6 +54,8 @@ export const FASHION_GENERATION_RULES: string[] = [
   "Keep the accessory realistically small relative to the person's hand — a small handbag is about the size of two hands; never enlarge it to fill the torso or the frame.",
   // case: fingers rendered behind the handle instead of gripping it / bag fused into the clothing
   'Render the gripping fingers and thumb OVER the handle or strap; the hand holds the accessory — it never floats in front of the hand and never fuses into the clothing.',
+  // case: the added handbag came out slightly see-through — the body/background showed through it (2026-06-24)
+  'Render the accessory as a fully opaque, solid object that completely hides whatever is behind it; never make it semi-transparent, translucent, ghosted, or a see-through overlay. The only parts that may be see-through are ones that are genuinely transparent in the product photo itself (e.g. clear plastic or mesh).',
 ];
 
 /** The fashion playbook rules rendered as one always-apply block (empty string when there are none). */

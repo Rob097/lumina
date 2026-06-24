@@ -51,6 +51,11 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).toMatch(/two hands|fingers and thumb/i);
   });
 
+  it('requires the accessory to be fully opaque (no see-through/translucent render)', () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/opaque|see-through|see through|translucent|transparen/);
+  });
+
   it('carries real-world dimensions and the product identity anchor when provided', () => {
     const p = buildComposePrompt({
       ...base,

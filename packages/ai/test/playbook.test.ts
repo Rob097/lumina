@@ -46,4 +46,9 @@ describe('fashion generation playbook (separate from the furniture rules)', () =
     // furniture scale cues (floor-lamp heights, door references) must never leak into a portrait prompt
     expect(block).not.toMatch(/floor lamp|1\.5|1\.8|door/);
   });
+
+  it('seeds the no-transparency fix: the accessory renders fully opaque (observed see-through bag)', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/opaque|see-through|see through|translucent|transparen/);
+  });
 });
