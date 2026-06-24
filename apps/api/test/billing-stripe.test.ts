@@ -35,7 +35,7 @@ describe('toBillingEvent', () => {
     const evt = toBillingEvent(subEvent('customer.subscription.created'), priceMap);
     expect(evt?.type).toBe('subscription_active');
     expect(evt?.plan).toBe('growth');
-    expect(evt?.includedCredits).toBe(1200);
+    expect(evt?.includedCredits).toBe(1000);
     expect(evt?.grantCredits).toBe(true);
     expect(evt?.merchantId).toBe('m1');
     expect(evt?.stripeCustomerId).toBe('cus_1');

@@ -15,7 +15,8 @@ export function buildPriceMap(env: Record<string, string | undefined>): PriceMap
   const pairs: ReadonlyArray<[PlanTier, string]> = [
     ['starter', 'STRIPE_PRICE_STARTER'],
     ['growth', 'STRIPE_PRICE_GROWTH'],
-    ['scale', 'STRIPE_PRICE_SCALE'],
+    ['pro', 'STRIPE_PRICE_PRO'],
+    ['scale', 'STRIPE_PRICE_SCALE'], // legacy — kept so existing scale subscriptions still resolve
     ['enterprise', 'STRIPE_PRICE_ENTERPRISE'],
   ];
   for (const [plan, key] of pairs) {

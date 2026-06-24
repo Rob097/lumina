@@ -30,13 +30,13 @@ async function entry(merchantId: string, amount: number, reason: LedgerReason): 
 describe('getCreditsView', () => {
   it('returns balance = ledger sum, with plan included/used + ledger entries', async () => {
     const m = await newMerchant('growth');
-    await entry(m, 1200, 'grant');
+    await entry(m, 1000, 'grant');
     await entry(m, -1, 'generation');
     await entry(m, -1, 'generation');
 
     const view = await getCreditsView(ctx.db, m);
-    expect(view.balance).toBe(1198);
-    expect(view.included).toBe(1200); // growth allotment
+    expect(view.balance).toBe(998);
+    expect(view.included).toBe(1000); // growth allotment
     expect(view.used).toBe(2);
     expect(view.ledger).toHaveLength(3);
     expect(view.resetsAt).toBeTruthy();

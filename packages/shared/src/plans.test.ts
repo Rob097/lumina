@@ -45,21 +45,24 @@ describe('BillingPlansResponseSchema', () => {
     const plan = BillingPlanSchema.parse({
       tier: 'growth',
       label: 'Growth',
-      priceMonthly: 199,
-      includedCredits: 1200,
+      priceMonthly: 349,
+      includedCredits: 1000,
       highlight: true,
-      features: ['1,200 credits / mo'],
+      features: ['1,000 visualizations / mo'],
     });
     expect(plan.tier).toBe('growth');
     const res = BillingPlansResponseSchema.parse({ plans: [plan], currentPlan: 'starter' });
     expect(res.currentPlan).toBe('starter');
   });
 
-  it('buildBillingPlans composes a card per tier with the current plan', () => {
+  it('buildBillingPlans returns only the sellable tiers (Starter/Growth/Pro/Enterprise), in order', () => {
     const res = buildBillingPlans('growth');
     expect(BillingPlansResponseSchema.parse(res)).toBeTruthy();
     expect(res.currentPlan).toBe('growth');
-    expect(res.plans).toHaveLength(5);
-    expect(res.plans.find((p) => p.tier === 'growth')?.includedCredits).toBe(1200);
+    expect(res.plans.map((p) => p.tier)).toEqual(['starter', 'growth', 'pro', 'enterprise']);
+    // free + the legacy `scale` tier are never offered as cards
+    expect(res.plans.some((p) => p.tier === 'free' || p.tier === 'scale')).toBe(false);
+    expect(res.plans.find((p) => p.tier === 'growth')?.includedCredits).toBe(1000);
+    expect(res.plans.find((p) => p.tier === 'pro')?.priceMonthly).toBe(699);
   });
 });

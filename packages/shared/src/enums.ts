@@ -58,7 +58,10 @@ export const LEDGER_REASONS = [
 export const LedgerReasonSchema = z.enum(LEDGER_REASONS);
 export type LedgerReason = z.infer<typeof LedgerReasonSchema>;
 
-export const PLAN_TIERS = ['free', 'starter', 'growth', 'scale', 'enterprise'] as const;
+// `pro` is appended last so the Postgres enum migration is a non-destructive `ADD VALUE` (storage order ≠
+// price order — display ranking is explicit in the dashboard's `planRank`). `scale` is retained but
+// deprecated (no longer sold) to avoid the risky removal of an in-use enum value.
+export const PLAN_TIERS = ['free', 'starter', 'growth', 'scale', 'enterprise', 'pro'] as const;
 export const PlanTierSchema = z.enum(PLAN_TIERS);
 export type PlanTier = z.infer<typeof PlanTierSchema>;
 

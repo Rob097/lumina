@@ -27,7 +27,7 @@ describe('planCta', () => {
 describe('formatPrice', () => {
   it('formats published prices, free, and custom', () => {
     expect(formatPrice(0)).toBe('Free');
-    expect(formatPrice(199)).toBe('$199');
+    expect(formatPrice(199)).toBe('€199');
     expect(formatPrice(null)).toBe('Custom');
   });
 });
