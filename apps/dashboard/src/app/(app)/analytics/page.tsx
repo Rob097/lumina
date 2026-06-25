@@ -1,11 +1,14 @@
 import './analytics.css';
 import '../overview/overview.css';
 import Link from 'next/link';
+import { canUseAnalytics } from '@lumina/shared';
 import {
   fetchAnalyticsSummary,
   fetchAnalyticsTimeseries,
   fetchCredits,
+  fetchMe,
 } from '@/lib/api';
+import { resolveActiveMerchant } from '@/lib/workspace';
 import { rangeLabel } from '@/lib/format';
 import { KpiRow } from '@/components/overview/KpiRow';
 import { FunnelCard } from '@/components/overview/FunnelCard';
@@ -25,6 +28,25 @@ export default async function AnalyticsPage({
 }: {
   searchParams: Promise<{ range?: string }>;
 }) {
+  // Server-side gate: analytics is a Growth+ perk. The nav entry is already hidden below Growth, but guard
+  // the page too so a direct URL shows an upsell instead of empty charts (the API also returns 403).
+  const me = await fetchMe();
+  const activeMerchant = await resolveActiveMerchant(me?.merchants ?? []);
+  if (!activeMerchant || !canUseAnalytics(activeMerchant.plan)) {
+    return (
+      <EmptyState
+        icon="analytics"
+        title="Analytics is a Growth feature"
+        body="Upgrade to the Growth plan or above to unlock impressions, conversion, and product insights."
+        action={
+          <Link className="btn btn-primary" href="/billing">
+            See plans
+          </Link>
+        }
+      />
+    );
+  }
+
   const { range } = await searchParams;
   const days = RANGES.some((r) => String(r.days) === range) ? Number(range) : 30;
   const interval = days >= 90 ? 'week' : 'day';

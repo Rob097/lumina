@@ -15,6 +15,7 @@ export const ERROR_CODES = {
   GENERATION_FAILED: 'generation_failed',
   NOT_FOUND: 'not_found',
   SHOP_LIMIT: 'shop_limit',
+  PLAN_REQUIRED: 'plan_required',
   INTERNAL: 'internal',
 } as const;
 
@@ -32,6 +33,7 @@ export const ErrorCodeSchema = z.enum([
   'generation_failed',
   'not_found',
   'shop_limit',
+  'plan_required',
   'internal',
 ]);
 
@@ -47,6 +49,7 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   generation_failed: 502,
   not_found: 404,
   shop_limit: 403,
+  plan_required: 403,
   internal: 500,
 };
 

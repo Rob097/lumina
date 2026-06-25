@@ -1,7 +1,7 @@
 import './overlay.css';
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
-import { PLAN_CATALOG } from '@lumina/shared';
+import { PLAN_CATALOG, canUseAnalytics } from '@lumina/shared';
 import {
   bootstrapMerchant,
   fetchCredits,
@@ -64,6 +64,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         credits={{ balance, included, usedPct: meter.usedPct, level: meter.level }}
         account={{ name: accountName, email, initials: initials(accountName) }}
         counts={{ products: products.total, generations: generations.total }}
+        analyticsEnabled={merchant ? canUseAnalytics(merchant.plan) : false}
       />
       <div className="main">
         <Topbar accountInitials={initials(accountName)} notifications={notifications} />

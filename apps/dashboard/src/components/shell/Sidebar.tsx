@@ -31,6 +31,8 @@ export interface SidebarProps {
   credits: { balance: number; included: number; usedPct: number; level: CreditLevel };
   account: { name: string; email: string; initials: string };
   counts?: Record<string, number>;
+  /** Analytics is a Growth+ perk — hide its nav entry for plans that don't include it. */
+  analyticsEnabled?: boolean;
 }
 
 const BADGE = { ok: 'badge-neutral', warn: 'badge-warning', danger: 'badge-danger' } as const;
@@ -43,6 +45,7 @@ export function Sidebar({
   credits,
   account,
   counts,
+  analyticsEnabled = true,
 }: SidebarProps) {
   const active = activeNavKey(usePathname());
   const { open, setOpen } = useNav();
@@ -178,7 +181,9 @@ export function Sidebar({
         {NAV_GROUPS.map((group) => (
           <div key={group.id} className="col" style={{ gap: 1 }}>
             {group.label ? <div className="nav-group-label">{group.label}</div> : null}
-            {NAV_ITEMS.filter((i) => i.group === group.id).map((item) => {
+            {NAV_ITEMS.filter(
+              (i) => i.group === group.id && (analyticsEnabled || i.key !== 'analytics'),
+            ).map((item) => {
               const count = counts?.[item.key];
               return (
                 <Link

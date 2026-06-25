@@ -50,6 +50,17 @@ export function isDowngrade(current: PlanTier, target: PlanTier): boolean {
 }
 
 /**
+ * The lowest plan that unlocks the analytics dashboard. Matches the pricing cards, where "Analytics
+ * dashboard" first appears on Growth — free/starter merchants see an upsell instead of the dashboard.
+ */
+export const ANALYTICS_MIN_PLAN: PlanTier = 'growth';
+
+/** Whether `plan` includes the analytics dashboard (Growth and above). The single gate for nav/page/API. */
+export function canUseAnalytics(plan: PlanTier): boolean {
+  return planRank(plan) >= planRank(ANALYTICS_MIN_PLAN);
+}
+
+/**
  * The plans actually sold (shown as cards), in display order — matches the public pricing page
  * (Starter / Growth / Pro / Enterprise). `free` is the internal no-subscription default and `scale` is a
  * retired tier: both stay in {@link PLAN_CATALOG} (for the webhook + current-plan resolution) but are not

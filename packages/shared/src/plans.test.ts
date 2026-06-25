@@ -1,15 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ANALYTICS_MIN_PLAN,
   BillingPlanSchema,
   BillingPlansResponseSchema,
   PLAN_CATALOG,
   PLAN_PRESENTATION,
   PlanChangeRequestSchema,
   buildBillingPlans,
+  canUseAnalytics,
   lostFeatures,
   shopLimit,
 } from './plans.js';
 import { PLAN_TIERS } from './enums.js';
+
+describe('canUseAnalytics', () => {
+  it('is unavailable on free + starter, available from growth and up', () => {
+    expect(canUseAnalytics('free')).toBe(false);
+    expect(canUseAnalytics('starter')).toBe(false);
+    expect(canUseAnalytics('growth')).toBe(true);
+    expect(canUseAnalytics('pro')).toBe(true);
+    expect(canUseAnalytics('scale')).toBe(true);
+    expect(canUseAnalytics('enterprise')).toBe(true);
+  });
+
+  it('gates exactly at ANALYTICS_MIN_PLAN', () => {
+    expect(ANALYTICS_MIN_PLAN).toBe('growth');
+    expect(canUseAnalytics(ANALYTICS_MIN_PLAN)).toBe(true);
+  });
+});
 
 describe('lostFeatures', () => {
   it('returns features on the current plan but not the target (a downgrade)', () => {
