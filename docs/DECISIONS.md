@@ -1033,3 +1033,21 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   account already has one (`stripeSubscriptionId NOT NULL` on any of its shops) and points to the portal, so
   there's no duplicate/double-charged subscription. `merchants.plan`/`credits_balance` columns remain but are
   now vestigial (read paths use the account); drop in a later cleanup once verified in prod.
+
+- **D95 — Plan downgrade: deactivate (not delete) over-limit workspaces (follow-up to D93/D94).** Upgrades/
+  switches for an existing subscriber go straight to the Stripe **billing portal**; a **downgrade** opens a
+  first-party modal (lost-benefits warning from `lostFeatures()`), and when the target plan allows fewer
+  shops than the account currently has active, the owner picks which to KEEP — the rest are **reversibly
+  deactivated** (`merchants.suspended_at`, migration 0018), NOT deleted (owner's call: no data loss, no
+  destroyed storefronts). A suspended workspace doesn't count against the shop cap (`createWorkspace` counts
+  active only), can't be the active workspace (auth + dashboard resolvers skip it), and its public widget +
+  secret API are off; it's reactivated from the sidebar when back under the cap. The change runs through
+  **POST /v1/billing/change** (account-owner only): **Stripe first** (`subscriptions.update` to the lower
+  price, `proration_behavior:'none'` = no refund, change at renewal — owner's call), then suspend the
+  non-kept shops in an advisory-locked txn that refuses to leave 0 active; `accounts.plan` stays
+  webhook-owned. The only sellable shop-reducing transition is pro/scale (3) → starter/growth (1).
+  **Process note:** designed + adversarially vetted via two multi-agent workflows (design caught blockers
+  pre-code: never delete the subscription-bearing shop, derive keep-count from `shopLimit` not a hardcode,
+  per-account serialization; impl review confirmed 8 minor issues, all fixed). **Open follow-ups:** the
+  `subscriptions` table is still merchant-keyed (D94 re-key pending); the portal route has no backend
+  owner-check (frontend-gated only); downgrade-to-free is rejected by /billing/change (cancel via portal).
