@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm';
 import { merchants } from '@lumina/db';
-import { CreateWorkspaceSchema, type MeMerchant } from '@lumina/shared';
-import { createWorkspace } from '@/lib/bootstrap';
+import { CreateWorkspaceSchema, PLAN_CATALOG, type MeMerchant } from '@lumina/shared';
+import { createWorkspace, ShopLimitError } from '@/lib/bootstrap';
 import { getDb } from '@/lib/db';
 import { errorResponse, jsonResponse } from '@/lib/http';
 import { getSessionUser } from '@/lib/session';
@@ -24,7 +24,20 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse('invalid_input', 'Enter a workspace name (1–80 characters).');
   }
   const db = getDb();
-  const { merchantId } = await createWorkspace(db, { userId: user.id, name: parsed.data.name });
+  let merchantId: string;
+  try {
+    ({ merchantId } = await createWorkspace(db, { userId: user.id, name: parsed.data.name }));
+  } catch (err) {
+    if (err instanceof ShopLimitError) {
+      const label = PLAN_CATALOG[err.plan].label;
+      const shops = err.limit === 1 ? '1 shop' : `${err.limit} shops`;
+      return errorResponse(
+        'shop_limit',
+        `Your ${label} plan includes ${shops}. Upgrade your plan to add more workspaces.`,
+      );
+    }
+    throw err;
+  }
   const [m] = await db
     .select({
       id: merchants.id,

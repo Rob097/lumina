@@ -33,10 +33,10 @@ export async function createWorkspaceAction(name: unknown): Promise<WorkspaceAct
     return { ok: false, error: 'Enter a workspace name (1–80 characters).' };
   }
   const created = await createWorkspace(parsed.data.name);
-  if (!created) {
-    return { ok: false, error: "Couldn't create the workspace." };
+  if (!created.ok) {
+    return { ok: false, error: created.error };
   }
-  (await cookies()).set(ACTIVE_MERCHANT_COOKIE, created.id, COOKIE_OPTS);
+  (await cookies()).set(ACTIVE_MERCHANT_COOKIE, created.workspace.id, COOKIE_OPTS);
   revalidatePath('/', 'layout');
   return { ok: true };
 }

@@ -1001,3 +1001,19 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   variable debit already exists (`debit_credits(merchant, amount, gen)` takes an amount), so switching to
   per-model credits later is a one-call change. **Plan re-pricing** awaits the owner's target-margin decision
   on real blended-cost data (no price numbers changed here).
+
+- **D93 — Account billing model: shops + a shared credit pool (TODO #4/#5, follow-up).** The dashboard's
+  pricing promises "N shops per plan" (Starter/Growth 1, Pro 3, Enterprise ∞) and the owner confirmed credits
+  should be **shared** across an owner's workspaces — but the app billed every workspace independently (its own
+  `plan` + `credits_balance`, no shop cap). We introduce an **`accounts`** table (`owner_user_id` unique →
+  `auth.users`, `plan`, shared `credits_balance`) that owns one or more workspaces via `merchants.account_id`;
+  only **billing + credits** move to the account, while products/generations/widget/RLS stay merchant-scoped so
+  HARD RULE #1 (tenant isolation by `merchant_id`) is untouched. Delivered in **three phases** so nothing breaks
+  mid-flight: **(1)** table + `account_id` + backfill + shop cap on create (this commit); **(2)** move the credit
+  pool (grant/debit/read/ledger + balance) to the account; **(3)** move the Stripe subscription/customer to the
+  account + dashboard billing UI (shared credits, "X of N shops"). **Backfill (migration `0016`):** one account
+  per owner, `plan` = the **highest** plan among their workspaces (never downgrade a payer), `credits_balance` =
+  the **SUM** of their workspaces' balances (lose no credits); `account_id` nullable for now (tightened to NOT
+  NULL once every row is migrated). Shop cap = `PLAN_CATALOG[plan].maxShops` (`shopLimit()`), enforced in
+  `createWorkspace`; over-limit returns `403 shop_limit`. The backfill casts `plan::text` in its ranking CASE so
+  it never references an `ALTER TYPE ADD VALUE` label (e.g. `pro`) in the same transaction.

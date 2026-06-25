@@ -146,14 +146,23 @@ export async function updateMerchant(name: string): Promise<boolean> {
 
 // ───────────────────────────── multi-workspace + invitations ─────────────────────────────
 
-/** Create another workspace; the user becomes its owner. Returns the new workspace, or null on failure. */
-export async function createWorkspace(name: string): Promise<MeMerchant | null> {
+/**
+ * Create another workspace; the user becomes its owner. Returns the new workspace, or the API's real
+ * error message (e.g. the plan's shop limit) so the dashboard can show why it was refused.
+ */
+export async function createWorkspace(
+  name: string,
+): Promise<{ ok: true; workspace: MeMerchant } | { ok: false; error: string }> {
   const res = await apiFetch('/workspaces', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ name }),
   });
-  return res.ok ? MeMerchantSchema.parse(await res.json()) : null;
+  if (res.ok) {
+    return { ok: true, workspace: MeMerchantSchema.parse(await res.json()) };
+  }
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return { ok: false, error: body?.error?.message ?? "Couldn't create the workspace." };
 }
 
 export async function fetchInvitations(): Promise<InvitationSummary[]> {

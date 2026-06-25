@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { apiKeys, memberships, widgetConfigs } from '@lumina/db';
+import { accounts, apiKeys, memberships, merchants, widgetConfigs } from '@lumina/db';
 import { setupTestDb, type TestDb } from '@lumina/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { ensureMerchantForUser } from '../src/lib/bootstrap.js';
+import { createWorkspace, ensureMerchantForUser, ShopLimitError } from '../src/lib/bootstrap.js';
 
 let ctx: TestDb;
 
@@ -72,5 +72,56 @@ describe('ensureMerchantForUser', () => {
     const a = await ensureMerchantForUser(ctx.db, { userId: userA, email: 'sam@one.com' });
     const b = await ensureMerchantForUser(ctx.db, { userId: userB, email: 'sam@two.com' });
     expect(a.merchantId).not.toBe(b.merchantId);
+  });
+});
+
+describe('accounts + shop cap', () => {
+  async function accountId(userId: string): Promise<string> {
+    const rows = await ctx.db.select().from(accounts).where(eq(accounts.ownerUserId, userId));
+    const id = rows[0]?.id;
+    if (!id) throw new Error('no account');
+    return id;
+  }
+
+  it('creates a free billing account on first workspace and links the merchant', async () => {
+    const userId = await newAuthUser('acct@acme.com');
+    const res = await ensureMerchantForUser(ctx.db, { userId, email: 'acct@acme.com' });
+
+    const accRows = await ctx.db.select().from(accounts).where(eq(accounts.ownerUserId, userId));
+    expect(accRows).toHaveLength(1);
+    expect(accRows[0]?.plan).toBe('free');
+
+    const [m] = await ctx.db.select().from(merchants).where(eq(merchants.id, res.merchantId));
+    expect(m?.accountId).toBe(accRows[0]?.id);
+  });
+
+  it('rejects a second workspace on a free account (1 shop) and reuses the one account', async () => {
+    const userId = await newAuthUser('cap@acme.com');
+    await ensureMerchantForUser(ctx.db, { userId, email: 'cap@acme.com' });
+
+    await expect(createWorkspace(ctx.db, { userId, name: 'Second shop' })).rejects.toBeInstanceOf(
+      ShopLimitError,
+    );
+    const accRows = await ctx.db.select().from(accounts).where(eq(accounts.ownerUserId, userId));
+    expect(accRows).toHaveLength(1);
+    const merch = await ctx.db.select().from(merchants).where(eq(merchants.accountId, accRows[0]!.id));
+    expect(merch).toHaveLength(1);
+  });
+
+  it('allows up to the plan allowance (pro = 3 shops), then caps', async () => {
+    const userId = await newAuthUser('pro@acme.com');
+    const first = await ensureMerchantForUser(ctx.db, { userId, email: 'pro@acme.com' });
+    // Phase 2 sets the account plan via billing; here we set it directly to exercise the cap.
+    await ctx.db.update(accounts).set({ plan: 'pro' }).where(eq(accounts.ownerUserId, userId));
+
+    const second = await createWorkspace(ctx.db, { userId, name: 'Shop 2' });
+    const third = await createWorkspace(ctx.db, { userId, name: 'Shop 3' });
+    expect(new Set([first.merchantId, second.merchantId, third.merchantId]).size).toBe(3);
+
+    await expect(createWorkspace(ctx.db, { userId, name: 'Shop 4' })).rejects.toBeInstanceOf(
+      ShopLimitError,
+    );
+    const merch = await ctx.db.select().from(merchants).where(eq(merchants.accountId, await accountId(userId)));
+    expect(merch).toHaveLength(3);
   });
 });

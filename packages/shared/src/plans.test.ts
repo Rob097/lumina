@@ -5,8 +5,25 @@ import {
   PLAN_CATALOG,
   PLAN_PRESENTATION,
   buildBillingPlans,
+  shopLimit,
 } from './plans.js';
 import { PLAN_TIERS } from './enums.js';
+
+describe('shopLimit', () => {
+  it('caps single-shop plans at 1 and scales up for higher tiers', () => {
+    expect(shopLimit('free')).toBe(1);
+    expect(shopLimit('starter')).toBe(1);
+    expect(shopLimit('growth')).toBe(1);
+    expect(shopLimit('pro')).toBe(3);
+    expect(shopLimit('enterprise')).toBe(Infinity);
+  });
+
+  it('matches PLAN_CATALOG.maxShops for every tier', () => {
+    for (const tier of PLAN_TIERS) {
+      expect(shopLimit(tier)).toBe(PLAN_CATALOG[tier].maxShops);
+    }
+  });
+});
 
 describe('PLAN_CATALOG', () => {
   it('has an entry for every plan tier', () => {

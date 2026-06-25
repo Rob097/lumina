@@ -6,21 +6,28 @@ export interface PlanInfo {
   includedCredits: number;
   /** Human label for the dashboard. */
   label: string;
+  /** How many workspaces ("shops") an account on this plan may own. `Infinity` = unlimited. */
+  maxShops: number;
 }
 
 /**
- * Plan catalog — the single source of truth mapping a `plan_tier` to its monthly included credits.
- * The Stripe webhook resolves price → plan → `includedCredits` from this table (no magic numbers).
- * Values are business-tunable; enterprise is custom/negotiated.
+ * Plan catalog — the single source of truth mapping a `plan_tier` to its monthly included credits and
+ * shop allowance. The Stripe webhook resolves price → plan → `includedCredits` from this table (no magic
+ * numbers); workspace creation enforces `maxShops`. Values are business-tunable; enterprise is custom.
  */
 export const PLAN_CATALOG: Record<PlanTier, PlanInfo> = {
-  free: { includedCredits: 10, label: 'Free' },
-  starter: { includedCredits: 300, label: 'Starter' },
-  growth: { includedCredits: 1000, label: 'Growth' },
-  pro: { includedCredits: 3000, label: 'Pro' },
-  scale: { includedCredits: 6000, label: 'Scale (legacy)' },
-  enterprise: { includedCredits: 10000, label: 'Enterprise' },
+  free: { includedCredits: 10, label: 'Free', maxShops: 1 },
+  starter: { includedCredits: 300, label: 'Starter', maxShops: 1 },
+  growth: { includedCredits: 1000, label: 'Growth', maxShops: 1 },
+  pro: { includedCredits: 3000, label: 'Pro', maxShops: 3 },
+  scale: { includedCredits: 6000, label: 'Scale (legacy)', maxShops: 3 },
+  enterprise: { includedCredits: 10000, label: 'Enterprise', maxShops: Infinity },
 };
+
+/** Shops an account on `plan` may own (`Infinity` = unlimited). The single source for the shop cap. */
+export function shopLimit(plan: PlanTier): number {
+  return PLAN_CATALOG[plan].maxShops;
+}
 
 /**
  * The plans actually sold (shown as cards), in display order — matches the public pricing page

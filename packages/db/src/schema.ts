@@ -49,11 +49,33 @@ export const planTier = pgEnum('plan_tier', PLAN_TIERS);
 const createdAt = () => timestamp('created_at', { withTimezone: true }).notNull().defaultNow();
 const updatedAt = () => timestamp('updated_at', { withTimezone: true }).notNull().defaultNow();
 
+// ───────────────────────────── accounts (billing) ─────────────────────────────
+/**
+ * An account is the billing entity that owns one or more workspaces (merchants). The plan + the shared
+ * credit pool live here — NOT on the merchant — so every shop an owner runs draws from one balance, and
+ * the plan's `maxShops` caps how many shops they can create. One account per owner user (`owner_user_id`
+ * → `auth.users`, FK added in the hand-authored migration like `memberships`).
+ *
+ * Phase 1 introduces the table + `merchants.account_id` and enforces the shop cap. Credits + Stripe move
+ * here in later phases; until then `merchants.plan`/`credits_balance` remain authoritative.
+ */
+export const accounts = pgTable('accounts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  ownerUserId: uuid('owner_user_id').notNull().unique(),
+  plan: planTier('plan').notNull().default('free'),
+  creditsBalance: integer('credits_balance').notNull().default(0),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+});
+
 // ───────────────────────────── tenants ─────────────────────────────
 export const merchants = pgTable('merchants', {
   id: uuid('id').primaryKey().defaultRandom(),
   name: text('name').notNull(),
   slug: text('slug').notNull().unique(),
+  // The owning billing account. Nullable for now (backfilled for existing rows; always set on create);
+  // tightened to NOT NULL once every row is migrated.
+  accountId: uuid('account_id').references(() => accounts.id),
   plan: planTier('plan').notNull().default('free'),
   creditsBalance: integer('credits_balance').notNull().default(0),
   allowedDomains: text('allowed_domains')

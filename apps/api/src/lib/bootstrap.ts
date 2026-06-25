@@ -1,8 +1,22 @@
 import { randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
-import { apiKeys, memberships, merchants, widgetConfigs, type Database } from '@lumina/db';
-import type { KeyEnv, KeyKind } from '@lumina/shared';
+import { eq, sql } from 'drizzle-orm';
+import { accounts, apiKeys, memberships, merchants, widgetConfigs, type Database } from '@lumina/db';
+import { shopLimit, type KeyEnv, type KeyKind, type PlanTier } from '@lumina/shared';
 import { generateApiKey } from './keys.js';
+
+/**
+ * Thrown when a workspace can't be created because the owner's account has reached its plan's shop
+ * allowance. The route maps this to a 403 `shop_limit` with a helpful, upgrade-pointing message.
+ */
+export class ShopLimitError extends Error {
+  constructor(
+    readonly plan: PlanTier,
+    readonly limit: number,
+  ) {
+    super(`shop_limit: ${plan} allows ${limit} shop(s)`);
+    this.name = 'ShopLimitError';
+  }
+}
 
 // Live keys only — test keys added clutter without earning their keep (D-followup). A workspace boots
 // with one publishable + one secret; merchants mint fresh pairs from Settings → API keys.
@@ -46,6 +60,47 @@ export async function createWorkspace(
   input: { userId: string; name: string; slugBase?: string },
 ): Promise<BootstrapResult> {
   return db.transaction(async (tx) => {
+    // Resolve (or create) the owner's billing account, then enforce the plan's shop allowance. The
+    // first workspace creates the account (free plan); later ones reuse it and count against the cap.
+    let acc = (
+      await tx
+        .select({ id: accounts.id, plan: accounts.plan })
+        .from(accounts)
+        .where(eq(accounts.ownerUserId, input.userId))
+        .limit(1)
+    )[0];
+    if (!acc) {
+      acc =
+        (
+          await tx
+            .insert(accounts)
+            .values({ ownerUserId: input.userId })
+            .onConflictDoNothing()
+            .returning({ id: accounts.id, plan: accounts.plan })
+        )[0] ??
+        // Lost a create race — read the row the other writer just made.
+        (
+          await tx
+            .select({ id: accounts.id, plan: accounts.plan })
+            .from(accounts)
+            .where(eq(accounts.ownerUserId, input.userId))
+            .limit(1)
+        )[0];
+    }
+    if (!acc) {
+      throw new Error('bootstrap: account resolution failed');
+    }
+    const shopCount = (
+      await tx
+        .select({ n: sql<number>`count(*)::int` })
+        .from(merchants)
+        .where(eq(merchants.accountId, acc.id))
+    )[0]?.n ?? 0;
+    const limit = shopLimit(acc.plan);
+    if (shopCount >= limit) {
+      throw new ShopLimitError(acc.plan, limit);
+    }
+
     const base = slugify(input.slugBase ?? input.name);
     let slug = base;
     for (let attempt = 0; attempt < 5; attempt += 1) {
@@ -62,7 +117,7 @@ export async function createWorkspace(
 
     const merchantRows = await tx
       .insert(merchants)
-      .values({ name: input.name, slug })
+      .values({ name: input.name, slug, accountId: acc.id })
       .returning({ id: merchants.id });
     const merchant = merchantRows[0];
     if (!merchant) {

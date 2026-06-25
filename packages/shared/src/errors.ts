@@ -14,6 +14,7 @@ export const ERROR_CODES = {
   UNSUPPORTED_IMAGE: 'unsupported_image',
   GENERATION_FAILED: 'generation_failed',
   NOT_FOUND: 'not_found',
+  SHOP_LIMIT: 'shop_limit',
   INTERNAL: 'internal',
 } as const;
 
@@ -30,6 +31,7 @@ export const ErrorCodeSchema = z.enum([
   'unsupported_image',
   'generation_failed',
   'not_found',
+  'shop_limit',
   'internal',
 ]);
 
@@ -44,6 +46,7 @@ export const ERROR_HTTP_STATUS: Record<ErrorCode, number> = {
   unsupported_image: 422,
   generation_failed: 502,
   not_found: 404,
+  shop_limit: 403,
   internal: 500,
 };
 
