@@ -98,7 +98,7 @@ export type TeamResponse = z.infer<typeof TeamResponseSchema>;
 
 /** `PUT /v1/merchant` — editable merchant fields (Settings → Account). */
 export const MerchantUpdateSchema = z.object({
-  name: z.string().min(1).max(80),
+  name: z.string().trim().min(1).max(80),
 });
 export type MerchantUpdate = z.infer<typeof MerchantUpdateSchema>;
 

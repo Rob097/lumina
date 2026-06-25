@@ -105,7 +105,7 @@ export function Sidebar({
   }
 
   function confirmDelete() {
-    if (!del || typed.trim() !== del.name) return;
+    if (!del || typed.trim() !== del.name.trim()) return;
     setDelError(null);
     setBusyLabel('Deleting workspace…');
     startTransition(async () => {
@@ -167,7 +167,7 @@ export function Sidebar({
               <button
                 className="btn btn-danger"
                 type="button"
-                disabled={pending || typed.trim() !== del.name}
+                disabled={pending || typed.trim() !== del.name.trim()}
                 onClick={confirmDelete}
               >
                 {pending ? 'Deleting…' : 'Delete forever'}
