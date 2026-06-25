@@ -1,6 +1,6 @@
 'use client';
 
-import { useTransition } from 'react';
+import { useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { NAV_GROUPS, NAV_ITEMS, activeNavKey } from '@lumina/ui';
@@ -43,9 +43,13 @@ export function Sidebar({
   const { open, setOpen } = useNav();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [busyLabel, setBusyLabel] = useState<string | null>(null);
 
   function switchTo(id: string) {
     if (id === activeMerchantId) return;
+    setBusyLabel('Switching workspace…');
+    // router.refresh() runs inside the transition, so `pending` stays true until the new
+    // workspace's data has streamed in — the overlay covers the whole switch, not just the action.
     startTransition(async () => {
       await switchWorkspaceAction(id);
       router.refresh();
@@ -55,6 +59,7 @@ export function Sidebar({
   function createWorkspace() {
     const name = window.prompt('Name your new workspace');
     if (!name?.trim()) return;
+    setBusyLabel('Creating workspace…');
     startTransition(async () => {
       const res = await createWorkspaceAction(name.trim());
       if (!res.ok) window.alert(res.error);
@@ -64,6 +69,12 @@ export function Sidebar({
 
   return (
     <>
+      {pending && (
+        <div className="ws-switching" role="status" aria-live="polite">
+          <div className="spinner" />
+          <span className="ws-switching-label">{busyLabel ?? 'Loading…'}</span>
+        </div>
+      )}
       {open && <div className="side-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
       <aside className={`side${open ? ' is-open' : ''}`}>
       <div className="side-top">
