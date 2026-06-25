@@ -22,6 +22,13 @@ export function SupportView({ email }: { email: string }) {
   const valid = subject.trim().length >= 3 && message.trim().length >= 10;
 
   function submit() {
+    if (pending) return;
+    // Validate on click rather than disabling the button — a permanently-greyed button reads as
+    // "broken" and gives no hint why. Tell the user exactly what's missing instead.
+    if (!valid) {
+      setError('Add a subject (3+ characters) and a message (10+ characters).');
+      return;
+    }
     setError(null);
     setSent(false);
     start(async () => {
@@ -101,7 +108,7 @@ export function SupportView({ email }: { email: string }) {
             <button
               className="btn btn-primary"
               type="button"
-              disabled={!valid || pending}
+              disabled={pending}
               onClick={submit}
             >
               {pending ? 'Sending…' : 'Send message'}
