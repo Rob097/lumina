@@ -3,7 +3,13 @@ import { eq } from 'drizzle-orm';
 import { apiKeys, merchants } from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { createKey, listKeys, revokeKey, verifyKey } from '../src/lib/key-service.js';
+import {
+  createKey,
+  listKeys,
+  regenerateLiveKeys,
+  revokeKey,
+  verifyKey,
+} from '../src/lib/key-service.js';
 
 let ctx: TestDb;
 
@@ -71,6 +77,30 @@ describe('key-service', () => {
 
     const summaries = await listKeys(ctx.db, merchantId);
     expect(firstOrThrow(summaries).revokedAt).not.toBeNull();
+  });
+
+  it('regenerates a fresh live pair, revoking every prior key', async () => {
+    const merchantId = await newMerchant();
+    // Start with an old pair (as a bootstrapped workspace would have).
+    const oldPub = await createKey(ctx.db, { merchantId, kind: 'publishable', env: 'live' });
+    const oldSec = await createKey(ctx.db, { merchantId, kind: 'secret', env: 'live' });
+
+    const regenerated = await regenerateLiveKeys(ctx.db, merchantId);
+
+    // New keys verify; old ones no longer do.
+    expect(regenerated.publishable.key).toMatch(/^pk_live_/);
+    expect(regenerated.secret.key).toMatch(/^sk_live_/);
+    expect(await verifyKey(ctx.db, regenerated.publishable.key)).not.toBeNull();
+    expect(await verifyKey(ctx.db, regenerated.secret.key)).not.toBeNull();
+    expect(await verifyKey(ctx.db, oldPub.key)).toBeNull();
+    expect(await verifyKey(ctx.db, oldSec.key)).toBeNull();
+
+    // Exactly one active publishable + secret remain, and the publishable carries its site_key.
+    const active = (await listKeys(ctx.db, merchantId)).filter((k) => !k.revokedAt);
+    expect(active).toHaveLength(2);
+    const pub = active.find((k) => k.kind === 'publishable');
+    expect(pub?.env).toBe('live');
+    expect(pub?.siteKey).toBe(regenerated.publishable.key);
   });
 
   it('exposes the raw value as the public site_key for publishable keys only', async () => {

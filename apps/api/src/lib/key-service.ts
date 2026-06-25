@@ -34,6 +34,62 @@ export async function createKey(
   return { id: row.id, key: generated.raw };
 }
 
+export interface RegeneratedKeys {
+  publishable: { id: string; key: string };
+  secret: { id: string; key: string };
+}
+
+/**
+ * Replace the workspace's keys in one shot: revoke every active key, then mint a fresh live
+ * publishable + secret. Returns both raw values exactly once. The publishable doubles as the public
+ * `site_key`, so callers must warn the merchant their widget snippet needs updating after this.
+ */
+export async function regenerateLiveKeys(
+  db: Database,
+  merchantId: string,
+): Promise<RegeneratedKeys> {
+  return db.transaction(async (tx) => {
+    await tx
+      .update(apiKeys)
+      .set({ revokedAt: new Date() })
+      .where(and(eq(apiKeys.merchantId, merchantId), isNull(apiKeys.revokedAt)));
+
+    const pub = generateApiKey('publishable', 'live');
+    const sec = generateApiKey('secret', 'live');
+    const rows = await tx
+      .insert(apiKeys)
+      .values([
+        {
+          merchantId,
+          kind: 'publishable',
+          env: 'live',
+          prefix: pub.prefix,
+          keyHash: pub.keyHash,
+          siteKey: pub.raw, // publishable keys are public — store the raw value as the site_key
+        },
+        {
+          merchantId,
+          kind: 'secret',
+          env: 'live',
+          prefix: sec.prefix,
+          keyHash: sec.keyHash,
+          siteKey: null,
+        },
+      ])
+      .returning({ id: apiKeys.id, kind: apiKeys.kind });
+
+    const pubRow = rows.find((r) => r.kind === 'publishable');
+    const secRow = rows.find((r) => r.kind === 'secret');
+    if (!pubRow || !secRow) {
+      throw new Error('failed to regenerate api keys');
+    }
+    return {
+      publishable: { id: pubRow.id, key: pub.raw },
+      secret: { id: secRow.id, key: sec.raw },
+    };
+  });
+}
+
 /** Safe, tenant-scoped list of keys (no secret/hash). */
 export async function listKeys(db: Database, merchantId: string): Promise<ApiKeySummary[]> {
   const rows = await db

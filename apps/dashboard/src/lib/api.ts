@@ -6,6 +6,7 @@ import {
   BillingPlansResponseSchema,
   BulkProductsResultSchema,
   CreateKeyResponseSchema,
+  RegenerateKeysResponseSchema,
   CreditsResponseSchema,
   ClientSchema,
   ClientsListResponseSchema,
@@ -32,6 +33,7 @@ import {
   type BulkProductsResult,
   type CreateKeyRequest,
   type CreateKeyResponse,
+  type RegenerateKeysResponse,
   type Client,
   type ClientInput,
   type ClientUpdate,
@@ -105,6 +107,12 @@ export async function createKey(req: CreateKeyRequest): Promise<CreateKeyRespons
 export async function revokeKey(id: string): Promise<boolean> {
   const res = await apiFetch(`/keys/${id}`, { method: 'DELETE' });
   return res.ok;
+}
+
+/** Regenerate the live publishable + secret pair (revokes the old keys). Both raw values returned once. */
+export async function regenerateKeys(): Promise<RegenerateKeysResponse | null> {
+  const res = await apiFetch('/keys/regenerate', { method: 'POST' });
+  return res.ok ? RegenerateKeysResponseSchema.parse(await res.json()) : null;
 }
 
 export async function updateDomains(domains: string[]): Promise<string[] | null> {

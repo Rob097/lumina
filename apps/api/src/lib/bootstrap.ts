@@ -4,9 +4,9 @@ import { apiKeys, memberships, merchants, widgetConfigs, type Database } from '@
 import type { KeyEnv, KeyKind } from '@lumina/shared';
 import { generateApiKey } from './keys.js';
 
+// Live keys only — test keys added clutter without earning their keep (D-followup). A workspace boots
+// with one publishable + one secret; merchants mint fresh pairs from Settings → API keys.
 const KEY_MATRIX: ReadonlyArray<{ kind: KeyKind; env: KeyEnv }> = [
-  { kind: 'publishable', env: 'test' },
-  { kind: 'secret', env: 'test' },
   { kind: 'publishable', env: 'live' },
   { kind: 'secret', env: 'live' },
 ];
@@ -36,9 +36,9 @@ export interface BootstrapResult {
 }
 
 /**
- * Create a new workspace (merchant) owned by the user: the merchant row, an owner membership, the four
- * default key pairs (pk/sk × test/live), and an active widget config — all in one transaction. Used both
- * by first-login bootstrap and by the "create another workspace" flow (multi-workspace). `slugBase` lets
+ * Create a new workspace (merchant) owned by the user: the merchant row, an owner membership, a live
+ * publishable + secret key pair, and an active widget config — all in one transaction. Used both by
+ * first-login bootstrap and by the "create another workspace" flow (multi-workspace). `slugBase` lets
  * the caller derive the slug from something other than the display name (e.g. the email local part).
  */
 export async function createWorkspace(
@@ -83,6 +83,9 @@ export async function createWorkspace(
         env: spec.env,
         prefix: g.prefix,
         keyHash: g.keyHash,
+        // A publishable key IS the public site_key — persist the raw value so the install snippet
+        // self-fills. Without this the widget loader gets a broken placeholder.
+        siteKey: spec.kind === 'publishable' ? g.raw : null,
       })),
     );
 

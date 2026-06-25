@@ -7,11 +7,13 @@ import {
   MerchantUpdateSchema,
   type ApiKeySummary,
   type CreateKeyResponse,
+  type RegenerateKeysResponse,
 } from '@lumina/shared';
 import {
   createKey,
   deleteMerchant,
   fetchKeys,
+  regenerateKeys,
   revokeKey,
   updateDomains,
   updateMerchant,
@@ -55,6 +57,16 @@ export async function revokeKeyAction(id: string): Promise<ActionResult> {
   }
   revalidatePath('/settings');
   return { ok: true, data: undefined };
+}
+
+/** Replace the live publishable + secret pair; both raw values are revealed once to the caller. */
+export async function regenerateKeysAction(): Promise<ActionResult<RegenerateKeysResponse>> {
+  const created = await regenerateKeys();
+  if (!created) {
+    return { ok: false, error: "Couldn't regenerate the keys. Please try again." };
+  }
+  revalidatePath('/settings');
+  return { ok: true, data: created };
 }
 
 export async function listKeysAction(): Promise<ApiKeySummary[]> {

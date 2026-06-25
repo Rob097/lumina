@@ -46,6 +46,17 @@ export const CreateKeyResponseSchema = z.object({
 });
 export type CreateKeyResponse = z.infer<typeof CreateKeyResponseSchema>;
 
+/**
+ * `POST /v1/keys/regenerate` — replace the workspace's live keys with a fresh pair. Both raw values are
+ * returned exactly once (the publishable doubles as the public site_key). Regenerating retires the old
+ * keys, so the merchant's widget snippet must be updated with the new publishable.
+ */
+export const RegenerateKeysResponseSchema = z.object({
+  publishable: z.string(),
+  secret: z.string(),
+});
+export type RegenerateKeysResponse = z.infer<typeof RegenerateKeysResponseSchema>;
+
 export const MeMerchantSchema = z.object({
   id: z.string(),
   name: z.string(),
