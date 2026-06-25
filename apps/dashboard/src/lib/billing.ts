@@ -1,23 +1,6 @@
-import type { PlanTier } from '@lumina/shared';
+import { planRank, type PlanTier } from '@lumina/shared';
 
-/**
- * Price-order rank of a plan tier (cheapest → most expensive) for the upgrade/downgrade CTA. Explicit, NOT
- * the `PLAN_TIERS` storage order — `pro` is appended last in the enum (a non-destructive Postgres migration)
- * but sits between growth and enterprise by price.
- */
-const PLAN_RANK: Record<PlanTier, number> = {
-  free: 0,
-  starter: 1,
-  growth: 2,
-  pro: 3,
-  scale: 4,
-  enterprise: 5,
-};
-
-/** Order index of a plan tier (cheapest → most expensive). */
-export function planRank(tier: PlanTier): number {
-  return PLAN_RANK[tier];
-}
+export { planRank };
 
 export type PlanCta = 'current' | 'upgrade' | 'downgrade' | 'contact';
 

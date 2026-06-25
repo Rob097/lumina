@@ -30,6 +30,26 @@ export function shopLimit(plan: PlanTier): number {
 }
 
 /**
+ * Price-order rank of a plan (cheapest → most expensive), for upgrade/downgrade detection. Explicit, NOT
+ * the `PLAN_TIERS` storage order (`pro` is appended last in the enum but sits below scale/enterprise).
+ */
+const PLAN_RANK: Record<PlanTier, number> = {
+  free: 0,
+  starter: 1,
+  growth: 2,
+  pro: 3,
+  scale: 4,
+  enterprise: 5,
+};
+export function planRank(plan: PlanTier): number {
+  return PLAN_RANK[plan];
+}
+/** A move from `current` to `target` is a downgrade when the target ranks lower. */
+export function isDowngrade(current: PlanTier, target: PlanTier): boolean {
+  return planRank(target) < planRank(current);
+}
+
+/**
  * The plans actually sold (shown as cards), in display order — matches the public pricing page
  * (Starter / Growth / Pro / Enterprise). `free` is the internal no-subscription default and `scale` is a
  * retired tier: both stay in {@link PLAN_CATALOG} (for the webhook + current-plan resolution) but are not

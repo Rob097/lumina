@@ -1,6 +1,32 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, isNotNull } from 'drizzle-orm';
 import type Stripe from 'stripe';
-import { subscriptions, type Database } from '@lumina/db';
+import { merchants, subscriptions, type Database } from '@lumina/db';
+
+/**
+ * The account's existing Stripe customer id (from any of its workspaces' subscription rows), or null.
+ * Account-scoped so "Manage billing" / plan changes work from ANY of the account's workspaces — not just
+ * the one that originally subscribed (which may now be suspended or simply not the active one).
+ */
+export async function accountStripeCustomerId(
+  db: Database,
+  merchantId: string,
+): Promise<string | null> {
+  const [m] = await db
+    .select({ accountId: merchants.accountId })
+    .from(merchants)
+    .where(eq(merchants.id, merchantId))
+    .limit(1);
+  if (!m?.accountId) {
+    return null;
+  }
+  const [row] = await db
+    .select({ customerId: subscriptions.stripeCustomerId })
+    .from(subscriptions)
+    .innerJoin(merchants, eq(subscriptions.merchantId, merchants.id))
+    .where(and(eq(merchants.accountId, m.accountId), isNotNull(subscriptions.stripeCustomerId)))
+    .limit(1);
+  return row?.customerId ?? null;
+}
 
 /**
  * Whether a stored Stripe customer must be replaced before a checkout can succeed. Stripe pins

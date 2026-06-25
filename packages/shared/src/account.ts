@@ -114,6 +114,12 @@ export const SwitchWorkspaceSchema = z.object({
 });
 export type SwitchWorkspace = z.infer<typeof SwitchWorkspaceSchema>;
 
+/** `POST /v1/workspaces/reactivate` — re-activate a deactivated workspace (if under the plan's shop cap). */
+export const ReactivateWorkspaceSchema = z.object({
+  merchantId: z.string().uuid(),
+});
+export type ReactivateWorkspace = z.infer<typeof ReactivateWorkspaceSchema>;
+
 /** Roles assignable when inviting a teammate. `owner` is structural (set on creation), so it's excluded. */
 export const INVITABLE_ROLES = ['member', 'support'] as const;
 export const InvitableRoleSchema = z.enum(INVITABLE_ROLES);
