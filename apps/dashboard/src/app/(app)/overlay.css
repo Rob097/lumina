@@ -328,6 +328,38 @@
   text-transform: uppercase;
   color: var(--accent);
 }
+/* A workspace row that pairs the switch/reactivate action with a trailing delete affordance. */
+.menu-ws-row {
+  display: flex;
+  align-items: center;
+}
+.menu-ws-row .menu-item {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.menu-ws-del {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  margin-left: 2px;
+  padding: 0;
+  border: none;
+  background: none;
+  border-radius: var(--r-md);
+  color: var(--text-faint);
+  cursor: pointer;
+}
+.menu-ws-del:hover {
+  background: var(--surface-2);
+  color: var(--danger);
+}
+.menu-ws-del:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
 
 /* the account avatar is now a menu trigger — keep it a clean circular button */
 button.avatar {

@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { memberships, merchants } from '@lumina/db';
 import { MerchantUpdateSchema } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
@@ -47,6 +47,27 @@ export async function DELETE(): Promise<Response> {
     .limit(1);
   if (membership?.role !== 'owner') {
     return errorResponse('unauthorized', 'Only the workspace owner can delete it');
+  }
+
+  // This endpoint closes the whole account (deletes the workspace + signs the user out). When the account
+  // owns more than one workspace, blindly nuking the active one could strand billing on a sibling — require
+  // the extras to be deleted individually first (POST /v1/workspaces/delete, which guards that path).
+  const [active] = await guard.db
+    .select({ accountId: merchants.accountId })
+    .from(merchants)
+    .where(eq(merchants.id, guard.merchantId))
+    .limit(1);
+  if (active?.accountId) {
+    const [{ count } = { count: 1 }] = await guard.db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(merchants)
+      .where(eq(merchants.accountId, active.accountId));
+    if (count > 1) {
+      return errorResponse(
+        'invalid_input',
+        'This account has other workspaces. Delete them from the workspace switcher first.',
+      );
+    }
   }
 
   const r2 = createR2FromEnv(process.env);

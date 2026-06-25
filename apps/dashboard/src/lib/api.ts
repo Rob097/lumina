@@ -265,6 +265,24 @@ export async function reactivateWorkspace(
   return { ok: false, error: body?.error?.message ?? 'Could not reactivate the workspace.' };
 }
 
+/** Permanently delete one of the account's workspaces (account-owner only, server-enforced). */
+export async function deleteWorkspace(
+  merchantId: string,
+): Promise<{ ok: true; activeMerchantReset?: string } | { ok: false; error: string }> {
+  const res = await apiFetch('/workspaces/delete', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ merchantId }),
+  });
+  if (res.ok) {
+    return z
+      .object({ ok: z.literal(true), activeMerchantReset: z.string().optional() })
+      .parse(await res.json());
+  }
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return { ok: false, error: body?.error?.message ?? 'Could not delete the workspace.' };
+}
+
 /** Open the Stripe billing portal; returns the redirect URL, or null. */
 export async function openBillingPortal(): Promise<string | null> {
   const res = await apiFetch('/billing/portal', { method: 'POST' });

@@ -122,6 +122,15 @@ export const ReactivateWorkspaceSchema = z.object({
 });
 export type ReactivateWorkspace = z.infer<typeof ReactivateWorkspaceSchema>;
 
+/**
+ * `POST /v1/workspaces/delete` — permanently delete one of the account's workspaces (account-owner only).
+ * Never the last active workspace, and never the one holding the live Stripe subscription.
+ */
+export const DeleteWorkspaceSchema = z.object({
+  merchantId: z.string().uuid(),
+});
+export type DeleteWorkspace = z.infer<typeof DeleteWorkspaceSchema>;
+
 /** Roles assignable when inviting a teammate. `owner` is structural (set on creation), so it's excluded. */
 export const INVITABLE_ROLES = ['member', 'support'] as const;
 export const InvitableRoleSchema = z.enum(INVITABLE_ROLES);

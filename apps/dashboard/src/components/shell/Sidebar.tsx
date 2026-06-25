@@ -12,6 +12,7 @@ import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
 import {
   createWorkspaceAction,
+  deleteWorkspaceAction,
   reactivateWorkspaceAction,
   switchWorkspaceAction,
 } from '@/lib/workspace-actions';
@@ -22,6 +23,8 @@ export interface WorkspaceOption {
   plan: string;
   initials: string;
   suspended?: boolean;
+  /** Whether the signed-in user owns this workspace's billing account (governs delete). */
+  isAccountOwner?: boolean;
 }
 
 export interface SidebarProps {
@@ -52,6 +55,10 @@ export function Sidebar({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [busyLabel, setBusyLabel] = useState<string | null>(null);
+  // Delete-workspace confirmation (type-the-name, like Settings → Danger zone).
+  const [del, setDel] = useState<WorkspaceOption | null>(null);
+  const [typed, setTyped] = useState('');
+  const [delError, setDelError] = useState<string | null>(null);
 
   function switchTo(id: string) {
     if (id === activeMerchantId) return;
@@ -91,8 +98,39 @@ export function Sidebar({
     });
   }
 
+  function askDelete(w: WorkspaceOption) {
+    setTyped('');
+    setDelError(null);
+    setDel(w);
+  }
+
+  function confirmDelete() {
+    if (!del || typed.trim() !== del.name) return;
+    setDelError(null);
+    setBusyLabel('Deleting workspace…');
+    startTransition(async () => {
+      const res = await deleteWorkspaceAction(del.id);
+      if (!res.ok) {
+        setDelError(res.error);
+        return;
+      }
+      setDel(null);
+      // The active workspace may have changed (the API moved the cookie); land on Overview.
+      router.push('/overview');
+      router.refresh();
+    });
+  }
+
   const activeWorkspaces = workspaces.filter((w) => !w.suspended);
   const suspendedWorkspaces = workspaces.filter((w) => w.suspended);
+
+  // A workspace is deletable by the account owner as long as removing it leaves at least one ACTIVE
+  // workspace. (The sub-bearing-workspace guard is server-side — it surfaces as a modal error.)
+  function canDelete(w: WorkspaceOption): boolean {
+    if (!w.isAccountOwner || workspaces.length <= 1) return false;
+    const isOnlyActive = !w.suspended && activeWorkspaces.length === 1;
+    return !isOnlyActive;
+  }
 
   return (
     <>
@@ -100,6 +138,42 @@ export function Sidebar({
         <div className="ws-switching" role="status" aria-live="polite">
           <div className="spinner" />
           <span className="ws-switching-label">{busyLabel ?? 'Loading…'}</span>
+        </div>
+      )}
+      {del && (
+        <div className="drawer-scrim" onClick={pending ? undefined : () => setDel(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
+            <header className="drawer-head">
+              <h3>Delete this workspace?</h3>
+            </header>
+            <div className="drawer-body">
+              <p className="t-secondary settings-p">
+                This permanently erases <strong>{del.name}</strong> — its products, generations, and
+                widget. This cannot be undone. Type the name to confirm.
+              </p>
+              <input
+                className="input"
+                placeholder={del.name}
+                value={typed}
+                disabled={pending}
+                onChange={(e) => setTyped(e.target.value)}
+              />
+              {delError && <p className="field-error">{delError}</p>}
+            </div>
+            <footer className="drawer-foot">
+              <button className="btn btn-ghost" type="button" onClick={() => setDel(null)} disabled={pending}>
+                Cancel
+              </button>
+              <button
+                className="btn btn-danger"
+                type="button"
+                disabled={pending || typed.trim() !== del.name}
+                onClick={confirmDelete}
+              >
+                {pending ? 'Deleting…' : 'Delete forever'}
+              </button>
+            </footer>
+          </div>
         </div>
       )}
       {open && <div className="side-scrim" onClick={() => setOpen(false)} aria-hidden="true" />}
@@ -124,38 +198,64 @@ export function Sidebar({
         >
           <div className="menu-head">Workspaces</div>
           {activeWorkspaces.map((w) => (
-            <button
-              key={w.id}
-              type="button"
-              role="menuitem"
-              className={`menu-item${w.id === activeMerchantId ? ' is-current' : ''}`}
-              disabled={pending}
-              onClick={() => switchTo(w.id)}
-            >
-              <span className="merchant-logo sm">{w.initials}</span>
-              <span className="grow">{w.name}</span>
-              {w.id === activeMerchantId ? (
-                <Icon name="arrow-up-right" size={14} strokeWidth={2} />
-              ) : null}
-            </button>
+            <div key={w.id} className="menu-ws-row">
+              <button
+                type="button"
+                role="menuitem"
+                className={`menu-item${w.id === activeMerchantId ? ' is-current' : ''}`}
+                disabled={pending}
+                onClick={() => switchTo(w.id)}
+              >
+                <span className="merchant-logo sm">{w.initials}</span>
+                <span className="grow">{w.name}</span>
+                {w.id === activeMerchantId ? (
+                  <Icon name="arrow-up-right" size={14} strokeWidth={2} />
+                ) : null}
+              </button>
+              {canDelete(w) && (
+                <button
+                  type="button"
+                  className="menu-ws-del"
+                  disabled={pending}
+                  aria-label={`Delete ${w.name}`}
+                  title="Delete workspace"
+                  onClick={() => askDelete(w)}
+                >
+                  <Icon name="trash" size={15} strokeWidth={1.8} />
+                </button>
+              )}
+            </div>
           ))}
           {suspendedWorkspaces.length > 0 && (
             <>
               <div className="menu-head">Deactivated</div>
               {suspendedWorkspaces.map((w) => (
-                <button
-                  key={w.id}
-                  type="button"
-                  role="menuitem"
-                  className="menu-item"
-                  disabled={pending}
-                  onClick={() => reactivate(w.id)}
-                  title="Reactivate this workspace"
-                >
-                  <span className="merchant-logo sm">{w.initials}</span>
-                  <span className="grow t-muted">{w.name}</span>
-                  <span className="reactivate-tag">Reactivate</span>
-                </button>
+                <div key={w.id} className="menu-ws-row">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="menu-item"
+                    disabled={pending}
+                    onClick={() => reactivate(w.id)}
+                    title="Reactivate this workspace"
+                  >
+                    <span className="merchant-logo sm">{w.initials}</span>
+                    <span className="grow t-muted">{w.name}</span>
+                    <span className="reactivate-tag">Reactivate</span>
+                  </button>
+                  {canDelete(w) && (
+                    <button
+                      type="button"
+                      className="menu-ws-del"
+                      disabled={pending}
+                      aria-label={`Delete ${w.name}`}
+                      title="Delete workspace"
+                      onClick={() => askDelete(w)}
+                    >
+                      <Icon name="trash" size={15} strokeWidth={1.8} />
+                    </button>
+                  )}
+                </div>
               ))}
             </>
           )}

@@ -3,7 +3,13 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { CreateWorkspaceSchema } from '@lumina/shared';
-import { acceptInvite, createWorkspace, fetchMe, reactivateWorkspace } from '@/lib/api';
+import {
+  acceptInvite,
+  createWorkspace,
+  deleteWorkspace,
+  fetchMe,
+  reactivateWorkspace,
+} from '@/lib/api';
 import { ACTIVE_MERCHANT_COOKIE } from '@/lib/workspace';
 
 const COOKIE_OPTS = {
@@ -46,6 +52,22 @@ export async function reactivateWorkspaceAction(merchantId: string): Promise<Wor
   const res = await reactivateWorkspace(merchantId);
   if (!res.ok) {
     return { ok: false, error: res.error };
+  }
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/**
+ * Permanently delete a workspace. When the active workspace is the one deleted, the API returns which
+ * sibling to switch into and we move the cookie there before the dashboard re-reads.
+ */
+export async function deleteWorkspaceAction(merchantId: string): Promise<WorkspaceActionResult> {
+  const res = await deleteWorkspace(merchantId);
+  if (!res.ok) {
+    return { ok: false, error: res.error };
+  }
+  if (res.activeMerchantReset) {
+    (await cookies()).set(ACTIVE_MERCHANT_COOKIE, res.activeMerchantReset, COOKIE_OPTS);
   }
   revalidatePath('/', 'layout');
   return { ok: true };

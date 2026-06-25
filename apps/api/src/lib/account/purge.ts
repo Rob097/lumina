@@ -11,7 +11,7 @@ import { generations, merchants, type Database } from '@lumina/db';
  *   all survive so the dashboard keeps its history. Rooms purge sooner than results (privacy). The credit
  *   ledger is untouched (`generation_id` is `ON DELETE SET NULL`, and rows are no longer deleted at all).
  */
-const OBJECT_ROOTS = ['rooms', 'products', 'results', 'thumbs'] as const;
+export const OBJECT_ROOTS = ['rooms', 'products', 'results', 'thumbs'] as const;
 
 /** How many rows to process per query, so a single cron run is bounded. */
 const BATCH_SIZE = 500;
