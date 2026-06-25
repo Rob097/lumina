@@ -9,6 +9,7 @@ import { compact, groupThousands, shortDate } from '@/lib/format';
 import { creditMeter } from '@/lib/shell';
 import { changeAction, checkoutAction, portalAction } from './actions';
 import { DowngradeModal, type DowngradeWorkspace } from './DowngradeModal';
+import { UpgradeModal } from './UpgradeModal';
 
 function LedgerAmount({ amount }: { amount: number }) {
   const up = amount >= 0;
@@ -58,8 +59,12 @@ export function BillingView({
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
-  // Downgrade modal (only for accounts that already subscribe).
+  // Plan-change modals (only for accounts that already subscribe): downgrade picks which shops to keep;
+  // upgrade just confirms. Both go through the first-party /billing/change endpoint (no Stripe portal).
   const [downgrade, setDowngrade] = useState<{ tier: PlanTier; label: string } | null>(null);
+  const [upgrade, setUpgrade] = useState<{ tier: PlanTier; label: string; price: number | null } | null>(
+    null,
+  );
   const [changeError, setChangeError] = useState<string | null>(null);
   const [changeNotice, setChangeNotice] = useState<string | null>(null);
   const [changePending, startChange] = useTransition();
@@ -90,6 +95,23 @@ export function BillingView({
         setDowngrade(null);
         // accounts.plan flips once the Stripe webhook lands, so the cards may lag a moment — tell the user.
         setChangeNotice(`Downgrade to ${label} is being applied — your plan and workspaces update shortly.`);
+        router.refresh();
+      } else {
+        setChangeError(res.error);
+      }
+    });
+  }
+
+  function confirmUpgrade() {
+    if (!upgrade) return;
+    setChangeError(null);
+    startChange(async () => {
+      const label = upgrade.label;
+      // Upgrades never reduce shops, so no keep-selection is sent.
+      const res = await changeAction(upgrade.tier, []);
+      if (res.ok) {
+        setUpgrade(null);
+        setChangeNotice(`Upgrade to ${label} is being applied — your plan updates shortly.`);
         router.refresh();
       } else {
         setChangeError(res.error);
@@ -197,16 +219,20 @@ export function BillingView({
                   Owner only
                 </button>
               ) : hasActiveSubscription ? (
-                // The account already subscribes: upgrades/switches go straight to the Stripe portal
-                // (it handles proration); downgrades open our modal (lost-benefits + workspace selection).
+                // The account already subscribes: both upgrades and downgrades are handled in-app via our
+                // own modals (no confusing Stripe-portal detour). The portal stays behind "Manage billing"
+                // for payment method + cancellation only.
                 cta === 'upgrade' ? (
                   <button
                     className="btn btn-primary"
                     type="button"
-                    disabled={pendingPlan !== null}
-                    onClick={() => go(portalAction, 'portal')}
+                    disabled={changePending}
+                    onClick={() => {
+                      setChangeError(null);
+                      setUpgrade({ tier: p.tier, label: p.label, price: p.priceMonthly });
+                    }}
                   >
-                    {pendingPlan === 'portal' ? 'Opening…' : 'Upgrade'}
+                    Upgrade
                   </button>
                 ) : (
                   <button
@@ -285,6 +311,19 @@ export function BillingView({
           error={changeError}
           onClose={() => setDowngrade(null)}
           onConfirm={confirmDowngrade}
+        />
+      )}
+
+      {upgrade && (
+        <UpgradeModal
+          currentPlan={plans.currentPlan}
+          targetPlan={upgrade.tier}
+          targetLabel={upgrade.label}
+          priceMonthly={upgrade.price}
+          pending={changePending}
+          error={changeError}
+          onClose={() => setUpgrade(null)}
+          onConfirm={confirmUpgrade}
         />
       )}
     </div>

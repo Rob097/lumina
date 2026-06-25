@@ -1,6 +1,6 @@
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { accounts, merchants, subscriptions } from '@lumina/db';
-import { PlanChangeRequestSchema, SELLABLE_PLAN_TIERS, isDowngrade, shopLimit } from '@lumina/shared';
+import { PlanChangeRequestSchema, SELLABLE_PLAN_TIERS, shopLimit } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse, serverError } from '@/lib/http';
 import { createStripeClient } from '@/lib/billing/stripe';
@@ -10,9 +10,11 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 /**
- * POST /v1/billing/change — DOWNGRADE the account's plan (upgrades go through the billing portal). Changes
- * the Stripe subscription programmatically and, when the new plan allows fewer shops, reversibly suspends
- * the workspaces NOT in `keepMerchantIds`. Account-owner only. Stripe runs before any deactivation.
+ * POST /v1/billing/change — change the account's plan in-app, up or down (no Stripe-portal detour). Upgrades
+ * just swap the Stripe price; downgrades additionally, when the new plan allows fewer shops, reversibly
+ * suspend the workspaces NOT in `keepMerchantIds`. Either way the new price applies at the next renewal
+ * (`proration_behavior: 'none'`). Account-owner only. Stripe runs before any deactivation. Enterprise
+ * (contact sales) and `free` (cancel via the portal) are not valid targets here.
  */
 export async function POST(request: Request): Promise<Response> {
   const guard = await requireMerchant();
@@ -46,8 +48,8 @@ export async function POST(request: Request): Promise<Response> {
   if (acc.ownerUserId !== guard.user.id) {
     return errorResponse('unauthorized', 'Only the account owner can change the plan');
   }
-  if (!isDowngrade(acc.plan, targetPlan)) {
-    return errorResponse('invalid_input', 'This endpoint only handles downgrades; use the portal to upgrade.');
+  if (acc.plan === targetPlan) {
+    return errorResponse('invalid_input', "That's already your current plan.");
   }
 
   // The account's live subscription (on whichever shop subscribed).
