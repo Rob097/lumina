@@ -11,9 +11,17 @@ const CATEGORY_LABEL: Record<SupportCategory, string> = {
   other: 'Something else',
 };
 
-export function SupportView({ email }: { email: string }) {
-  const [category, setCategory] = useState<SupportCategory>('technical');
-  const [subject, setSubject] = useState('');
+export function SupportView({
+  email,
+  initialCategory = 'technical',
+  initialSubject = '',
+}: {
+  email: string;
+  initialCategory?: SupportCategory;
+  initialSubject?: string;
+}) {
+  const [category, setCategory] = useState<SupportCategory>(initialCategory);
+  const [subject, setSubject] = useState(initialSubject);
   const [message, setMessage] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sent, setSent] = useState(false);

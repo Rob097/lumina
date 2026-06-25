@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { BillingPlansResponse, CreditsResponse, LedgerEntry, PlanTier } from '@lumina/shared';
 import { formatPrice, planCta } from '@/lib/billing';
@@ -178,9 +179,14 @@ export function BillingView({
                   Current plan
                 </button>
               ) : cta === 'contact' ? (
-                <a className="btn btn-secondary" href="mailto:sales@rdlabs.digital?subject=Enterprise%20plan">
+                // Enterprise is sales-assisted: route to the in-app support form, pre-filled, rather than a
+                // dead mailto. Topic → "Billing question", subject → the enterprise request.
+                <Link
+                  className="btn btn-secondary"
+                  href={`/support?topic=billing&subject=${encodeURIComponent('Request of Enterprise plan')}`}
+                >
                   Contact sales
-                </a>
+                </Link>
               ) : !canManageBilling ? (
                 <button
                   className="btn btn-secondary"

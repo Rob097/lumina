@@ -15,3 +15,22 @@ export const SupportRequestSchema = z.object({
   message: z.string().trim().min(10).max(4000),
 });
 export type SupportRequest = z.infer<typeof SupportRequestSchema>;
+
+/**
+ * Parse a `topic`/`subject` deep-link into safe initial values for the support form. Used by callers that
+ * route the user to the contact page pre-filled (e.g. the Enterprise "Contact sales" button). Tolerant of
+ * junk: an unknown/absent topic falls back to `technical`, array-valued params are ignored, and the
+ * subject is trimmed and clamped to the schema's 200-char ceiling so the form opens in a submittable state.
+ */
+export function parseSupportPrefill(params: {
+  topic?: string | string[] | undefined;
+  subject?: string | string[] | undefined;
+}): { category: SupportCategory; subject: string } {
+  const topic = typeof params.topic === 'string' ? params.topic : undefined;
+  const subjectRaw = typeof params.subject === 'string' ? params.subject : '';
+  const category = SupportCategorySchema.safeParse(topic);
+  return {
+    category: category.success ? category.data : 'technical',
+    subject: subjectRaw.trim().slice(0, 200),
+  };
+}
