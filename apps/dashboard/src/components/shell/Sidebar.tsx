@@ -48,10 +48,12 @@ export function Sidebar({
   function switchTo(id: string) {
     if (id === activeMerchantId) return;
     setBusyLabel('Switching workspace…');
-    // router.refresh() runs inside the transition, so `pending` stays true until the new
-    // workspace's data has streamed in — the overlay covers the whole switch, not just the action.
+    // Land on Overview after switching — the current page may be workspace-specific (a generation,
+    // a client…) and wouldn't exist in the new workspace. The navigation runs inside the transition,
+    // so `pending` stays true (and the overlay shows) until the new workspace's Overview has rendered.
     startTransition(async () => {
       await switchWorkspaceAction(id);
+      router.push('/overview');
       router.refresh();
     });
   }
