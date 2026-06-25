@@ -4,10 +4,49 @@ import {
   BillingPlansResponseSchema,
   PLAN_CATALOG,
   PLAN_PRESENTATION,
+  PlanChangeRequestSchema,
   buildBillingPlans,
+  lostFeatures,
   shopLimit,
 } from './plans.js';
 import { PLAN_TIERS } from './enums.js';
+
+describe('lostFeatures', () => {
+  it('returns features on the current plan but not the target (a downgrade)', () => {
+    const lost = lostFeatures('growth', 'starter');
+    expect(lost).toContain('White-label (your brand)');
+    expect(lost).toContain('Priority support');
+    expect(lost).not.toContain('1 shop'); // shared by both → not lost
+  });
+
+  it('returns [] for the same plan', () => {
+    expect(lostFeatures('growth', 'growth')).toEqual([]);
+  });
+});
+
+describe('buildBillingPlans hasActiveSubscription', () => {
+  it('defaults to false and is set from opts', () => {
+    expect(buildBillingPlans('growth').hasActiveSubscription).toBe(false);
+    expect(buildBillingPlans('growth', { hasActiveSubscription: true }).hasActiveSubscription).toBe(
+      true,
+    );
+  });
+});
+
+describe('PlanChangeRequestSchema', () => {
+  it('accepts a target plan with optional uuid keep list, rejects non-uuids', () => {
+    expect(PlanChangeRequestSchema.safeParse({ targetPlan: 'starter' }).success).toBe(true);
+    expect(
+      PlanChangeRequestSchema.safeParse({
+        targetPlan: 'starter',
+        keepMerchantIds: ['11111111-1111-4111-8111-111111111111'],
+      }).success,
+    ).toBe(true);
+    expect(
+      PlanChangeRequestSchema.safeParse({ targetPlan: 'starter', keepMerchantIds: ['nope'] }).success,
+    ).toBe(false);
+  });
+});
 
 describe('shopLimit', () => {
   it('caps single-shop plans at 1 and scales up for higher tiers', () => {

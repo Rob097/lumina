@@ -111,18 +111,23 @@ export const BillingPlanSchema = z.object({
 });
 export type BillingPlan = z.infer<typeof BillingPlanSchema>;
 
-/** `GET /v1/billing/plans` — the plan cards + the merchant's current tier (§6.3). */
+/** `GET /v1/billing/plans` — the plan cards + the account's current tier (§6.3). */
 export const BillingPlansResponseSchema = z.object({
   plans: z.array(BillingPlanSchema),
   currentPlan: PlanTierSchema,
+  /** Whether the account already has a live Stripe subscription — drives portal-vs-checkout routing. */
+  hasActiveSubscription: z.boolean().default(false),
 });
 export type BillingPlansResponse = z.infer<typeof BillingPlansResponseSchema>;
 
 /**
- * Compose the billing-plans response from catalog + presentation for a merchant's current tier. Only the
+ * Compose the billing-plans response from catalog + presentation for an account's current tier. Only the
  * sellable tiers ({@link SELLABLE_PLAN_TIERS}) are returned as cards; `free`/`scale` are never offered.
  */
-export function buildBillingPlans(currentPlan: PlanTier): BillingPlansResponse {
+export function buildBillingPlans(
+  currentPlan: PlanTier,
+  opts: { hasActiveSubscription?: boolean } = {},
+): BillingPlansResponse {
   const plans: BillingPlan[] = SELLABLE_PLAN_TIERS.map((tier) => ({
     tier,
     label: PLAN_CATALOG[tier].label,
@@ -131,5 +136,23 @@ export function buildBillingPlans(currentPlan: PlanTier): BillingPlansResponse {
     highlight: PLAN_PRESENTATION[tier].highlight,
     features: PLAN_PRESENTATION[tier].features,
   }));
-  return { plans, currentPlan };
+  return { plans, currentPlan, hasActiveSubscription: opts.hasActiveSubscription ?? false };
 }
+
+/**
+ * The features present on `currentPlan` but not on `targetPlan` — what the merchant gives up by
+ * downgrading. A plain set-difference of the presentation feature lists (higher-volume lines naturally
+ * surface as "lost or reduced"); used to populate the downgrade-confirmation modal.
+ */
+export function lostFeatures(currentPlan: PlanTier, targetPlan: PlanTier): string[] {
+  const kept = new Set(PLAN_PRESENTATION[targetPlan].features);
+  return PLAN_PRESENTATION[currentPlan].features.filter((f) => !kept.has(f));
+}
+
+/** `POST /v1/billing/change` — change the account's plan (downgrade), keeping `keepMerchantIds` active. */
+export const PlanChangeRequestSchema = z.object({
+  targetPlan: PlanTierSchema,
+  /** Which workspaces stay active (exactly `shopLimit(targetPlan)` when the downgrade reduces the cap). */
+  keepMerchantIds: z.array(z.string().uuid()).optional(),
+});
+export type PlanChangeRequest = z.infer<typeof PlanChangeRequestSchema>;
