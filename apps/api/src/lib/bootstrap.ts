@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 import { accounts, apiKeys, memberships, merchants, widgetConfigs, type Database } from '@lumina/db';
 import { shopLimit, type KeyEnv, type KeyKind, type PlanTier } from '@lumina/shared';
 import { generateApiKey } from './keys.js';
@@ -90,11 +90,12 @@ export async function createWorkspace(
     if (!acc) {
       throw new Error('bootstrap: account resolution failed');
     }
+    // Only ACTIVE (non-suspended) shops count against the cap — suspended shops free up a slot.
     const shopCount = (
       await tx
         .select({ n: sql<number>`count(*)::int` })
         .from(merchants)
-        .where(eq(merchants.accountId, acc.id))
+        .where(and(eq(merchants.accountId, acc.id), isNull(merchants.suspendedAt)))
     )[0]?.n ?? 0;
     const limit = shopLimit(acc.plan);
     if (shopCount >= limit) {

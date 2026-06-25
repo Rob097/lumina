@@ -108,6 +108,19 @@ describe('accounts + shop cap', () => {
     expect(merch).toHaveLength(1);
   });
 
+  it('a suspended shop does not count against the cap (frees a slot)', async () => {
+    const userId = await newAuthUser('susp@acme.com');
+    const first = await ensureMerchantForUser(ctx.db, { userId, email: 'susp@acme.com' });
+    // free plan = 1 shop → a 2nd is normally blocked.
+    await expect(createWorkspace(ctx.db, { userId, name: 'Blocked' })).rejects.toBeInstanceOf(
+      ShopLimitError,
+    );
+    // Suspend the only shop → active count drops to 0 → creation is allowed again.
+    await ctx.db.update(merchants).set({ suspendedAt: new Date() }).where(eq(merchants.id, first.merchantId));
+    const second = await createWorkspace(ctx.db, { userId, name: 'Now allowed' });
+    expect(second.merchantId).not.toBe(first.merchantId);
+  });
+
   it('allows up to the plan allowance (pro = 3 shops), then caps', async () => {
     const userId = await newAuthUser('pro@acme.com');
     const first = await ensureMerchantForUser(ctx.db, { userId, email: 'pro@acme.com' });

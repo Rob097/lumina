@@ -58,6 +58,7 @@ export async function POST(request: Request): Promise<Response> {
     role: 'owner',
     plan: m?.plan ?? 'free',
     creditsBalance: m?.creditsBalance ?? 0,
+    suspended: false,
   };
   return jsonResponse(body, { status: 201 });
 }

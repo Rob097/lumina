@@ -76,6 +76,10 @@ export const merchants = pgTable('merchants', {
   // The owning billing account. Nullable for now (backfilled for existing rows; always set on create);
   // tightened to NOT NULL once every row is migrated.
   accountId: uuid('account_id').references(() => accounts.id),
+  // Reversible deactivation: set when a downgrade leaves more shops than the plan allows and the owner
+  // keeps only some active. A suspended workspace doesn't count against the shop cap, its public widget
+  // is off, and it can't be the active workspace — but its data is preserved and it can be reactivated.
+  suspendedAt: timestamp('suspended_at', { withTimezone: true }),
   plan: planTier('plan').notNull().default('free'),
   creditsBalance: integer('credits_balance').notNull().default(0),
   allowedDomains: text('allowed_domains')

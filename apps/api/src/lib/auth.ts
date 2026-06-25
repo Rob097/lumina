@@ -1,4 +1,4 @@
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import { accounts, memberships, merchants, type Database } from '@lumina/db';
 import {
   ERROR_CODES,
@@ -20,6 +20,7 @@ export interface ResolvedMerchant {
   plan: PlanTier;
   creditsBalance: number;
   allowedDomains: string[];
+  suspendedAt: Date | null;
 }
 
 export type AuthResult =
@@ -33,6 +34,7 @@ async function loadMerchant(db: Database, merchantId: string): Promise<ResolvedM
       plan: merchants.plan,
       creditsBalance: merchants.creditsBalance,
       allowedDomains: merchants.allowedDomains,
+      suspendedAt: merchants.suspendedAt,
     })
     .from(merchants)
     .where(eq(merchants.id, merchantId))
@@ -57,7 +59,8 @@ export async function resolveByPublishableKey(
     return { ok: false, error: ERROR_CODES.INVALID_KEY };
   }
   const merchant = await loadMerchant(db, verified.merchantId);
-  if (!merchant) {
+  if (!merchant || merchant.suspendedAt) {
+    // A suspended workspace's public widget is off (reversible deactivation on downgrade).
     return { ok: false, error: ERROR_CODES.INVALID_KEY };
   }
   if (!isAllowedOrigin(input.origin, merchant.allowedDomains)) {
@@ -84,7 +87,8 @@ export async function resolveBySecretKey(
     return { ok: false, error: ERROR_CODES.INVALID_KEY };
   }
   const merchant = await loadMerchant(db, verified.merchantId);
-  if (!merchant) {
+  if (!merchant || merchant.suspendedAt) {
+    // A suspended workspace's API (secret key) is off too, in step with its public widget.
     return { ok: false, error: ERROR_CODES.INVALID_KEY };
   }
   return { ok: true, merchantId: merchant.id, merchant, keyId: verified.keyId };
@@ -121,18 +125,28 @@ export async function resolveActiveMembership(
   userId: string,
   requestedId?: string | null,
 ): Promise<ActiveMembership | null> {
+  // A suspended workspace can never be the active one — the cookie pointing at one is treated as stale
+  // and we fall back to the first ACTIVE membership.
   if (requestedId) {
     const [m] = await db
       .select({ merchantId: memberships.merchantId, role: memberships.role })
       .from(memberships)
-      .where(and(eq(memberships.userId, userId), eq(memberships.merchantId, requestedId)))
+      .innerJoin(merchants, eq(memberships.merchantId, merchants.id))
+      .where(
+        and(
+          eq(memberships.userId, userId),
+          eq(memberships.merchantId, requestedId),
+          isNull(merchants.suspendedAt),
+        ),
+      )
       .limit(1);
     if (m) return m;
   }
   const [first] = await db
     .select({ merchantId: memberships.merchantId, role: memberships.role })
     .from(memberships)
-    .where(eq(memberships.userId, userId))
+    .innerJoin(merchants, eq(memberships.merchantId, merchants.id))
+    .where(and(eq(memberships.userId, userId), isNull(merchants.suspendedAt)))
     .orderBy(memberships.createdAt)
     .limit(1);
   return first ?? null;
@@ -150,6 +164,7 @@ export async function resolveSessionMerchants(db: Database, userId: string): Pro
       role: memberships.role,
       plan: merchants.plan,
       creditsBalance: merchants.creditsBalance,
+      suspendedAt: merchants.suspendedAt,
       accountPlan: accounts.plan,
       accountCredits: accounts.creditsBalance,
     })
@@ -164,5 +179,6 @@ export async function resolveSessionMerchants(db: Database, userId: string): Pro
     role: r.role,
     plan: r.accountPlan ?? r.plan,
     creditsBalance: r.accountCredits ?? r.creditsBalance,
+    suspended: r.suspendedAt != null,
   }));
 }

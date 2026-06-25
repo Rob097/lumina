@@ -64,6 +64,8 @@ export const MeMerchantSchema = z.object({
   role: MemberRoleSchema,
   plan: PlanTierSchema,
   creditsBalance: z.number().int(),
+  /** Reversible deactivation (over-limit after a downgrade): hidden from selection, widget off. */
+  suspended: z.boolean().default(false),
 });
 export type MeMerchant = z.infer<typeof MeMerchantSchema>;
 
