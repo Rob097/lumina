@@ -1,5 +1,5 @@
 import { eq, sql } from 'drizzle-orm';
-import { merchants, subscriptions, webhooksInbox, type Database } from '@lumina/db';
+import { accounts, merchants, subscriptions, webhooksInbox, type Database } from '@lumina/db';
 import type { BillingEvent } from './types.js';
 
 export interface ApplyResult {
@@ -59,6 +59,21 @@ export async function applyBillingEvent(db: Database, evt: BillingEvent): Promis
       .update(merchants)
       .set({ plan: isActive ? evt.plan : 'free', updatedAt: new Date() })
       .where(eq(merchants.id, evt.merchantId));
+
+    // The account is the billing entity — its plan drives the shop cap + everything the dashboard reads.
+    // Set it from the subscribing workspace's owning account (the subscription is bought from one shop
+    // but applies to the whole account). grant_credits already pools the credits onto the account.
+    const [mrow] = await tx
+      .select({ accountId: merchants.accountId })
+      .from(merchants)
+      .where(eq(merchants.id, evt.merchantId))
+      .limit(1);
+    if (mrow?.accountId) {
+      await tx
+        .update(accounts)
+        .set({ plan: isActive ? evt.plan : 'free', updatedAt: new Date() })
+        .where(eq(accounts.id, mrow.accountId));
+    }
 
     if (evt.grantCredits && evt.includedCredits > 0) {
       await tx.execute(

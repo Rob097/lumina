@@ -1017,3 +1017,19 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   NULL once every row is migrated). Shop cap = `PLAN_CATALOG[plan].maxShops` (`shopLimit()`), enforced in
   `createWorkspace`; over-limit returns `403 shop_limit`. The backfill casts `plan::text` in its ranking CASE so
   it never references an `ALTER TYPE ADD VALUE` label (e.g. `pro`) in the same transaction.
+
+- **D94 — Account model phases 2–3: shared credits + Stripe/billing on the account.** *Credits (Phase 2,
+  migration `0017`):* `credit_ledger.account_id` (backfilled); `debit_credits`/`grant_credits` keep their
+  signatures but resolve merchant→account and move `accounts.credits_balance`, writing an account-scoped
+  ledger row (`merchant_id` retained for attribution + existing RLS). **Dual-mode:** when a merchant isn't
+  linked to an account they fall back to the merchant's own balance — defensive in prod and keeps the many
+  tests that insert bare merchants green. `/credits`, `/me` and new-workspace creation report the shared
+  `accounts` balance + plan, so switching workspace shows the same pooled credits (fixes #5). *Stripe/billing
+  (Phase 3):* the webhook (`applyBillingEvent`) also sets `accounts.plan` (the account is the billing entity —
+  its plan drives the shop cap + every dashboard read); `grant_credits` already pools onto the account.
+  `/billing/plans` reads `accounts.plan`; the billing page shows "X of N shops · shared". **Follow-up (not
+  done):** the `subscriptions` table is still keyed by `merchant_id`; a full re-key to one-subscription-per-
+  account is deferred. Interim safeguard: checkout refuses to create a second real subscription when the
+  account already has one (`stripeSubscriptionId NOT NULL` on any of its shops) and points to the portal, so
+  there's no duplicate/double-charged subscription. `merchants.plan`/`credits_balance` columns remain but are
+  now vestigial (read paths use the account); drop in a later cleanup once verified in prod.

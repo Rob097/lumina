@@ -30,10 +30,15 @@ export function BillingView({
   plans,
   credits,
   status,
+  shopCount,
+  maxShops,
 }: {
   plans: BillingPlansResponse;
   credits: CreditsResponse | null;
   status?: 'success' | 'cancelled';
+  /** Workspaces on this account, and the plan's shop allowance (`null` = unlimited). */
+  shopCount: number;
+  maxShops: number | null;
 }) {
   const [pendingPlan, setPendingPlan] = useState<PlanTier | 'portal' | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -75,6 +80,12 @@ export function BillingView({
                 {credits.resetsAt ? ` · resets ${shortDate(new Date(credits.resetsAt))}` : ''}
               </div>
             )}
+            <div className="cs-sub t-muted">
+              Shared across {shopCount === 1 ? 'your shop' : `${shopCount} shops`}
+              {maxShops === null
+                ? ' · unlimited shops'
+                : ` · ${shopCount} of ${maxShops} shops used`}
+            </div>
           </div>
           <div className="cs-meter">
             {meter && (

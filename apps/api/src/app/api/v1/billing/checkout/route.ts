@@ -1,3 +1,5 @@
+import { and, eq, isNotNull } from 'drizzle-orm';
+import { merchants, subscriptions } from '@lumina/db';
 import { PlanTierSchema } from '@lumina/shared';
 import { z } from 'zod';
 import { ensureStripeCustomer } from '@/lib/billing/customer';
@@ -17,6 +19,30 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = CheckoutSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return errorResponse('invalid_input', 'Invalid plan');
+  }
+
+  // One subscription per account: the plan + credits are shared, so a real subscription on ANY of the
+  // account's workspaces means there's nothing to buy here — changes go through the billing portal
+  // (Stripe handles upgrades/downgrades + proration). Prevents a duplicate, double-charged subscription
+  // on a second shop. A customer-only row (no stripeSubscriptionId yet) doesn't count.
+  const [mrow] = await guard.db
+    .select({ accountId: merchants.accountId })
+    .from(merchants)
+    .where(eq(merchants.id, guard.merchantId))
+    .limit(1);
+  if (mrow?.accountId) {
+    const [existing] = await guard.db
+      .select({ mid: subscriptions.merchantId })
+      .from(subscriptions)
+      .innerJoin(merchants, eq(subscriptions.merchantId, merchants.id))
+      .where(and(eq(merchants.accountId, mrow.accountId), isNotNull(subscriptions.stripeSubscriptionId)))
+      .limit(1);
+    if (existing) {
+      return errorResponse(
+        'invalid_input',
+        'This account already has an active subscription. Use “Manage billing” to change or cancel it.',
+      );
+    }
   }
 
   const secret = process.env.STRIPE_SECRET_KEY;

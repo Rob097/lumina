@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { creditLedger, merchants, subscriptions } from '@lumina/db';
+import { accounts, creditLedger, merchants, subscriptions } from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { applyBillingEvent } from '../src/lib/billing/apply.js';
@@ -22,6 +22,22 @@ async function newMerchant(): Promise<string> {
     .values({ name: 'BillCo', slug: `billco-${randomUUID()}`, plan: 'free', creditsBalance: 0 })
     .returning();
   return firstOrThrow(rows).id;
+}
+
+async function newUser(): Promise<string> {
+  const id = randomUUID();
+  await ctx.sqlClient`insert into auth.users (id, email) values (${id}::uuid, ${`u-${id}@x.com`})`;
+  return id;
+}
+
+/** A workspace linked to a fresh billing account (free, 0 credits) — the production shape. */
+async function newLinkedMerchant(): Promise<{ merchantId: string; accountId: string }> {
+  const [acc] = await ctx.db.insert(accounts).values({ ownerUserId: await newUser() }).returning();
+  const [m] = await ctx.db
+    .insert(merchants)
+    .values({ name: 'BillCo', slug: `billco-${randomUUID()}`, plan: 'free', accountId: acc!.id })
+    .returning();
+  return { merchantId: m!.id, accountId: acc!.id };
 }
 
 function activeEvent(merchantId: string): BillingEvent {
@@ -89,6 +105,29 @@ describe('applyBillingEvent', () => {
     );
     expect(merchant.plan).toBe('growth');
     expect(merchant.creditsBalance).toBe(0);
+  });
+
+  it('sets the OWNING ACCOUNT plan + pools the granted credits onto the account', async () => {
+    const { merchantId, accountId } = await newLinkedMerchant();
+    await applyBillingEvent(ctx.db, activeEvent(merchantId));
+
+    const account = firstOrThrow(
+      await ctx.db.select().from(accounts).where(eq(accounts.id, accountId)),
+    );
+    expect(account.plan).toBe('growth'); // the account's plan drives the shop cap + dashboard reads
+    expect(account.creditsBalance).toBe(1200); // credits pooled on the account
+
+    // The merchant's own balance stays 0 — credits live on the shared account pool now.
+    const merchant = firstOrThrow(
+      await ctx.db.select().from(merchants).where(eq(merchants.id, merchantId)),
+    );
+    expect(merchant.creditsBalance).toBe(0);
+
+    // The ledger row is attributed to both the account (pool) and the merchant (which shop).
+    const ledger = firstOrThrow(
+      await ctx.db.select().from(creditLedger).where(eq(creditLedger.accountId, accountId)),
+    );
+    expect(ledger.merchantId).toBe(merchantId);
   });
 
   it('cancellation resets the plan to free and grants nothing', async () => {
