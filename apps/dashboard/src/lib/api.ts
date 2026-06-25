@@ -33,6 +33,7 @@ import {
   type BulkProductsResult,
   type CreateKeyRequest,
   type CreateKeyResponse,
+  type PlanChangeRequest,
   type RegenerateKeysResponse,
   type Client,
   type ClientInput,
@@ -225,6 +226,43 @@ export async function startCheckout(plan: string): Promise<{ url: string } | { e
     return { error: body?.error?.message ?? 'Billing is not configured yet. Try again later.' };
   }
   return { url: z.object({ checkoutUrl: z.string() }).parse(await res.json()).checkoutUrl };
+}
+
+/**
+ * Downgrade the account's plan (deactivating the non-kept workspaces). Returns which kept shop to switch
+ * into when the active one was deactivated, or the API's real error message.
+ */
+export async function changePlan(
+  req: PlanChangeRequest,
+): Promise<{ ok: true; activeMerchantReset?: string } | { ok: false; error: string }> {
+  const res = await apiFetch('/billing/change', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'idempotency-key': crypto.randomUUID() },
+    body: JSON.stringify(req),
+  });
+  if (res.ok) {
+    return z
+      .object({ ok: z.literal(true), activeMerchantReset: z.string().optional() })
+      .parse(await res.json());
+  }
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return { ok: false, error: body?.error?.message ?? 'Could not change the plan.' };
+}
+
+/** Re-activate a deactivated workspace (if the account is under its plan's active-shop cap). */
+export async function reactivateWorkspace(
+  merchantId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await apiFetch('/workspaces/reactivate', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ merchantId }),
+  });
+  if (res.ok) {
+    return { ok: true };
+  }
+  const body = (await res.json().catch(() => null)) as { error?: { message?: string } } | null;
+  return { ok: false, error: body?.error?.message ?? 'Could not reactivate the workspace.' };
 }
 
 /** Open the Stripe billing portal; returns the redirect URL, or null. */

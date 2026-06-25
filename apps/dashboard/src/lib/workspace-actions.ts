@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { CreateWorkspaceSchema } from '@lumina/shared';
-import { acceptInvite, createWorkspace, fetchMe } from '@/lib/api';
+import { acceptInvite, createWorkspace, fetchMe, reactivateWorkspace } from '@/lib/api';
 import { ACTIVE_MERCHANT_COOKIE } from '@/lib/workspace';
 
 const COOKIE_OPTS = {
@@ -37,6 +37,16 @@ export async function createWorkspaceAction(name: unknown): Promise<WorkspaceAct
     return { ok: false, error: created.error };
   }
   (await cookies()).set(ACTIVE_MERCHANT_COOKIE, created.workspace.id, COOKIE_OPTS);
+  revalidatePath('/', 'layout');
+  return { ok: true };
+}
+
+/** Re-activate a deactivated workspace (if under the plan's active-shop cap). */
+export async function reactivateWorkspaceAction(merchantId: string): Promise<WorkspaceActionResult> {
+  const res = await reactivateWorkspace(merchantId);
+  if (!res.ok) {
+    return { ok: false, error: res.error };
+  }
   revalidatePath('/', 'layout');
   return { ok: true };
 }

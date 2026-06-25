@@ -12,5 +12,7 @@ export async function resolveActiveMerchant(
   merchants: MeMerchant[],
 ): Promise<MeMerchant | undefined> {
   const id = (await cookies()).get(ACTIVE_MERCHANT_COOKIE)?.value;
-  return merchants.find((m) => m.id === id) ?? merchants[0];
+  // A suspended workspace can never be the active one (mirrors the API guard).
+  const active = merchants.filter((m) => !m.suspended);
+  return active.find((m) => m.id === id) ?? active[0] ?? merchants[0];
 }

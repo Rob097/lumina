@@ -58,6 +58,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           name: m.name,
           plan: PLAN_CATALOG[m.plan].label,
           initials: initials(m.name),
+          suspended: m.suspended,
         }))}
         activeMerchantId={merchant?.id ?? ''}
         credits={{ balance, included, usedPct: meter.usedPct, level: meter.level }}

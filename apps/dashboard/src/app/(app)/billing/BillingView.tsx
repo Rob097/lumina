@@ -1,11 +1,13 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import type { BillingPlansResponse, CreditsResponse, LedgerEntry, PlanTier } from '@lumina/shared';
 import { formatPrice, planCta } from '@/lib/billing';
 import { compact, groupThousands, shortDate } from '@/lib/format';
 import { creditMeter } from '@/lib/shell';
-import { checkoutAction, portalAction } from './actions';
+import { changeAction, checkoutAction, portalAction } from './actions';
+import { DowngradeModal, type DowngradeWorkspace } from './DowngradeModal';
 
 function LedgerAmount({ amount }: { amount: number }) {
   const up = amount >= 0;
@@ -32,17 +34,30 @@ export function BillingView({
   status,
   shopCount,
   maxShops,
+  hasActiveSubscription,
+  workspaces,
+  activeMerchantId,
 }: {
   plans: BillingPlansResponse;
   credits: CreditsResponse | null;
   status?: 'success' | 'cancelled';
-  /** Workspaces on this account, and the plan's shop allowance (`null` = unlimited). */
+  /** Active workspaces on this account, and the plan's shop allowance (`null` = unlimited). */
   shopCount: number;
   maxShops: number | null;
+  /** Whether the account already has a live subscription — upgrades go to the portal, not Checkout. */
+  hasActiveSubscription: boolean;
+  workspaces: DowngradeWorkspace[];
+  activeMerchantId?: string;
 }) {
+  const router = useRouter();
   const [pendingPlan, setPendingPlan] = useState<PlanTier | 'portal' | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
+
+  // Downgrade modal (only for accounts that already subscribe).
+  const [downgrade, setDowngrade] = useState<{ tier: PlanTier; label: string } | null>(null);
+  const [changeError, setChangeError] = useState<string | null>(null);
+  const [changePending, startChange] = useTransition();
 
   const meter = credits ? creditMeter(credits.balance, credits.included) : null;
 
@@ -56,6 +71,20 @@ export function BillingView({
       } else {
         setError(res.error);
         setPendingPlan(null);
+      }
+    });
+  }
+
+  function confirmDowngrade(keepMerchantIds: string[]) {
+    if (!downgrade) return;
+    setChangeError(null);
+    startChange(async () => {
+      const res = await changeAction(downgrade.tier, keepMerchantIds);
+      if (res.ok) {
+        setDowngrade(null);
+        router.refresh();
+      } else {
+        setChangeError(res.error);
       }
     });
   }
@@ -139,18 +168,33 @@ export function BillingView({
                 <a className="btn btn-secondary" href="mailto:sales@rdlabs.digital?subject=Enterprise%20plan">
                   Contact sales
                 </a>
-              ) : cta === 'downgrade' && p.tier === 'free' ? (
-                // Downgrading to Free = cancelling the subscription; Free has no Stripe price, so this
-                // must go through the billing portal (Stripe's cancel flow), never Checkout.
-                <button
-                  className="btn btn-secondary"
-                  type="button"
-                  disabled={pendingPlan !== null}
-                  onClick={() => go(portalAction, 'portal')}
-                >
-                  {pendingPlan === 'portal' ? 'Opening…' : 'Cancel plan'}
-                </button>
+              ) : hasActiveSubscription ? (
+                // The account already subscribes: upgrades/switches go straight to the Stripe portal
+                // (it handles proration); downgrades open our modal (lost-benefits + workspace selection).
+                cta === 'upgrade' ? (
+                  <button
+                    className="btn btn-primary"
+                    type="button"
+                    disabled={pendingPlan !== null}
+                    onClick={() => go(portalAction, 'portal')}
+                  >
+                    {pendingPlan === 'portal' ? 'Opening…' : 'Upgrade'}
+                  </button>
+                ) : (
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    disabled={changePending}
+                    onClick={() => {
+                      setChangeError(null);
+                      setDowngrade({ tier: p.tier, label: p.label });
+                    }}
+                  >
+                    Downgrade
+                  </button>
+                )
               ) : (
+                // No subscription yet → first purchase via Checkout.
                 <button
                   className={`btn ${cta === 'upgrade' ? 'btn-primary' : 'btn-secondary'}`}
                   type="button"
@@ -201,6 +245,20 @@ export function BillingView({
           <div className="card-pad t-muted">No credit activity yet.</div>
         )}
       </div>
+
+      {downgrade && (
+        <DowngradeModal
+          currentPlan={plans.currentPlan}
+          targetPlan={downgrade.tier}
+          targetLabel={downgrade.label}
+          workspaces={workspaces}
+          activeMerchantId={activeMerchantId}
+          pending={changePending}
+          error={changeError}
+          onClose={() => setDowngrade(null)}
+          onConfirm={confirmDowngrade}
+        />
+      )}
     </div>
   );
 }

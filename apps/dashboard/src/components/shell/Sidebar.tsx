@@ -10,13 +10,18 @@ import { BrandGlyph } from '@/components/ui/BrandMark';
 import { useNav } from '@/lib/providers';
 import { compact } from '@/lib/format';
 import type { CreditLevel } from '@/lib/shell';
-import { createWorkspaceAction, switchWorkspaceAction } from '@/lib/workspace-actions';
+import {
+  createWorkspaceAction,
+  reactivateWorkspaceAction,
+  switchWorkspaceAction,
+} from '@/lib/workspace-actions';
 
 export interface WorkspaceOption {
   id: string;
   name: string;
   plan: string;
   initials: string;
+  suspended?: boolean;
 }
 
 export interface SidebarProps {
@@ -69,6 +74,23 @@ export function Sidebar({
     });
   }
 
+  function reactivate(id: string) {
+    setBusyLabel('Reactivating workspace…');
+    startTransition(async () => {
+      const res = await reactivateWorkspaceAction(id);
+      if (!res.ok) {
+        window.alert(res.error);
+        return;
+      }
+      await switchWorkspaceAction(id);
+      router.push('/overview');
+      router.refresh();
+    });
+  }
+
+  const activeWorkspaces = workspaces.filter((w) => !w.suspended);
+  const suspendedWorkspaces = workspaces.filter((w) => w.suspended);
+
   return (
     <>
       {pending && (
@@ -98,7 +120,7 @@ export function Sidebar({
           }
         >
           <div className="menu-head">Workspaces</div>
-          {workspaces.map((w) => (
+          {activeWorkspaces.map((w) => (
             <button
               key={w.id}
               type="button"
@@ -114,6 +136,26 @@ export function Sidebar({
               ) : null}
             </button>
           ))}
+          {suspendedWorkspaces.length > 0 && (
+            <>
+              <div className="menu-head">Deactivated</div>
+              {suspendedWorkspaces.map((w) => (
+                <button
+                  key={w.id}
+                  type="button"
+                  role="menuitem"
+                  className="menu-item"
+                  disabled={pending}
+                  onClick={() => reactivate(w.id)}
+                  title="Reactivate this workspace"
+                >
+                  <span className="merchant-logo sm">{w.initials}</span>
+                  <span className="grow t-muted">{w.name}</span>
+                  <span className="reactivate-tag">Reactivate</span>
+                </button>
+              ))}
+            </>
+          )}
           <div className="menu-sep" />
           <button
             type="button"
