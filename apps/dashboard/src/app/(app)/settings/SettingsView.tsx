@@ -5,7 +5,6 @@ import Link from 'next/link';
 import {
   PLAN_CATALOG,
   type ApiKeySummary,
-  type InvitableRole,
   type InvitationSummary,
   type NotificationPrefs,
   type PlanTier,
@@ -106,19 +105,19 @@ function TeamSection({
 }) {
   const [invites, setInvites] = useState<InvitationSummary[]>(invitations);
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<InvitableRole>('member');
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const pendingInvites = invites.filter((i) => i.status === 'pending');
 
+  // Every invited teammate joins as a plain `member`. The internal YuzuView `support` account that can
+  // reach every workspace is provisioned by us directly, not through this form.
   function invite() {
     setError(null);
     start(async () => {
-      const res = await inviteTeammateAction({ email: email.trim(), role });
+      const res = await inviteTeammateAction({ email: email.trim() });
       if (res.ok) {
         setInvites((prev) => [res.invitation, ...prev]);
         setEmail('');
-        setRole('member');
       } else {
         setError(res.error);
       }
@@ -168,14 +167,6 @@ function TeamSection({
                 value={email}
                 onChange={(e) => setEmail(e.currentTarget.value)}
               />
-              <select
-                className="select"
-                value={role}
-                onChange={(e) => setRole(e.currentTarget.value as InvitableRole)}
-              >
-                <option value="member">Member</option>
-                <option value="support">Support (YuzuView)</option>
-              </select>
               <button
                 className="btn btn-primary"
                 type="button"
@@ -185,6 +176,7 @@ function TeamSection({
                 {pending ? 'Sending…' : 'Send invite'}
               </button>
             </div>
+            <p className="t-muted text-sm">They'll join as a member.</p>
             {error && <p className="field-error">{error}</p>}
           </div>
         )}

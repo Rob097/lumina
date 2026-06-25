@@ -49,13 +49,15 @@ export async function POST(request: Request): Promise<Response> {
   }
   const parsed = CreateInviteSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
-    return errorResponse('invalid_input', 'Enter a valid email and role.');
+    return errorResponse('invalid_input', 'Enter a valid email address.');
   }
 
+  // Invitees always join as plain members. The internal YuzuView `support` account (full access to
+  // every workspace) is provisioned by us directly, never granted through a tenant's invite form.
   const inv = await createInvitation(guard.db, {
     merchantId: guard.merchantId,
     email: parsed.data.email,
-    role: parsed.data.role,
+    role: 'member',
     invitedBy: guard.user.id,
   });
 
