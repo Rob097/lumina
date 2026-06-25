@@ -38,9 +38,16 @@ export function DowngradeModal({
   const limit = shopLimit(targetPlan);
   const reduces = workspaces.length > limit;
   const lost = lostFeatures(currentPlan, targetPlan);
-  const [keep, setKeep] = useState<string[]>(() =>
-    reduces ? workspaces.slice(0, limit).map((w) => w.id) : workspaces.map((w) => w.id),
-  );
+  const [keep, setKeep] = useState<string[]>(() => {
+    if (!reduces) return workspaces.map((w) => w.id);
+    // Default to keeping the workspace the owner is currently in, then fill the rest in order.
+    const ordered = activeMerchantId
+      ? [...workspaces].sort((a, b) =>
+          a.id === activeMerchantId ? -1 : b.id === activeMerchantId ? 1 : 0,
+        )
+      : workspaces;
+    return ordered.slice(0, limit).map((w) => w.id);
+  });
 
   function toggle(id: string): void {
     setKeep((cur) =>

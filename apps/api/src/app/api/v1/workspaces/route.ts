@@ -59,6 +59,7 @@ export async function POST(request: Request): Promise<Response> {
     plan: m?.plan ?? 'free',
     creditsBalance: m?.creditsBalance ?? 0,
     suspended: false,
+    isAccountOwner: true,
   };
   return jsonResponse(body, { status: 201 });
 }

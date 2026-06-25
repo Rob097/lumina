@@ -66,6 +66,8 @@ export const MeMerchantSchema = z.object({
   creditsBalance: z.number().int(),
   /** Reversible deactivation (over-limit after a downgrade): hidden from selection, widget off. */
   suspended: z.boolean().default(false),
+  /** Whether the signed-in user is the OWNER of this workspace's billing account (governs plan changes). */
+  isAccountOwner: z.boolean().default(false),
 });
 export type MeMerchant = z.infer<typeof MeMerchantSchema>;
 

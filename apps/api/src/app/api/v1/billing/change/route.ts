@@ -1,6 +1,6 @@
 import { and, eq, isNotNull, isNull } from 'drizzle-orm';
 import { accounts, merchants, subscriptions } from '@lumina/db';
-import { PlanChangeRequestSchema, isDowngrade, shopLimit } from '@lumina/shared';
+import { PlanChangeRequestSchema, SELLABLE_PLAN_TIERS, isDowngrade, shopLimit } from '@lumina/shared';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse, serverError } from '@/lib/http';
 import { createStripeClient } from '@/lib/billing/stripe';
@@ -24,6 +24,13 @@ export async function POST(request: Request): Promise<Response> {
     return errorResponse('invalid_input', 'Invalid plan change request');
   }
   const { targetPlan, keepMerchantIds = [] } = parsed.data;
+
+  // Only sellable paid tiers are valid targets here. This rejects `free` (cancel → use the portal, so the
+  // subscription truly ends before any deactivation) and the legacy `scale`, closing the price-less-target
+  // edge where a shop would be deactivated immediately while still billed for the higher plan.
+  if (targetPlan === 'enterprise' || !SELLABLE_PLAN_TIERS.includes(targetPlan)) {
+    return errorResponse('invalid_input', 'That plan cannot be selected here.');
+  }
 
   // Resolve the owning account + require the caller is the ACCOUNT owner (governs billing, the shop cap,
   // and the cross-shop deactivation) — not merely the active shop's membership role.

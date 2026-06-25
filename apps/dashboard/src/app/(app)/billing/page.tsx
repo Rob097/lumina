@@ -43,6 +43,7 @@ export default async function BillingPage({
       hasActiveSubscription={resolved.hasActiveSubscription}
       workspaces={activeMerchants.map((m) => ({ id: m.id, name: m.name }))}
       activeMerchantId={active?.id}
+      canManageBilling={active?.isAccountOwner ?? false}
     />
   );
 }

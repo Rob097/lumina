@@ -37,6 +37,7 @@ export function BillingView({
   hasActiveSubscription,
   workspaces,
   activeMerchantId,
+  canManageBilling,
 }: {
   plans: BillingPlansResponse;
   credits: CreditsResponse | null;
@@ -48,6 +49,8 @@ export function BillingView({
   hasActiveSubscription: boolean;
   workspaces: DowngradeWorkspace[];
   activeMerchantId?: string;
+  /** Only the account owner may change the plan / open the portal — gate the CTAs accordingly. */
+  canManageBilling: boolean;
 }) {
   const router = useRouter();
   const [pendingPlan, setPendingPlan] = useState<PlanTier | 'portal' | null>(null);
@@ -57,6 +60,7 @@ export function BillingView({
   // Downgrade modal (only for accounts that already subscribe).
   const [downgrade, setDowngrade] = useState<{ tier: PlanTier; label: string } | null>(null);
   const [changeError, setChangeError] = useState<string | null>(null);
+  const [changeNotice, setChangeNotice] = useState<string | null>(null);
   const [changePending, startChange] = useTransition();
 
   const meter = credits ? creditMeter(credits.balance, credits.included) : null;
@@ -79,9 +83,12 @@ export function BillingView({
     if (!downgrade) return;
     setChangeError(null);
     startChange(async () => {
+      const label = downgrade.label;
       const res = await changeAction(downgrade.tier, keepMerchantIds);
       if (res.ok) {
         setDowngrade(null);
+        // accounts.plan flips once the Stripe webhook lands, so the cards may lag a moment — tell the user.
+        setChangeNotice(`Downgrade to ${label} is being applied — your plan and workspaces update shortly.`);
         router.refresh();
       } else {
         setChangeError(res.error);
@@ -95,7 +102,11 @@ export function BillingView({
         <div className="notice notice-success">Subscription updated — your new credits are on the way.</div>
       )}
       {status === 'cancelled' && <div className="notice">Checkout cancelled. No changes were made.</div>}
+      {changeNotice && <div className="notice notice-success">{changeNotice}</div>}
       {error && <div className="notice notice-danger">{error}</div>}
+      {!canManageBilling && (
+        <div className="notice">Only the account owner can change the plan or manage billing.</div>
+      )}
 
       {/* Credit summary */}
       <div className="card credit-summary">
@@ -125,14 +136,16 @@ export function BillingView({
                 />
               </div>
             )}
-            <button
-              className="btn btn-secondary btn-sm"
-              type="button"
-              disabled={pendingPlan !== null}
-              onClick={() => go(portalAction, 'portal')}
-            >
-              {pendingPlan === 'portal' ? 'Opening…' : 'Manage billing'}
-            </button>
+            {canManageBilling && (
+              <button
+                className="btn btn-secondary btn-sm"
+                type="button"
+                disabled={pendingPlan !== null}
+                onClick={() => go(portalAction, 'portal')}
+              >
+                {pendingPlan === 'portal' ? 'Opening…' : 'Manage billing'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -168,6 +181,15 @@ export function BillingView({
                 <a className="btn btn-secondary" href="mailto:sales@rdlabs.digital?subject=Enterprise%20plan">
                   Contact sales
                 </a>
+              ) : !canManageBilling ? (
+                <button
+                  className="btn btn-secondary"
+                  type="button"
+                  disabled
+                  title="Only the account owner can change the plan"
+                >
+                  Owner only
+                </button>
               ) : hasActiveSubscription ? (
                 // The account already subscribes: upgrades/switches go straight to the Stripe portal
                 // (it handles proration); downgrades open our modal (lost-benefits + workspace selection).

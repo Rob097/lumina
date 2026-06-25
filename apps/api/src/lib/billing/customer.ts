@@ -1,4 +1,4 @@
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, isNotNull, sql } from 'drizzle-orm';
 import type Stripe from 'stripe';
 import { merchants, subscriptions, type Database } from '@lumina/db';
 
@@ -24,6 +24,9 @@ export async function accountStripeCustomerId(
     .from(subscriptions)
     .innerJoin(merchants, eq(subscriptions.merchantId, merchants.id))
     .where(and(eq(merchants.accountId, m.accountId), isNotNull(subscriptions.stripeCustomerId)))
+    // Prefer the customer that actually holds the live subscription over a customer-only row left by an
+    // incomplete checkout on a sibling shop — so "Manage billing" opens the real subscription.
+    .orderBy(sql`${subscriptions.stripeSubscriptionId} nulls last`)
     .limit(1);
   return row?.customerId ?? null;
 }
