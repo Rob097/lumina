@@ -120,6 +120,13 @@
       "when": 1782383825594,
       "tag": "0016_mature_obadiah_stane",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1782391394944,
+      "tag": "0017_regular_sersi",
+      "breakpoints": true
     }
   ]
 }

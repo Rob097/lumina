@@ -329,6 +329,10 @@ export const creditLedger = pgTable(
   'credit_ledger',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    // The billing account the entry belongs to — the shared pool's source of truth (Phase 2). Nullable
+    // for now (backfilled for existing rows; always set by grant/debit). `merchant_id` is retained as
+    // the *attribution* (which shop spent/earned it) and keeps the existing tenant RLS working.
+    accountId: uuid('account_id').references(() => accounts.id, { onDelete: 'cascade' }),
     merchantId: uuid('merchant_id')
       .notNull()
       .references(() => merchants.id, { onDelete: 'cascade' }),
@@ -339,7 +343,10 @@ export const creditLedger = pgTable(
     note: text('note'),
     createdAt: createdAt(),
   },
-  (t) => [index('ledger_merchant_idx').on(t.merchantId, t.createdAt.desc())],
+  (t) => [
+    index('ledger_merchant_idx').on(t.merchantId, t.createdAt.desc()),
+    index('ledger_account_idx').on(t.accountId, t.createdAt.desc()),
+  ],
 );
 
 // ───────────────────────────── usage events ─────────────────────────────

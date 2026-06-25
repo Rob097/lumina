@@ -1,11 +1,12 @@
-import { desc, eq, sql } from 'drizzle-orm';
-import { creditLedger, merchants, type Database } from '@lumina/db';
+import { desc, eq } from 'drizzle-orm';
+import { accounts, creditLedger, merchants, type Database } from '@lumina/db';
 import { PLAN_CATALOG, type CreditsResponse, type LedgerEntry } from '@lumina/shared';
 
 /**
- * Credits view for the dashboard (§6.3 `/credits`). Balance is the authoritative ledger sum; `included`
- * is the plan's monthly allotment (PLAN_CATALOG); `used` drives the meter. Every query is scoped by
- * `merchant_id` (HARD RULE #1). `resetsAt` is the next monthly cycle (UTC) — we grant on renewal.
+ * Credits view for the dashboard (§6.3 `/credits`). Credits are pooled at the **account** level (Phase
+ * 2), so the balance + plan come from the merchant's owning account and the ledger lists every shop's
+ * activity for that shared pool. `included` is the plan's monthly allotment; `used` drives the meter.
+ * `resetsAt` is the next monthly cycle (UTC) — we grant on renewal.
  */
 function nextMonthStartUtc(now: Date): Date {
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1));
@@ -16,32 +17,30 @@ export async function getCreditsView(
   merchantId: string,
   opts: { ledgerLimit?: number; now?: Date } = {},
 ): Promise<CreditsResponse> {
-  const [agg] = await db
-    .select({ balance: sql<number>`coalesce(sum(${creditLedger.amount}), 0)::int` })
-    .from(creditLedger)
-    .where(eq(creditLedger.merchantId, merchantId));
-  const balance = agg?.balance ?? 0;
-
-  const [m] = await db
-    .select({ plan: merchants.plan })
+  const [acc] = await db
+    .select({ id: accounts.id, plan: accounts.plan, balance: accounts.creditsBalance })
     .from(merchants)
+    .innerJoin(accounts, eq(merchants.accountId, accounts.id))
     .where(eq(merchants.id, merchantId))
     .limit(1);
-  const included = m ? PLAN_CATALOG[m.plan].includedCredits : 0;
+  const balance = acc?.balance ?? 0;
+  const included = acc ? PLAN_CATALOG[acc.plan].includedCredits : 0;
   const used = Math.max(0, included - balance);
 
-  const rows = await db
-    .select({
-      id: creditLedger.id,
-      amount: creditLedger.amount,
-      reason: creditLedger.reason,
-      note: creditLedger.note,
-      createdAt: creditLedger.createdAt,
-    })
-    .from(creditLedger)
-    .where(eq(creditLedger.merchantId, merchantId))
-    .orderBy(desc(creditLedger.createdAt))
-    .limit(opts.ledgerLimit ?? 50);
+  const rows = acc
+    ? await db
+        .select({
+          id: creditLedger.id,
+          amount: creditLedger.amount,
+          reason: creditLedger.reason,
+          note: creditLedger.note,
+          createdAt: creditLedger.createdAt,
+        })
+        .from(creditLedger)
+        .where(eq(creditLedger.accountId, acc.id))
+        .orderBy(desc(creditLedger.createdAt))
+        .limit(opts.ledgerLimit ?? 50)
+    : [];
 
   const ledger: LedgerEntry[] = rows.map((r) => ({
     id: r.id,

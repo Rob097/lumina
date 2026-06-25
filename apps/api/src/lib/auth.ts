@@ -1,5 +1,5 @@
 import { and, eq } from 'drizzle-orm';
-import { memberships, merchants, type Database } from '@lumina/db';
+import { accounts, memberships, merchants, type Database } from '@lumina/db';
 import {
   ERROR_CODES,
   type ErrorCode,
@@ -139,6 +139,9 @@ export async function resolveActiveMembership(
 }
 
 export async function resolveSessionMerchants(db: Database, userId: string): Promise<MeMerchant[]> {
+  // Plan + credits are pooled at the account level (Phase 2), so every workspace an owner runs reports
+  // the SAME shared plan + balance. leftJoin + coalesce so a workspace is never hidden if its account
+  // link is somehow missing (pre-migration edge) — it just falls back to its own merchant values.
   const rows = await db
     .select({
       id: merchants.id,
@@ -147,9 +150,19 @@ export async function resolveSessionMerchants(db: Database, userId: string): Pro
       role: memberships.role,
       plan: merchants.plan,
       creditsBalance: merchants.creditsBalance,
+      accountPlan: accounts.plan,
+      accountCredits: accounts.creditsBalance,
     })
     .from(memberships)
     .innerJoin(merchants, eq(memberships.merchantId, merchants.id))
+    .leftJoin(accounts, eq(merchants.accountId, accounts.id))
     .where(eq(memberships.userId, userId));
-  return rows;
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    role: r.role,
+    plan: r.accountPlan ?? r.plan,
+    creditsBalance: r.accountCredits ?? r.creditsBalance,
+  }));
 }

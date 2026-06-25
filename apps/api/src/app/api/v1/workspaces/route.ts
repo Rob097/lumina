@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm';
-import { merchants } from '@lumina/db';
+import { accounts, merchants } from '@lumina/db';
 import { CreateWorkspaceSchema, PLAN_CATALOG, type MeMerchant } from '@lumina/shared';
 import { createWorkspace, ShopLimitError } from '@/lib/bootstrap';
 import { getDb } from '@/lib/db';
@@ -38,15 +38,17 @@ export async function POST(request: Request): Promise<Response> {
     }
     throw err;
   }
+  // Plan + credits are the account's shared pool, so a new workspace inherits the owner's balance.
   const [m] = await db
     .select({
       id: merchants.id,
       name: merchants.name,
       slug: merchants.slug,
-      plan: merchants.plan,
-      creditsBalance: merchants.creditsBalance,
+      plan: accounts.plan,
+      creditsBalance: accounts.creditsBalance,
     })
     .from(merchants)
+    .innerJoin(accounts, eq(merchants.accountId, accounts.id))
     .where(eq(merchants.id, merchantId))
     .limit(1);
   const body: MeMerchant = {
