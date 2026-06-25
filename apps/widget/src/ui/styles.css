@@ -121,6 +121,7 @@
 }
 .lumina-powered {
   display: block;
+  text-align: center;
   font-size: 10px;
   color: color-mix(in srgb, var(--lumina-muted) 75%, transparent);
   text-decoration: none;

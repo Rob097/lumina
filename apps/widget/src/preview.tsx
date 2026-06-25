@@ -101,7 +101,11 @@ function viewVNode(opts: PreviewOptions, t: ReturnType<typeof createTranslator>)
           ×
         </button>
         <div class="lumina-body">{body}</div>
-        {settings.watermark ? <div class="lumina-powered">{t('poweredBy')}</div> : null}
+        {settings.watermark ? (
+          <div class="lumina-foot">
+            <div class="lumina-powered">{t('poweredBy')}</div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
