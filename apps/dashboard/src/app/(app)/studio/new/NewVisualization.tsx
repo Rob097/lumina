@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useRef, useState, type DragEvent, type KeyboardEvent } from 'react';
 import { MAX_PRODUCTS_PER_GENERATION, type Client, type Product } from '@lumina/shared';
 import { Icon } from '@/components/ui/Icon';
 import { BeforeAfter } from '../../generations/BeforeAfter';
@@ -42,6 +42,7 @@ export function NewVisualization({
   const [productIds, setProductIds] = useState<string[]>(products[0] ? [products[0].id] : []);
   const [room, setRoom] = useState<RoomFile | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [dragging, setDragging] = useState(false);
 
   const [phase, setPhase] = useState<Phase>('compose');
   const [generationId, setGenerationId] = useState<string | null>(null);
@@ -97,6 +98,21 @@ export function NewVisualization({
       setRoom({ roomKey: signed.roomKey, previewUrl: URL.createObjectURL(file) });
     } finally {
       setUploading(false);
+    }
+  }
+
+  function onDropFile(e: DragEvent<HTMLDivElement>): void {
+    e.preventDefault();
+    setDragging(false);
+    if (uploading) return;
+    const f = e.dataTransfer.files?.[0];
+    if (f && f.type.startsWith('image/')) void onPickFile(f);
+  }
+
+  function onDropzoneKey(e: KeyboardEvent<HTMLDivElement>): void {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fileRef.current?.click();
     }
   }
 
@@ -237,150 +253,224 @@ export function NewVisualization({
     );
   }
 
-  return (
-    <div className="card studio-compose">
-      <div className="studio-head">
-        <h2>New visualization</h2>
-        <p className="sub">Generate a “try in your room” preview for a walk-in client.</p>
-      </div>
+  const generating = phase === 'generating';
 
-      {/* Client */}
-      <div className="studio-field">
-        <label className="studio-label">Client (optional)</label>
-        <div className="studio-client-row">
-          <select
-            className="input"
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            disabled={showNewClient}
-          >
-            <option value="">No client</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-                {c.email ? ` · ${c.email}` : ''}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="btn btn-ghost" onClick={() => setShowNewClient((v) => !v)}>
-            {showNewClient ? 'Cancel' : '+ New client'}
-          </button>
+  return (
+    <div className="studio-create">
+      <header className="studio-create-head">
+        <h2>New visualization</h2>
+        <p className="sub">Place your products into a client&apos;s room photo.</p>
+      </header>
+
+      <div className="studio-create-grid">
+        <div className="studio-form">
+          {/* Step 1 — Room photo (the primary input) */}
+          <section className="studio-step card">
+            <div className="studio-step-head">
+              <span className="studio-step-n">1</span>
+              <div>
+                <h3>Room photo</h3>
+                <p className="studio-step-sub">A clear, well-lit shot of the space.</p>
+              </div>
+            </div>
+            {room ? (
+              <div className="studio-room-preview">
+                <img src={room.previewUrl} alt="Room" />
+                <button
+                  type="button"
+                  className="studio-room-replace"
+                  onClick={() => setRoom(null)}
+                  disabled={generating}
+                >
+                  Replace photo
+                </button>
+              </div>
+            ) : (
+              <div
+                className={`studio-dropzone${dragging ? ' is-drag' : ''}`}
+                role="button"
+                tabIndex={0}
+                aria-label="Upload a room photo"
+                onClick={() => !uploading && fileRef.current?.click()}
+                onKeyDown={onDropzoneKey}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragging(true);
+                }}
+                onDragLeave={() => setDragging(false)}
+                onDrop={onDropFile}
+              >
+                <span className="studio-dropzone-icon">
+                  <Icon name="generations" size={22} />
+                </span>
+                <p className="studio-dropzone-title">
+                  {uploading ? 'Uploading…' : 'Drag & drop or browse'}
+                </p>
+                <p className="studio-dropzone-sub">JPG or PNG</p>
+              </div>
+            )}
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) void onPickFile(f);
+              }}
+            />
+          </section>
+
+          {/* Step 2 — Products to place together in one render */}
+          <section className="studio-step card">
+            <div className="studio-step-head">
+              <span className="studio-step-n">2</span>
+              <div>
+                <h3>Products</h3>
+                <p className="studio-step-sub">
+                  Pick up to {MAX_PRODUCTS_PER_GENERATION} to place together.
+                </p>
+              </div>
+            </div>
+            {products.length === 0 ? (
+              <p className="studio-empty">
+                No products yet. Add one in <Link href="/products">Products</Link> first.
+              </p>
+            ) : (
+              <div className="studio-products" role="group" aria-label="Products to place">
+                {products.map((p) => {
+                  const order = productIds.indexOf(p.id);
+                  const selected = order !== -1;
+                  const locked = !selected && atProductCap;
+                  return (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`studio-product${selected ? ' is-selected' : ''}`}
+                      aria-pressed={selected}
+                      disabled={locked || generating}
+                      onClick={() => toggleProduct(p.id)}
+                    >
+                      <img className="studio-product-thumb" src={p.imageUrl} alt="" loading="lazy" />
+                      <span className="studio-product-name">{p.name}</span>
+                      <span className="studio-product-mark">
+                        {selected ? order + 1 : null}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Step 3 — Client (optional) */}
+          <section className="studio-step card">
+            <div className="studio-step-head">
+              <span className="studio-step-n">3</span>
+              <div>
+                <h3>
+                  Client <span className="studio-optional">optional</span>
+                </h3>
+                <p className="studio-step-sub">Link the render to a walk-in to email it later.</p>
+              </div>
+            </div>
+            <div className="studio-client-row">
+              <select
+                className="input"
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                disabled={showNewClient || generating}
+              >
+                <option value="">No client</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.email ? ` · ${c.email}` : ''}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                disabled={generating}
+                onClick={() => setShowNewClient((v) => !v)}
+              >
+                {showNewClient ? 'Cancel' : '+ New client'}
+              </button>
+            </div>
+            {showNewClient ? (
+              <div className="studio-newclient">
+                <input
+                  className="input"
+                  placeholder="Name"
+                  value={draft.name}
+                  onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+                />
+                <input
+                  className="input"
+                  placeholder="Email (optional)"
+                  value={draft.email}
+                  onChange={(e) => setDraft({ ...draft, email: e.target.value })}
+                />
+                <input
+                  className="input"
+                  placeholder="Phone (optional)"
+                  value={draft.phone}
+                  onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  disabled={!draft.name.trim() || savingClient}
+                  onClick={onCreateClient}
+                >
+                  {savingClient ? 'Saving…' : 'Save client'}
+                </button>
+              </div>
+            ) : null}
+          </section>
         </div>
-        {showNewClient ? (
-          <div className="studio-newclient">
-            <input
-              className="input"
-              placeholder="Name"
-              value={draft.name}
-              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="Email (optional)"
-              value={draft.email}
-              onChange={(e) => setDraft({ ...draft, email: e.target.value })}
-            />
-            <input
-              className="input"
-              placeholder="Phone (optional)"
-              value={draft.phone}
-              onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
-            />
+
+        {/* Sticky review + CTA */}
+        <aside className="studio-summary">
+          <div className="studio-summary-card card">
+            <h3 className="studio-summary-title">Summary</h3>
+            <div className="studio-summary-room">
+              {room ? (
+                <img src={room.previewUrl} alt="Selected room" />
+              ) : (
+                <span className="studio-summary-room-empty">No room photo yet</span>
+              )}
+            </div>
+            <ul className="studio-summary-list">
+              <li>
+                <span>Products</span>
+                <strong>{productIds.length || '—'}</strong>
+              </li>
+              <li>
+                <span>Client</span>
+                <strong>{selectedClient?.name ?? 'None'}</strong>
+              </li>
+              <li>
+                <span>Cost</span>
+                <strong>1 credit</strong>
+              </li>
+            </ul>
+            {error ? <p className="studio-error">{error}</p> : null}
             <button
               type="button"
-              className="btn btn-primary"
-              disabled={!draft.name.trim() || savingClient}
-              onClick={onCreateClient}
+              className="btn btn-primary studio-generate"
+              disabled={!canGenerate || generating}
+              onClick={onGenerate}
             >
-              {savingClient ? 'Saving…' : 'Save client'}
+              {generating ? 'Generating…' : 'Generate visualization'}
             </button>
-          </div>
-        ) : null}
-      </div>
-
-      {/* Products — select one or more to place together in a single render */}
-      <div className="studio-field">
-        <label className="studio-label">Products</label>
-        {products.length === 0 ? (
-          <p className="studio-empty">
-            No products yet. Add one in <Link href="/products">Products</Link> first.
-          </p>
-        ) : (
-          <>
-            <div className="studio-product-list" role="group" aria-label="Products to place">
-              {products.map((p) => {
-                const order = productIds.indexOf(p.id);
-                const selected = order !== -1;
-                return (
-                  <label
-                    key={p.id}
-                    className={`studio-product-option${selected ? ' is-selected' : ''}`}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected}
-                      disabled={!selected && atProductCap}
-                      onChange={() => toggleProduct(p.id)}
-                    />
-                    <span className="studio-product-name">{p.name}</span>
-                    {selected ? <span className="studio-product-order">{order + 1}</span> : null}
-                  </label>
-                );
-              })}
-            </div>
             <p className="studio-hint">
-              {productIds.length > 1
-                ? `${productIds.length} products will be placed together in one render.`
-                : `Select up to ${MAX_PRODUCTS_PER_GENERATION} products to place together in one render.`}
+              {generating ? 'This usually takes 1–2 minutes.' : 'Takes about 1–2 minutes.'}
             </p>
-          </>
-        )}
-      </div>
-
-      {/* Room photo */}
-      <div className="studio-field">
-        <label className="studio-label">Room photo</label>
-        {room ? (
-          <div className="studio-room">
-            <img src={room.previewUrl} alt="Room" className="studio-room-img" />
-            <button type="button" className="btn btn-ghost" onClick={() => setRoom(null)}>
-              Choose another
-            </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            className="studio-drop"
-            onClick={() => fileRef.current?.click()}
-            disabled={uploading}
-          >
-            <Icon name="generations" size={22} />
-            <span>{uploading ? 'Uploading…' : 'Upload a room photo'}</span>
-          </button>
-        )}
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          hidden
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) void onPickFile(f);
-          }}
-        />
+        </aside>
       </div>
-
-      {error ? <p className="studio-error">{error}</p> : null}
-
-      <button
-        type="button"
-        className="btn btn-primary studio-generate"
-        disabled={!canGenerate || phase === 'generating'}
-        onClick={onGenerate}
-      >
-        {phase === 'generating' ? 'Generating…' : 'Generate visualization'}
-      </button>
-      {phase === 'generating' ? <p className="studio-hint">This usually takes 1–2 minutes.</p> : null}
     </div>
   );
 }
