@@ -1051,3 +1051,28 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   per-account serialization; impl review confirmed 8 minor issues, all fixed). **Open follow-ups:** the
   `subscriptions` table is still merchant-keyed (D94 re-key pending); the portal route has no backend
   owner-check (frontend-gated only); downgrade-to-free is rejected by /billing/change (cancel via portal).
+
+- **D96 — Workspace deletion, first-party upgrades, analytics gating, sales-link prefill (round 3).** Four
+  owner-tested fixes. **(1) Delete a workspace.** New **POST /v1/workspaces/delete** (account-owner only) +
+  `deleteWorkspace()` service: under the same per-account advisory lock as the downgrade suspend, it refuses
+  to delete the **last active** workspace or the one holding the **live Stripe subscription**
+  (`stripeSubscriptionId NOT NULL` — that row is merchant-keyed and would cascade away, orphaning billing;
+  ties into the deferred D94 re-key), then cascade-deletes the row + best-effort R2 cleanup. Reachable from
+  the sidebar switcher as a trash affordance per workspace (owner only, hidden on the only active shop) with
+  a type-the-name confirm. The legacy **DELETE /v1/merchant** (account closure + sign-out) now refuses when
+  the account owns >1 workspace, so it can't strand billing on a sibling. **(2) First-party upgrades.**
+  `/v1/billing/change` no longer rejects rank-ups; subscribed accounts upgrade via an in-app `UpgradeModal`
+  (no more confusing Stripe-portal detour). Symmetric with downgrades: `subscriptions.update` with
+  `proration_behavior:'none'` — plan/shop-cap apply immediately, the new price starts at next renewal (no
+  mid-cycle charge). Credits aren't re-granted on the change (the webhook grants only on
+  `subscription.created`), consistent with downgrades. Portal stays behind "Manage billing"
+  (payment method + cancel). **(3) Analytics gated to Growth+.** `canUseAnalytics`/`ANALYTICS_MIN_PLAN`
+  (single source) enforced in the nav (hide entry), the page (upsell + /billing link), and the API (summary
+  + timeseries return the new **`plan_required`** 403). Plan resolved from the owning **account**
+  (`resolveAccountPlan`), matching billing — free/starter excluded, matching the plan cards. **(4) Enterprise
+  "Contact sales"** links to the in-app support form pre-filled (Topic=Billing, Subject="Request of
+  Enterprise plan") via `parseSupportPrefill`, replacing a dead mailto. **Process:** TDD throughout
+  (service-level DB tests for the destructive delete path), adversarially reviewed (no blockers/majors; the
+  one minor — untrimmed name in the delete-confirm match — fixed, and `MerchantUpdateSchema.name` now trims).
+  **Open follow-up (pre-existing, out of scope):** account closure via DELETE /v1/merchant still doesn't
+  cancel the live Stripe subscription — cancel via the portal first; worth folding into the D94 re-key work.
