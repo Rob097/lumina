@@ -66,6 +66,13 @@ describe('fashion generation playbook (separate from the furniture rules)', () =
     expect(block).toMatch(/body part|hand, arm/);
   });
 
+  it('seeds the handbag elbow-hang rule (hang from the bent elbow, not gripped in the hand)', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/elbow/);
+    expect(block).toMatch(/hang|dangle/);
+    expect(block).toMatch(/not.*grip|hand stays free/);
+  });
+
   it('seeds the one-item + real-size fixes (observed: a bag on each arm, oversized)', () => {
     const block = fashionPlaybookRules().toLowerCase();
     expect(block).toMatch(/single (bag|item)|matched pair|natural number/); // right count
