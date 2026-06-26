@@ -58,4 +58,12 @@ describe('fashion generation playbook (separate from the furniture rules)', () =
     expect(block).toMatch(/never add|invent|duplicat/);
     expect(block).toMatch(/arm|forearm|elbow/);
   });
+
+  it('seeds the one-bag + real-size fixes (observed: a bag on each arm, oversized)', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/one (bag|accessory)|single (bag|accessory)/); // exactly one
+    expect(block).toMatch(/each arm|second bag|other arm/); // never a bag per arm
+    expect(block).toMatch(/real size|real-world|one hand|never enlarge/); // size anchored, not oversized
+    expect(block).not.toMatch(/two hands/); // the misleading oversizing heuristic is gone
+  });
 });

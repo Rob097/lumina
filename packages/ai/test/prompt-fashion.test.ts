@@ -69,6 +69,19 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).toMatch(/opaque|see-through|see through|translucent|transparen/);
   });
 
+  it('inserts EXACTLY ONE accessory on ONE arm (never a bag on each arm)', () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/exactly one|one arm|a single (bag|accessory)/);
+    expect(p).toMatch(/each arm|second bag|two bags|other arm/); // forbidden in the rules/AVOID
+  });
+
+  it('treats the real-world dimensions as the AUTHORITATIVE size and forbids enlarging', () => {
+    const p = buildComposePrompt({ ...base, dimensions: { w: 20, h: 10, unit: 'cm' } }).toLowerCase();
+    expect(p).toMatch(/20/);
+    expect(p).toMatch(/authoritative|real size|real-world size/);
+    expect(p).toMatch(/never enlarge|do not enlarge|not enlarge/);
+  });
+
   it('adds a labeled placement-reference instruction ONLY when a guide diagram is supplied', () => {
     expect(buildComposePrompt(base)).not.toMatch(/PLACEMENT REFERENCE/);
     const withDiagram = buildComposePrompt({ ...base, placementDiagram: { url: 'https://x/guide.png' } });
