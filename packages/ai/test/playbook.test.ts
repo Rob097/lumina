@@ -51,4 +51,11 @@ describe('fashion generation playbook (separate from the furniture rules)', () =
     const block = fashionPlaybookRules().toLowerCase();
     expect(block).toMatch(/opaque|see-through|see through|translucent|transparen/);
   });
+
+  it('seeds the no-invented-limb fix: carry on the EXISTING arm, never add a hand/arm', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/existing|already has free|free arm/);
+    expect(block).toMatch(/never add|invent|duplicat/);
+    expect(block).toMatch(/arm|forearm|elbow/);
+  });
 });

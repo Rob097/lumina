@@ -53,7 +53,9 @@ export const FASHION_GENERATION_RULES: string[] = [
   // case: bag rendered too large relative to the hand on a half/full-body selfie
   "Keep the accessory realistically small relative to the person's hand — a small handbag is about the size of two hands; never enlarge it to fill the torso or the frame.",
   // case: fingers rendered behind the handle instead of gripping it / bag fused into the clothing
-  'Render the gripping fingers and thumb OVER the handle or strap; the hand holds the accessory — it never floats in front of the hand and never fuses into the clothing.',
+  'Carry the accessory on the existing arm: where the hand grips the handle, render the fingers and thumb OVER it; where the bag hangs from the forearm or the crook of the elbow, loop the handle over the arm. It never floats in front of the arm and never fuses into the clothing.',
+  // case: bag held by an INVENTED third arm/hand instead of the person's existing free arm — the pose was a forearm/elbow carry (2026-06-26)
+  "Carry the accessory on the arm the subject ALREADY has free (the one not holding the phone) — hanging from the hand, or looped over the forearm / in the crook of the elbow as the handle suggests. NEVER add, duplicate, or invent a new hand, arm, or finger; the subject has only the limbs already shown. If the free hand isn't gripping, hang the bag on that existing arm rather than creating another arm to hold it.",
   // case: the added handbag came out slightly see-through — the body/background showed through it (2026-06-24)
   'Render the accessory as a fully opaque, solid object that completely hides whatever is behind it; never make it semi-transparent, translucent, ghosted, or a see-through overlay. The only parts that may be see-through are ones that are genuinely transparent in the product photo itself (e.g. clear plastic or mesh).',
 ];

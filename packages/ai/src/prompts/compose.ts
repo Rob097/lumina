@@ -234,14 +234,17 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
 export function buildAccessoryPlacementTask(input: ComposeInput): string {
   const where = input.placementHint
     ? `place the supplied accessory ${input.placementHint}`
-    : "place the supplied accessory held in the subject's hand by its handle/strap, matching the subject's pose";
+    : "carry the supplied accessory on the subject's existing free arm — hanging from the hand by its" +
+      ' handle/strap, or looped over the forearm / in the crook of the elbow as the handle suggests — matching' +
+      " the subject's pose";
   const lines: string[] = [
     `OPERATION: accessory placement on a person. Task: ${where}, sized to the subject's hand and forearm` +
-      ' (NOT to any room, door, wall, or car), with the fingers and thumb wrapping OVER the handle/strap, a' +
-      ' soft contact shadow where the accessory meets the body, and lighting matching the existing light on' +
-      " the person. Preserve the accessory's exact identity. Preserve the subject — face, hair, body, pose," +
-      ' hands, and clothing — and the entire background and the original framing/aspect ratio exactly. Add' +
-      ' ONLY the accessory.',
+      ' (NOT to any room, door, wall, or car), carried by the arm the subject ALREADY has free — NEVER adding a' +
+      ' new hand, arm, or finger to hold it — with the existing fingers wrapping OVER the handle where it is' +
+      ' gripped (or the forearm passing through the handle where it hangs), a soft contact shadow where the' +
+      " accessory meets the body, and lighting matching the existing light on the person. Preserve the" +
+      " accessory's exact identity. Preserve the subject — face, hair, body, pose, hands, and clothing — and" +
+      ' the entire background and the original framing/aspect ratio exactly. Add ONLY the accessory.',
     '',
     'HUMAN-SUBJECT ANCHOR: the first image is a PERSON, not a room. Size and position the accessory relative' +
       " to the person's hand and forearm; introduce no room or scene scale reasoning.",

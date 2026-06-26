@@ -38,11 +38,24 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).not.toMatch(/place the supplied product once/i);
   });
 
-  it('uses the placement hint when provided, else a default hand/handle hint', () => {
+  it('uses the placement hint when provided, else a default carry on the existing free arm', () => {
     expect(buildComposePrompt({ ...base, placementHint: 'on the shoulder by the strap' })).toContain(
       'on the shoulder by the strap',
     );
-    expect(buildComposePrompt(base)).toMatch(/hand by its handle/i);
+    expect(buildComposePrompt(base)).toMatch(/existing free arm/i);
+    expect(buildComposePrompt(base)).toMatch(/forearm|elbow/i);
+  });
+
+  it('binds the accessory to the EXISTING free arm and forbids inventing a new hand/arm/limb', () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/never add|never adding|existing (free )?arm/);
+    expect(p).toMatch(/third arm|new hand|invent|duplicat/);
+  });
+
+  it('allows a forearm/elbow carry, not only a hand grip', () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/forearm|elbow/);
+    expect(p).toMatch(/hang|loop/);
   });
 
   it('injects the fashion playbook tuning rules (anchored to the body, not furniture scale)', () => {
