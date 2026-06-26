@@ -6,6 +6,7 @@ import { listGenerations } from '@/lib/generations/service';
 import { getClient } from '@/lib/clients/service';
 import {
   createGeneration,
+  FashionMultiProductError,
   InsufficientCreditsError,
   ProductNotFoundError,
   type GenerateDeps,
@@ -101,6 +102,9 @@ export async function POST(request: Request): Promise<Response> {
     }
     if (err instanceof ProductNotFoundError) {
       return errorResponse('not_found', 'Product not found');
+    }
+    if (err instanceof FashionMultiProductError) {
+      return errorResponse('invalid_input', 'Fashion items can only be tried on one at a time');
     }
     throw err;
   }

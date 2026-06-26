@@ -65,16 +65,23 @@ export function NewVisualization({
   const selectedClient = clients.find((c) => c.id === clientId) ?? null;
   const atProductCap = productIds.length >= MAX_PRODUCTS_PER_GENERATION;
   const canGenerate = Boolean(productIds.length > 0 && room && !uploading);
+  // A fashion item is tried on a person one at a time (the person path is single-accessory), so a fashion
+  // product can only be in a generation on its own — never mixed with, or alongside, another product.
+  const selectedHasFashion = productIds.some(
+    (id) => products.find((p) => p.id === id)?.category === 'fashion',
+  );
 
   // Toggle a product in/out of the set, preserving click order (it feeds placement order), capped at the max.
+  // Fashion is single-only: don't add a second item when the set has (or the new one is) a fashion product.
   function toggleProduct(id: string): void {
-    setProductIds((cur) =>
-      cur.includes(id)
-        ? cur.filter((p) => p !== id)
-        : cur.length < MAX_PRODUCTS_PER_GENERATION
-          ? [...cur, id]
-          : cur,
-    );
+    setProductIds((cur) => {
+      if (cur.includes(id)) return cur.filter((p) => p !== id);
+      if (cur.length >= MAX_PRODUCTS_PER_GENERATION) return cur;
+      const curHasFashion = cur.some((p) => products.find((x) => x.id === p)?.category === 'fashion');
+      const addingFashion = products.find((p) => p.id === id)?.category === 'fashion';
+      if (cur.length > 0 && (curHasFashion || addingFashion)) return cur;
+      return [...cur, id];
+    });
   }
 
   async function onPickFile(file: File): Promise<void> {
@@ -212,7 +219,7 @@ export function NewVisualization({
           <div className="studio-quantity" role="note">
             <span className="studio-quantity-badge">≈ {result.suggestedQuantity} pcs</span>
             <span className="studio-quantity-text">
-              estimated to cover the surface
+              estimated quantity
               {result.quantityRationale ? <em> — {result.quantityRationale}</em> : null}
             </span>
           </div>
@@ -259,23 +266,23 @@ export function NewVisualization({
     <div className="studio-create">
       <header className="studio-create-head">
         <h2>New visualization</h2>
-        <p className="sub">Place your products into a client&apos;s room photo.</p>
+        <p className="sub">Place your products on a client&apos;s photo.</p>
       </header>
 
       <div className="studio-create-grid">
         <div className="studio-form">
-          {/* Step 1 — Room photo (the primary input) */}
+          {/* Step 1 — the photo (room or person) — the primary input */}
           <section className="studio-step card">
             <div className="studio-step-head">
               <span className="studio-step-n">1</span>
               <div>
-                <h3>Room photo</h3>
-                <p className="studio-step-sub">A clear, well-lit shot of the space.</p>
+                <h3>Photo</h3>
+                <p className="studio-step-sub">A clear, well-lit photo.</p>
               </div>
             </div>
             {room ? (
               <div className="studio-room-preview">
-                <img src={room.previewUrl} alt="Room" />
+                <img src={room.previewUrl} alt="Photo" />
                 <button
                   type="button"
                   className="studio-room-replace"
@@ -290,7 +297,7 @@ export function NewVisualization({
                 className={`studio-dropzone${dragging ? ' is-drag' : ''}`}
                 role="button"
                 tabIndex={0}
-                aria-label="Upload a room photo"
+                aria-label="Upload a photo"
                 onClick={() => !uploading && fileRef.current?.click()}
                 onKeyDown={onDropzoneKey}
                 onDragOver={(e) => {
@@ -328,7 +335,9 @@ export function NewVisualization({
               <div>
                 <h3>Products</h3>
                 <p className="studio-step-sub">
-                  Pick up to {MAX_PRODUCTS_PER_GENERATION} to place together.
+                  {selectedHasFashion
+                    ? 'Fashion items are tried on one at a time.'
+                    : `Pick up to ${MAX_PRODUCTS_PER_GENERATION} to place together.`}
                 </p>
               </div>
             </div>
@@ -341,7 +350,11 @@ export function NewVisualization({
                 {products.map((p) => {
                   const order = productIds.indexOf(p.id);
                   const selected = order !== -1;
-                  const locked = !selected && atProductCap;
+                  // Locked when full, or when a single-only fashion rule would be broken by adding this one.
+                  const locked =
+                    !selected &&
+                    (atProductCap ||
+                      (productIds.length > 0 && (selectedHasFashion || p.category === 'fashion')));
                   return (
                     <button
                       key={p.id}
@@ -437,9 +450,9 @@ export function NewVisualization({
             <h3 className="studio-summary-title">Summary</h3>
             <div className="studio-summary-room">
               {room ? (
-                <img src={room.previewUrl} alt="Selected room" />
+                <img src={room.previewUrl} alt="Selected photo" />
               ) : (
-                <span className="studio-summary-room-empty">No room photo yet</span>
+                <span className="studio-summary-room-empty">No photo yet</span>
               )}
             </div>
             <ul className="studio-summary-list">

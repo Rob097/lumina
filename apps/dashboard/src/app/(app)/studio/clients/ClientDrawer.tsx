@@ -107,7 +107,7 @@ export function ClientDrawer({
             <textarea
               className="input"
               rows={3}
-              placeholder="Preferences, room details, follow-ups…"
+              placeholder="Preferences, details, follow-ups…"
               value={s.notes}
               onChange={(e) => set({ notes: e.target.value })}
             />

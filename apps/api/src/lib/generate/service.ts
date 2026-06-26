@@ -21,6 +21,14 @@ export class ProductNotFoundError extends Error {
   }
 }
 
+/** A fashion item is worn on a person one at a time — it can't be mixed with other products in one render. */
+export class FashionMultiProductError extends Error {
+  constructor() {
+    super('FASHION_SINGLE_PRODUCT_ONLY');
+    this.name = 'FashionMultiProductError';
+  }
+}
+
 export interface GenerationEvent {
   name: 'generation.requested';
   data: { generationId: string; merchantId: string };
@@ -235,6 +243,11 @@ export async function createGeneration(
   input: CreateGenerationInput,
 ): Promise<CreateGenerationResult> {
   const { productRefs, snapshots, primaryProductId } = await resolveProducts(db, input);
+  // A fashion item is a single-accessory try-on on a person — never composed alongside another product. Reject
+  // before debiting any credit (the UI also blocks this; this is the source-of-truth guard for both surfaces).
+  if (snapshots.length > 1 && snapshots.some((s) => s.category === 'fashion')) {
+    throw new FashionMultiProductError();
+  }
   // One ordered ref string keeps the key stable: a single product hashes exactly as before (cache preserved),
   // and product order stays significant for multi-product renders.
   const idempotencyKey = computeIdempotencyKey({

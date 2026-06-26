@@ -37,7 +37,7 @@ export function StudioOverview({
         <div className="studio-hero-copy">
           <h2>Studio</h2>
           <p className="sub">
-            Create a “try in your room” visualization for a walk-in client, then email or print it.
+            Create a visualization of your product on a walk-in client&apos;s photo, then email or print it.
           </p>
         </div>
         <Link href="/studio/new" className="btn btn-primary">

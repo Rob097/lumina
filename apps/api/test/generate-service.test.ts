@@ -2,9 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import { generations, merchants, products } from '@lumina/db';
 import { firstOrThrow, setupTestDb, type TestDb } from '@lumina/db/testing';
+import type { ProductCategory } from '@lumina/shared';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import {
   createGeneration,
+  FashionMultiProductError,
   InsufficientCreditsError,
   ProductNotFoundError,
   type GenerateDeps,
@@ -153,13 +155,44 @@ describe('createGeneration', () => {
   });
 });
 
-async function newProduct(merchantId: string, name: string): Promise<string> {
+async function newProduct(
+  merchantId: string,
+  name: string,
+  category: ProductCategory = 'furniture',
+): Promise<string> {
   const rows = await ctx.db
     .insert(products)
-    .values({ merchantId, name, category: 'furniture', imageUrl: `https://shop.test/${name}.png` })
+    .values({ merchantId, name, category, imageUrl: `https://shop.test/${name}.png` })
     .returning();
   return firstOrThrow(rows).id;
 }
+
+describe('createGeneration — fashion is single-product only', () => {
+  it('rejects a multi-product render when any product is fashion (no credit debited)', async () => {
+    const merchantId = await newMerchant(5);
+    const bag = await newProduct(merchantId, 'bag', 'fashion');
+    const earrings = await newProduct(merchantId, 'earrings', 'fashion');
+    await expect(
+      createGeneration(ctx.db, deps(), {
+        merchantId,
+        productUuids: [earrings, bag],
+        roomKey: `rooms/${merchantId}/s.jpg`,
+      }),
+    ).rejects.toBeInstanceOf(FashionMultiProductError);
+    expect(await balance(merchantId)).toBe(5); // guard runs before the debit
+  });
+
+  it('allows a single fashion product', async () => {
+    const merchantId = await newMerchant(5);
+    const bag = await newProduct(merchantId, 'solo-bag', 'fashion');
+    const result = await createGeneration(ctx.db, deps(), {
+      merchantId,
+      productUuids: [bag],
+      roomKey: `rooms/${merchantId}/s.jpg`,
+    });
+    expect(result.status).toBe('queued');
+  });
+});
 
 describe('createGeneration — multi-product (F2)', () => {
   it('stores the full snapshot array, sets the primary to the first product, and debits one credit', async () => {
