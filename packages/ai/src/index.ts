@@ -6,6 +6,7 @@
  */
 export * from './types.js';
 export * from './fashion.js';
+export * from './fashion-placement.js';
 export * from './prompt.js';
 export * from './quantity.js';
 export * from './orchestrator.js';
