@@ -101,6 +101,27 @@ function customPreference(input: ComposeInput): string[] {
 }
 
 /**
+ * The merchant placement-guide image, when supplied ({@link ComposeInput.placementDiagram}), is appended as
+ * the LAST image. These lines label it so the model uses it ONLY to understand WHERE the product goes and the
+ * intended pose/arrangement — never copying the figure/objects/style drawn in it, and never altering the real
+ * subject or scene (which come from the FIRST image). Empty when there is no diagram, so a prompt without a
+ * guide is byte-for-byte unchanged. Shared by every task.
+ */
+function placementReference(input: ComposeInput): string[] {
+  if (!input.placementDiagram) {
+    return [];
+  }
+  return [
+    '',
+    'PLACEMENT REFERENCE (the LAST image): a positioning guide/diagram only. Use it SOLELY to understand WHERE' +
+      ' and HOW the PRODUCT is positioned/carried relative to the subject or scene. Do NOT copy its drawing,' +
+      ' style, colors, or the person/objects sketched in it. The real subject (their body, pose, identity) and' +
+      ' the scene/room come from the FIRST image and must NOT change; if the guide differs from the first' +
+      ' image, follow the FIRST image.',
+  ];
+}
+
+/**
  * The per-request facts shared by every single-product mode: the soft category hint, real-world dimensions,
  * the confident scene facts, the exterior note, and the shopper free-text. These feed whichever mode-specific
  * task is assembled — the master prompt in `system.ts` still decides the rendering.
@@ -123,7 +144,7 @@ function requestFacts(input: ComposeInput): string[] {
     lines.push(`- Real-world product dimensions: ${dims}. Match scale to these relative to visible references.`);
   }
 
-  lines.push(...sceneFacts(input), ...customPreference(input));
+  lines.push(...sceneFacts(input), ...placementReference(input), ...customPreference(input));
   return lines;
 }
 
@@ -220,6 +241,7 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
     '',
     'REQUEST DETAILS for this generation:',
     ...sceneFacts(input),
+    ...placementReference(input),
     ...customPreference(input),
   ].join('\n');
 }
@@ -261,6 +283,6 @@ export function buildAccessoryPlacementTask(input: ComposeInput): string {
   if (dims) {
     lines.push(`- Real-world accessory dimensions: ${dims}. Use to keep its size realistic in the hand.`);
   }
-  lines.push(...customPreference(input));
+  lines.push(...placementReference(input), ...customPreference(input));
   return lines.join('\n');
 }

@@ -35,6 +35,8 @@ import { computeChangeMask, shouldComposite } from '../images/diff-mask.js';
 import { compositeOverOriginal } from '../images/composite.js';
 import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.js';
 import { generationEvent, type EventSink } from '../observability.js';
+import { getWidgetSettings } from '../widget-config/service.js';
+import { fetchRemoteImage } from '../net/safe-fetch.js';
 import type { NotifyInput } from '../notifications/service.js';
 
 /** Minimal storage surface the workflow needs (satisfied by `R2Storage`). */
@@ -428,6 +430,32 @@ export async function markFailed(
 }
 
 /**
+ * Best-effort fetch of THIS merchant's pre-upload guide image (D88/D90) to hand the model as a positioning
+ * REFERENCE only (never copied; the real subject/scene stays the first image — see `placementReference` in the
+ * prompt). The guide CONFIG read is tenant-scoped by `merchantId` (HARD RULE #1); the image URL itself is
+ * merchant-controlled free text, so it is fetched through the SSRF-hardened {@link fetchRemoteImage} (https +
+ * public-host + no-redirect + size/content-type guards). Any miss / block / slow / broken URL simply yields
+ * no diagram — it can never fail or stall a generation.
+ */
+async function resolveGuideDiagram(
+  deps: WorkflowDeps,
+  merchantId: string,
+  generationId: string,
+): Promise<ImageRef | undefined> {
+  try {
+    const { guide } = await getWidgetSettings(deps.db, merchantId);
+    if (!guide?.enabled || !guide.imageUrl) {
+      return undefined;
+    }
+    const img = await fetchRemoteImage(guide.imageUrl);
+    return img ? { bytes: img.bytes, contentType: img.contentType } : undefined;
+  } catch (err) {
+    deps.reportError?.(err, { generationId, stage: 'guide_fetch' });
+    return undefined;
+  }
+}
+
+/**
  * The durable generation pipeline (§4 Phase E): processing → compose (via the orchestrator) → store →
  * finalize; any failure after the debit refunds the credit. Idempotent: a non-pending row is skipped.
  */
@@ -565,6 +593,13 @@ export async function processGeneration(
       }),
     );
 
+    // Merchant placement guide (D88/D90): on the FASHION path, if one is configured, hand the model its image
+    // as a positioning REFERENCE only (it expresses the intended carry, e.g. a handbag on the forearm). Never
+    // copied; the real subject stays the uploaded selfie. Best-effort + SSRF-guarded — a bad guide URL never
+    // fails or stalls the generation. Scoped to fashion for now: a person-pose guide bleeding into the (locked,
+    // quality-sensitive) furniture path is an un-evaluated risk — extend to other categories deliberately later.
+    const guideDiagram = isFashion ? await resolveGuideDiagram(deps, gen.merchantId, generationId) : undefined;
+
     // Mode-specific compose (§4.2): the compositor's task is assembled per operation — re-surfacing for
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
     // always-true system instruction. One generative compose per product (no deterministic tiling); the
@@ -572,6 +607,7 @@ export async function processGeneration(
     const composed = await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: productImages[0]!,
+      ...(guideDiagram ? { placementDiagram: guideDiagram } : {}),
       // Multi-product: hand the model every product image + per-product facts; the prompt switches to a
       // multi-object placement task. Single-product callers omit these and behave exactly as before. Fashion
       // is single-accessory in v1, so it never takes the multi-object path even if a row carries several.

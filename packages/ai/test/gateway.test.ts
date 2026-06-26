@@ -163,6 +163,26 @@ describe('GatewayProvider.compose', () => {
     });
   });
 
+  it('appends the placement-diagram reference LAST, after room + product', async () => {
+    const run = vi.fn(async () => ({ bytes: new Uint8Array([7]), contentType: 'image/jpeg' }));
+    const provider = new GatewayProvider({
+      name: 'gateway-quality',
+      model: 'google/gemini-3-pro-image',
+      costCents: 13,
+      run,
+    });
+    await provider.compose({ ...baseInput(), placementDiagram: { url: 'https://x/guide.png' } }, 'PROMPT');
+    expect(run).toHaveBeenCalledWith({
+      model: 'google/gemini-3-pro-image',
+      prompt: 'PROMPT',
+      images: [
+        { url: 'https://x/room.jpg' },
+        { url: 'https://x/product.png' },
+        { url: 'https://x/guide.png' },
+      ],
+    });
+  });
+
   it('forwards the pinned aspect ratio + image size to the runner', async () => {
     const run = vi.fn(async () => ({ bytes: new Uint8Array([1]), contentType: 'image/jpeg' }));
     const provider = new GatewayProvider({

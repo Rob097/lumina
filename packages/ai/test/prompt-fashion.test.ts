@@ -69,6 +69,15 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).toMatch(/opaque|see-through|see through|translucent|transparen/);
   });
 
+  it('adds a labeled placement-reference instruction ONLY when a guide diagram is supplied', () => {
+    expect(buildComposePrompt(base)).not.toMatch(/PLACEMENT REFERENCE/);
+    const withDiagram = buildComposePrompt({ ...base, placementDiagram: { url: 'https://x/guide.png' } });
+    expect(withDiagram).toMatch(/PLACEMENT REFERENCE/);
+    const lc = withDiagram.toLowerCase();
+    expect(lc).toMatch(/do not copy/); // never copy the drawn figure/style
+    expect(lc).toMatch(/must not change|do not change|follow the first/); // never alter the real subject/scene
+  });
+
   it('carries real-world dimensions and the product identity anchor when provided', () => {
     const p = buildComposePrompt({
       ...base,
@@ -100,6 +109,13 @@ describe('buildComposePrompt — the furniture path is UNCHANGED by the fashion 
     expect(p).not.toMatch(/fashion try-on/i);
     expect(p).not.toMatch(/SUBJECT/);
     expect(p).not.toMatch(/add only the accessory/i);
+  });
+
+  it('adds the placement-reference for furniture too, only when a diagram is supplied (generic)', () => {
+    expect(buildComposePrompt(furniture)).not.toMatch(/PLACEMENT REFERENCE/);
+    expect(buildComposePrompt({ ...furniture, placementDiagram: { url: 'https://x/g.png' } })).toMatch(
+      /PLACEMENT REFERENCE/,
+    );
   });
 
   // Regression tripwire: locks the four furniture prompt variants byte-for-byte. Pure string building (no

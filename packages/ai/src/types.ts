@@ -61,6 +61,12 @@ export interface ComposeInput {
   productDescription?: string;
   /** Free-text shopper guidance, rendered as a soft preference that can't override the hard rules. */
   customInstructions?: string;
+  /**
+   * Optional merchant placement-guide image (the pre-upload guide, D88/D90), sent as the LAST image and used
+   * ONLY as a positioning reference: where/how the product is placed and the intended pose/arrangement. Its
+   * drawn figure/style is never copied, and the real subject/scene (the first image) is never altered.
+   */
+  placementDiagram?: ImageRef;
   dimensions?: Dimensions;
   scene?: SceneAnalysis;
   /**

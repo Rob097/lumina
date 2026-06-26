@@ -1076,3 +1076,23 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   one minor — untrimmed name in the delete-confirm match — fixed, and `MerchantUpdateSchema.name` now trims).
   **Open follow-up (pre-existing, out of scope):** account closure via DELETE /v1/merchant still doesn't
   cancel the live Stripe subscription — cancel via the portal first; worth folding into the D94 re-key work.
+
+- **D97 — Fashion third-arm fix + merchant guide as a placement REFERENCE image (SSRF-hardened, fashion-gated).**
+  Relievum fashion generations grew an invented third arm to hold the bag instead of using the shopper's
+  existing free arm. Two prompt causes, fixed fashion-only (furniture prompts + byte-for-byte snapshot
+  untouched): (1) the prompt hardcoded a HAND GRIP ("held in the subject's hand", "fingers wrap OVER the
+  handle") — when the free hand isn't gripping, the model fabricated a gripping hand; carry is now flexible
+  (hand OR forearm/crook-of-elbow). (2) Nothing forbade adding a limb — new HARD RULE "USE THE EXISTING ARM —
+  NEVER ADD A LIMB" + AVOID "third arm/hand" + a playbook rule. Separately, a merchant's pre-upload guide image
+  (D88/D90) is now passed to the model as a `ComposeInput.placementDiagram` — the LAST image, labeled
+  `PLACEMENT REFERENCE` (positioning/carry only; never copy its drawn figure/style; the real subject/scene come
+  from the FIRST image and win). Title/body are NOT passed (UI copy → model noise). **Scoped to the fashion
+  path** for now (`isFashion ? resolveGuideDiagram : undefined`): a person-pose drawing bleeding into the
+  locked, quality-sensitive furniture path is an un-evaluated risk — extend to other categories deliberately
+  (per-category guide / furniture eval) later. **Security:** the guide image URL is merchant-controlled free
+  text (`z.string().url()` accepts `http://169.254.169.254`, `localhost`, private IPs, `file://`), and the
+  workflow is the FIRST server-side fetch of such a URL → SSRF. Mitigated by a new `fetchRemoteImage`
+  (`apps/api/src/lib/net/safe-fetch.ts`): https-only, host must resolve to a public unicast IP (private/
+  loopback/link-local/metadata/CGNAT blocked), no redirects, size cap, content-type allow-list (png/jpeg/webp).
+  Best-effort: any block/miss/slow URL yields no diagram and never fails or bills a generation. Found by an
+  adversarial multi-agent review of the diff.
