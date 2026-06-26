@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   ApiKeySummarySchema,
+  CreateInviteSchema,
   CreateKeyRequestSchema,
   CreateKeyResponseSchema,
   DomainsSchema,
+  INVITABLE_ROLES,
   MeResponseSchema,
   MerchantUpdateSchema,
   TeamMemberSchema,
@@ -75,5 +77,20 @@ describe('team + merchant-update schemas', () => {
   it('rejects an empty merchant name', () => {
     expect(MerchantUpdateSchema.parse({ name: 'Atelier' }).name).toBe('Atelier');
     expect(() => MerchantUpdateSchema.parse({ name: '' })).toThrow();
+  });
+});
+
+describe('invitable roles (support is internal-only)', () => {
+  it('only allows inviting plain members', () => {
+    expect(INVITABLE_ROLES).toEqual(['member']);
+  });
+
+  it('CreateInviteSchema rejects role=support', () => {
+    expect(CreateInviteSchema.safeParse({ email: 'a@b.com', role: 'support' }).success).toBe(false);
+  });
+
+  it('CreateInviteSchema accepts member and defaults to member', () => {
+    expect(CreateInviteSchema.parse({ email: 'a@b.com' }).role).toBe('member');
+    expect(CreateInviteSchema.parse({ email: 'a@b.com', role: 'member' }).role).toBe('member');
   });
 });

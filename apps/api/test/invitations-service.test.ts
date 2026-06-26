@@ -40,7 +40,7 @@ describe('invitations', () => {
     const inv = await createInvitation(ctx.db, {
       merchantId: m,
       email: 'Teammate@Acme.test',
-      role: 'support',
+      role: 'member',
       invitedBy: await inviter(),
     });
     expect(inv.token).toBeTruthy();
@@ -55,7 +55,7 @@ describe('invitations', () => {
       .select({ role: memberships.role })
       .from(memberships)
       .where(and(eq(memberships.merchantId, m), eq(memberships.userId, userId)));
-    expect(member?.role).toBe('support');
+    expect(member?.role).toBe('member');
 
     const [row] = await ctx.db.select().from(invitations).where(eq(invitations.id, inv.id));
     expect(row?.status).toBe('accepted');

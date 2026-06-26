@@ -131,8 +131,13 @@ export const DeleteWorkspaceSchema = z.object({
 });
 export type DeleteWorkspace = z.infer<typeof DeleteWorkspaceSchema>;
 
-/** Roles assignable when inviting a teammate. `owner` is structural (set on creation), so it's excluded. */
-export const INVITABLE_ROLES = ['member', 'support'] as const;
+/**
+ * Roles assignable when inviting a teammate. `support` is internal-only — the platform-support account is
+ * provisioned directly (auto-enrolled on workspace creation, hidden from the member list), never granted
+ * through a tenant's invite form. `owner` is structural (set on creation). So `member` is the only
+ * invitable role.
+ */
+export const INVITABLE_ROLES = ['member'] as const;
 export const InvitableRoleSchema = z.enum(INVITABLE_ROLES);
 export type InvitableRole = z.infer<typeof InvitableRoleSchema>;
 
