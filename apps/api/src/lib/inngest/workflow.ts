@@ -40,6 +40,7 @@ import { generationEvent, type EventSink } from '../observability.js';
 import { getWidgetSettings } from '../widget-config/service.js';
 import { fetchRemoteImage } from '../net/safe-fetch.js';
 import { drawPlacementOverlay } from '../images/overlay.js';
+import { padProductForFashion } from '../images/product-pad.js';
 import type { NotifyInput } from '../notifications/service.js';
 
 /** Minimal storage surface the workflow needs (satisfied by `R2Storage`). */
@@ -465,6 +466,37 @@ function placementDebugEnabled(): boolean {
 }
 
 /**
+ * Shrink a fashion product before composition by PADDING its cutout (a deterministic size lever, OFF by
+ * default via `FASHION_PRODUCT_PADDING`). The model ignores size text but scales an inserted object roughly by
+ * its prominence in the product reference, so a frame-filling cutout renders huge; padding by the product's
+ * real dimensions brings it down to a realistic size. Best-effort: fetches the primary cutout's bytes (fashion
+ * is single-product), pads, returns a bytes ImageRef; any failure keeps the original.
+ */
+async function padFashionProductImages(
+  images: ImageRef[],
+  dimensions: ProductSnapshot['dimensions'],
+  deps: WorkflowDeps,
+  generationId: string,
+): Promise<ImageRef[]> {
+  if ((process.env.FASHION_PRODUCT_PADDING ?? 'false').toLowerCase() !== 'true' || images.length === 0) {
+    return images;
+  }
+  const first = images[0]!;
+  try {
+    const bytes =
+      'bytes' in first
+        ? first.bytes
+        : (await fetchRemoteImage(first.url, { allowedTypes: ['image/png', 'image/jpeg', 'image/webp'] }))?.bytes;
+    if (!bytes) return images;
+    const padded = await padProductForFashion(bytes, dimensions);
+    return padded ? [{ bytes: padded.bytes, contentType: padded.contentType }, ...images.slice(1)] : images;
+  } catch (err) {
+    deps.reportError?.(err, { generationId, stage: 'product_pad' });
+    return images;
+  }
+}
+
+/**
  * Placement-detector DEBUG result (behind `FASHION_PLACEMENT_DEBUG`): run the cheap vision detector, compute
  * the deterministic product box, and draw it as an overlay on the subject photo so the owner can VISUALLY
  * validate detection accuracy without an image generation. Returns a ComposeResult-shaped object so the rest
@@ -614,7 +646,7 @@ export async function processGeneration(
     // cutout(s) (§4.3 — object modes get a cached, fidelity-preserving cutout; surface_covering passes the
     // ORIGINAL product texture, since the model needs the repeating pattern) and the room normalization
     // (D65 — a gentle clamped deskew + conditional auto-level, best-effort). Neither depends on the other.
-    const [productImages, normalized] = await Promise.all([
+    const [productImagesRaw, normalized] = await Promise.all([
       resolveProductImages(deps, gen, productList, mode),
       normalizeRoom(sanitized, {
         tiltDegrees: scene.tiltDegrees,
@@ -623,6 +655,11 @@ export async function processGeneration(
         autoLevelEnabled: AUTOLEVEL_ENABLED,
       }),
     ]);
+    // Fashion-only deterministic size lever (default off): pad the product cutout so the model renders it at a
+    // realistic size instead of frame-filling. No-op for furniture/multi and when disabled or dimensionless.
+    const productImages = isFashion
+      ? await padFashionProductImages(productImagesRaw, snapshot.dimensions, deps, generationId)
+      : productImagesRaw;
     // The normalized room is stored back so the model composes against it and it becomes the pixel-perfect
     // base, so the result may be slightly straightened vs the raw upload (intended).
     if (normalized !== sanitized) {
@@ -652,12 +689,14 @@ export async function processGeneration(
       }),
     );
 
-    // Merchant placement guide (D88/D90): on the FASHION path, if one is configured, hand the model its image
-    // as a positioning REFERENCE only (it expresses the intended carry, e.g. a handbag on the forearm). Never
-    // copied; the real subject stays the uploaded selfie. Best-effort + SSRF-guarded — a bad guide URL never
-    // fails or stalls the generation. Scoped to fashion for now: a person-pose guide bleeding into the (locked,
-    // quality-sensitive) furniture path is an un-evaluated risk — extend to other categories deliberately later.
-    const guideDiagram = isFashion ? await resolveGuideDiagram(deps, gen.merchantId, generationId) : undefined;
+    // Merchant placement guide (D88/D90): OFF by default. The guide image depicts a placeholder bag, and
+    // sending it to the model made it render a SECOND bag (visual exemplar beats the prompt's "ignore the
+    // placeholder"). It stays a widget-only pose instruction unless FASHION_GUIDE_ENABLED=true re-enables
+    // feeding it to the model. Fashion-only + best-effort + SSRF-guarded.
+    const guideDiagram =
+      isFashion && (process.env.FASHION_GUIDE_ENABLED ?? 'false').toLowerCase() === 'true'
+        ? await resolveGuideDiagram(deps, gen.merchantId, generationId)
+        : undefined;
 
     // Mode-specific compose (§4.2): the compositor's task is assembled per operation — re-surfacing for
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
