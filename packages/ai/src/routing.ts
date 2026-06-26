@@ -21,11 +21,10 @@ export function resolvePolicy(merchantPlan: string, plan: GenerationPlan): Routi
 
 /**
  * Routing for the FASHION / person path. The (furniture-oriented) planner is skipped for fashion, so there is
- * no `GenerationPlan` to escalate on. `qualityTier` (the workflow now defaults `FASHION_QUALITY_TIER` to TRUE)
- * routes PAID plans to the quality model — it renders a realistic product size and avoids malformations far
- * better than fast, which matters more here than the small extra latency/cost. `free` always stays fast
- * (watermarked). The function default stays `false` for explicit callers/tests; the live default is set in the
- * workflow.
+ * no `GenerationPlan` to escalate on. Default to the FAST tier: the QUALITY model RE-POSES the subject (moves
+ * the hand/arm to grip the bag), costs more and is slower, with a worse result on Relievum — product SIZE is
+ * controlled by deterministic padding, not the tier. `free` always stays fast. `qualityTier`
+ * (env `FASHION_QUALITY_TIER`, default false) can force quality, but it is NOT recommended for fashion.
  */
 export function resolvePolicyFashion(merchantPlan: string, qualityTier = false): RoutingPolicy {
   if (merchantPlan === 'free') return 'fast';

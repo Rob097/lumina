@@ -165,10 +165,11 @@ const CHANGE_MAX_FRACTION_FASHION = Number(process.env.CHANGE_MAX_FRACTION_FASHI
 // diff there would drop those pixels and make the product look see-through. Use a lower change threshold on
 // the fashion path (plus hole-filling, below) so the product silhouette is captured solidly.
 const CHANGE_THRESHOLD_FASHION = Number(process.env.CHANGE_MASK_THRESHOLD_FASHION ?? 14);
-// Fashion routing: paid plans default to the QUALITY model — it renders the product at a realistic size and
-// avoids malformations far better than fast (proven on Relievum), which matters more here than the small extra
-// latency/cost. `free` stays fast (watermarked). Set FASHION_QUALITY_TIER=false to force fast store-wide.
-const FASHION_QUALITY_TIER = (process.env.FASHION_QUALITY_TIER ?? 'true').toLowerCase() !== 'false';
+// Fashion routing: default to the FAST tier. The owner found the QUALITY model RE-POSES the subject (moves the
+// hand to grip the bag), costs more and is slower, with a WORSE result on Relievum — do NOT default it on.
+// Realistic SIZE is handled deterministically by product padding, not the tier. Opt in (not recommended) with
+// FASHION_QUALITY_TIER=true.
+const FASHION_QUALITY_TIER = (process.env.FASHION_QUALITY_TIER ?? 'false').toLowerCase() === 'true';
 
 // Room-normalization knobs (Phase 3 / D65) — code defaults so they work unset.
 const DESKEW_MAX_DEGREES = Number(process.env.DESKEW_MAX_DEGREES ?? DEFAULT_DESKEW_MAX_DEGREES);
