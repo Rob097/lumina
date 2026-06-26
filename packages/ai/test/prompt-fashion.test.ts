@@ -75,6 +75,12 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).toMatch(/each arm|second bag|two bags|other arm/); // forbidden in the rules/AVOID
   });
 
+  it("anchors the arm choice to the subject's prepared arm (guide left/right is only a weak fallback)", () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/prepared|raised|ready/);
+    expect(p).toMatch(/overrides the guide|strongest|most reliable/);
+  });
+
   it('treats the real-world dimensions as the AUTHORITATIVE size and forbids enlarging', () => {
     const p = buildComposePrompt({ ...base, dimensions: { w: 20, h: 10, unit: 'cm' } }).toLowerCase();
     expect(p).toMatch(/20/);

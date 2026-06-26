@@ -54,6 +54,8 @@ export const FASHION_GENERATION_RULES: string[] = [
   "Render the accessory at its REAL-WORLD size — when dimensions are given they are the authority. Anchor to the body: an adult hand is about 18 cm long, so a small handbag (e.g. 20x10 cm) is only about the size of one hand. Never enlarge it to fill the torso or the frame.",
   // case: a bag rendered on EACH arm (two bags) when both arms were bent / both hands held the phone (2026-06-26)
   "Add EXACTLY ONE bag, carried on ONE arm only — never a second bag on the other arm, never duplicated or mirrored. Even if both arms look free or both hands hold the phone, only one arm carries the single bag; the other arm stays exactly as in the original.",
+  // case: bag placed on the WRONG arm vs the guide — left/right across a mirror selfie + a reference image is unreliable (2026-06-26)
+  "Choose the arm from the SUBJECT's OWN pose, not by copying the guide's left/right: use the arm the subject has clearly prepared to receive the bag (a raised or curled hand, or a forearm held out ready). Reading the prepared arm in the subject's own photo is far more reliable than mirroring the guide's side. Only if neither arm is prepared, use the arm not holding the phone.",
   // case: fingers rendered behind the handle instead of gripping it / bag fused into the clothing
   'Carry the accessory on the existing arm: where the hand grips the handle, render the fingers and thumb OVER it; where the bag hangs from the forearm or the crook of the elbow, loop the handle over the arm. It never floats in front of the arm and never fuses into the clothing.',
   // case: bag held by an INVENTED third arm/hand instead of the person's existing free arm — the pose was a forearm/elbow carry (2026-06-26)
