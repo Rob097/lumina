@@ -1096,3 +1096,27 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   loopback/link-local/metadata/CGNAT blocked), no redirects, size cap, content-type allow-list (png/jpeg/webp).
   Best-effort: any block/miss/slow URL yields no diagram and never fails or bills a generation. Found by an
   adversarial multi-agent review of the diff.
+
+## Platform support super-admin (cross-tenant by explicit membership) — 2026-06-26
+
+- **Internal `support` account is a cross-workspace super-admin, by membership not by bypass.** The
+  designated internal account(s) — named in env `LUMINA_SUPPORT_USER_IDS` (comma-separated `auth.users`
+  UUIDs) — are auto-enrolled as `role='support'` members of **every** workspace: at creation in
+  `createWorkspace` (`apps/api/src/lib/bootstrap.ts`, post-commit + best-effort) and backfilled for
+  existing workspaces by `pnpm support:sync` (`apps/api/scripts/sync-platform-support.ts`). They are
+  **hidden** from the merchant's member list (`listTeam` excludes `role='support'`). This is a
+  **sanctioned exception** to HARD RULE #1 (tenant isolation): access is still single-tenant per request
+  (every query stays scoped to one `merchant_id` the user is a member of) — support simply has a
+  membership everywhere, so RLS (`current_merchant_ids()`) and the app-code scoping admit it without any
+  special-casing. No global "superuser bypass" was added.
+- **Powers: full operational super-admin EXCEPT billing.** Most routes gate only on `requireMerchant()`,
+  so support already has full operational access (products, generations, keys, domains, widget, team,
+  rename). Owner-only stays owner-only: plan change, **checkout + portal (gate added here — they only
+  checked `requireMerchant` before, a pre-existing hole)**, workspace delete/reactivate, account closure.
+  Owner's explicit choice (2026-06-26): "tutto tranne il billing", reactivation owner-only.
+- **`role='support'` reserved for internal use.** Removed from `INVITABLE_ROLES` (the invite route already
+  forced `member`), so a merchant can never create a support member — `role='support'` unambiguously means
+  "internal platform account" and is safe to hide/empower by role.
+- **Fail-safe enrollment.** Enrollment is post-commit + per-id try/catch, so a misconfigured
+  `LUMINA_SUPPORT_USER_IDS` (e.g. an id not in `auth.users`) can never break a customer's signup or
+  workspace creation; `support:sync` is the backstop.
