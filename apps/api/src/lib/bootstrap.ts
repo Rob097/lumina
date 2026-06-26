@@ -3,6 +3,7 @@ import { and, eq, isNull, sql } from 'drizzle-orm';
 import { accounts, apiKeys, memberships, merchants, widgetConfigs, type Database } from '@lumina/db';
 import { shopLimit, type KeyEnv, type KeyKind, type PlanTier } from '@lumina/shared';
 import { generateApiKey } from './keys.js';
+import { enrollPlatformSupport } from './account/platform-support.js';
 
 /**
  * Thrown when a workspace can't be created because the owner's account has reached its plan's shop
@@ -59,7 +60,7 @@ export async function createWorkspace(
   db: Database,
   input: { userId: string; name: string; slugBase?: string },
 ): Promise<BootstrapResult> {
-  return db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     // Resolve (or create) the owner's billing account, then enforce the plan's shop allowance. The
     // first workspace creates the account (free plan); later ones reuse it and count against the cap.
     let acc = (
@@ -155,6 +156,18 @@ export async function createWorkspace(
     }));
     return { merchantId, created: true, keys };
   });
+
+  // Enroll the internal platform-support account(s) as hidden `role='support'` members of the new
+  // workspace. POST-COMMIT + best-effort: a misconfigured `LUMINA_SUPPORT_USER_IDS` must NEVER fail a
+  // customer's signup / workspace creation. `excludeUserId` skips the case where the creator is itself a
+  // support account; `support:sync` is the backstop for any miss.
+  try {
+    await enrollPlatformSupport(db, result.merchantId, { excludeUserId: input.userId });
+  } catch {
+    // never propagate — enrollment is best-effort
+  }
+
+  return result;
 }
 
 /**

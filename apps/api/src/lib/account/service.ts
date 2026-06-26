@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm';
+import { and, eq, ne } from 'drizzle-orm';
 import { pgSchema, text, uuid } from 'drizzle-orm/pg-core';
 import { memberships, merchants, type Database } from '@lumina/db';
 import type { TeamMember } from '@lumina/shared';
@@ -23,7 +23,9 @@ export async function listTeam(db: Database, merchantId: string): Promise<TeamMe
     })
     .from(memberships)
     .leftJoin(authUsers, eq(authUsers.id, memberships.userId))
-    .where(eq(memberships.merchantId, merchantId))
+    // Hide the internal platform-support account(s) from the merchant's member list — `role='support'`
+    // is provisioned by us directly and must be invisible to the tenant (it's a super-admin, not a seat).
+    .where(and(eq(memberships.merchantId, merchantId), ne(memberships.role, 'support')))
     .orderBy(memberships.createdAt);
 
   return rows.map((r) => ({
