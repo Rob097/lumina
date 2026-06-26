@@ -1,11 +1,13 @@
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import {
   MockModerationProvider,
+  computeProductBox,
   isFashionCategory,
   planToSceneAnalysis,
   resolvePolicy,
   resolvePolicyFashion,
   type AIOrchestrator,
+  type ComposeResult,
   type ImageRef,
   type ModerationProvider,
   type ModerationReason,
@@ -37,6 +39,7 @@ import { DEFAULT_DESKEW_MAX_DEGREES, normalizeRoom } from '../images/normalize.j
 import { generationEvent, type EventSink } from '../observability.js';
 import { getWidgetSettings } from '../widget-config/service.js';
 import { fetchRemoteImage } from '../net/safe-fetch.js';
+import { drawPlacementOverlay } from '../images/overlay.js';
 import type { NotifyInput } from '../notifications/service.js';
 
 /** Minimal storage surface the workflow needs (satisfied by `R2Storage`). */
@@ -455,6 +458,50 @@ async function resolveGuideDiagram(
   }
 }
 
+/** True when fashion placement DEBUG mode is on — the result is the detector's overlay, not a generation. */
+function placementDebugEnabled(): boolean {
+  return (process.env.FASHION_PLACEMENT_DEBUG ?? '').toLowerCase() === 'true';
+}
+
+/**
+ * Placement-detector DEBUG result (behind `FASHION_PLACEMENT_DEBUG`): run the cheap vision detector, compute
+ * the deterministic product box, and draw it as an overlay on the subject photo so the owner can VISUALLY
+ * validate detection accuracy without an image generation. Returns a ComposeResult-shaped object so the rest
+ * of the pipeline (store/finalize) is unchanged. Never throws — falls back to a labelled overlay.
+ */
+async function buildPlacementDebugResult(
+  deps: WorkflowDeps,
+  detInput: { subject: ImageRef; product: ImageRef; category: ProductCategory },
+  baseImage: Uint8Array,
+  dimensions: ProductSnapshot['dimensions'],
+  size: { width: number; height: number },
+): Promise<ComposeResult> {
+  const placement = await deps.orchestrator.detectPlacement(detInput).catch(() => null);
+  let overlay: { bytes: Uint8Array; contentType: string };
+  if (placement?.found) {
+    const box = computeProductBox(placement, dimensions, size.width, size.height);
+    overlay = await drawPlacementOverlay(baseImage, box, {
+      anchor: placement.anchor,
+      label: `${placement.carry}/${placement.armSide} ${box.width}x${box.height}px`,
+    });
+  } else {
+    overlay = await drawPlacementOverlay(
+      baseImage,
+      { left: 0, top: 0, width: 0, height: 0 },
+      { label: placement ? 'NO PLACEMENT FOUND' : 'DETECTOR UNAVAILABLE' },
+    );
+  }
+  return {
+    bytes: overlay.bytes,
+    contentType: overlay.contentType,
+    model: 'placement-debug',
+    costCents: 0,
+    width: size.width,
+    height: size.height,
+    latencyMs: 0,
+  };
+}
+
 /**
  * The durable generation pipeline (§4 Phase E): processing → compose (via the orchestrator) → store →
  * finalize; any failure after the debit refunds the credit. Idempotent: a non-pending row is skipped.
@@ -604,7 +651,19 @@ export async function processGeneration(
     // surface_covering, swapping for object_replacement, single placement otherwise — layered on the
     // always-true system instruction. One generative compose per product (no deterministic tiling); the
     // coverage QUANTITY is surfaced separately in the dashboard (D67).
-    const composed = await deps.orchestrator.compose({
+    // Placement DEBUG (behind FASHION_PLACEMENT_DEBUG): on the fashion path, return the detector's overlay
+    // (the computed product box drawn on the selfie) instead of a generation, so the owner can validate
+    // detection accuracy cheaply (a flash vision call, no image gen) before we build the geometric composite.
+    const placementDebug = isFashion && placementDebugEnabled();
+    const composed = placementDebug
+      ? await buildPlacementDebugResult(
+          deps,
+          { subject: { url: roomUrl }, product: productImages[0]!, category },
+          normalized,
+          snapshot.dimensions,
+          roomSize,
+        )
+      : await deps.orchestrator.compose({
       room: { url: roomUrl },
       product: productImages[0]!,
       ...(guideDiagram ? { placementDiagram: guideDiagram } : {}),
@@ -651,7 +710,7 @@ export async function processGeneration(
     // the target surface by design → accept the full render and rely on the aspect-ratio pin + "keep framing"
     // instruction to prevent rotation/re-crop. Explicit, mode-driven branch.
     const finalImage =
-      mode === 'surface_covering'
+      placementDebug || mode === 'surface_covering'
         ? { bytes: composed.bytes, contentType: composed.contentType }
         : await keepOnlyProductChange(
             normalized,

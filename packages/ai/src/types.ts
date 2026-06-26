@@ -1,4 +1,5 @@
 import type {
+  FashionPlacement,
   GenerationMode,
   GenerationPlan,
   PlanRepetition,
@@ -141,6 +142,23 @@ export interface PlannerInput {
  */
 export interface PlannerProvider {
   plan(input: PlannerInput): Promise<GenerationPlan>;
+}
+
+/** Input to the fashion placement detector: the subject photo + the product (so it knows the carry type). */
+export interface PlacementDetectorInput {
+  subject: ImageRef;
+  product: ImageRef;
+  /** Merchant category — a soft hint; the detector identifies the product and where it is worn/carried. */
+  category?: ProductCategory;
+}
+
+/**
+ * The fashion placement detector: a cheap vision pass over the SUBJECT photo returning a Zod-validated
+ * {@link FashionPlacement} (where/how the product attaches + a body-scale reference). Used to control fashion
+ * size + position deterministically. Swapping the model/provider stays a one-file change (HARD RULE #8).
+ */
+export interface PlacementDetectorProvider {
+  detect(input: PlacementDetectorInput): Promise<FashionPlacement>;
 }
 
 /** Input to the coverage-quantity estimator (§7 — "how many units to cover this surface"). */

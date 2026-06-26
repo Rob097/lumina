@@ -1,4 +1,4 @@
-import type { GenerationPlan } from '@lumina/shared';
+import type { FashionPlacement, GenerationPlan } from '@lumina/shared';
 import { buildComposePrompt } from './prompt.js';
 import { buildQuantityPrompt, isCoverageCategory, singleUnitEstimate } from './quantity.js';
 import type {
@@ -7,6 +7,8 @@ import type {
   ComposeInput,
   ComposeResult,
   ImageRef,
+  PlacementDetectorInput,
+  PlacementDetectorProvider,
   PlannerInput,
   PlannerProvider,
   QuantityEstimate,
@@ -41,6 +43,8 @@ export interface OrchestratorConfig {
   bgRemoval?: BgRemovalProvider;
   /** The planner (§4.1): one reasoning pass over both images → a GenerationPlan. */
   planner?: PlannerProvider;
+  /** Fashion placement detector — locates where/how to place the product, for deterministic size + position. */
+  detector?: PlacementDetectorProvider;
   /** Optional coverage-quantity estimator (§7 #7). */
   quantity?: QuantityProvider;
   /** Injectable sleep (tests pass a no-op). */
@@ -96,6 +100,18 @@ export class AIOrchestrator {
       return null;
     }
     return this.config.planner.plan(input);
+  }
+
+  /**
+   * Fashion placement detector: a cheap vision pass that locates where/how the product goes + a body-scale
+   * reference, so the workflow can size + position it deterministically. Returns null when no detector is
+   * configured. Best-effort handling (fallback to the plain generative path) lives in the caller.
+   */
+  async detectPlacement(input: PlacementDetectorInput): Promise<FashionPlacement | null> {
+    if (!this.config.detector) {
+      return null;
+    }
+    return this.config.detector.detect(input);
   }
 
   /**

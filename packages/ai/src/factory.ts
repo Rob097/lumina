@@ -5,13 +5,20 @@ import { GatewayBgRemovalProvider } from './providers/bg-removal-gateway.js';
 import { GatewayProvider } from './providers/gateway.js';
 import { GatewayQuantityProvider } from './providers/gateway-quantity.js';
 import { GatewayPlannerProvider } from './providers/gateway-planner.js';
+import { GatewayPlacementProvider, MockPlacementDetector } from './providers/gateway-placement.js';
 import {
   MockBgRemovalProvider,
   MockPlannerProvider,
   MockProvider,
   MockQuantityProvider,
 } from './providers/mock.js';
-import type { AIProvider, BgRemovalProvider, PlannerProvider, RoutingPolicy } from './types.js';
+import type {
+  AIProvider,
+  BgRemovalProvider,
+  PlacementDetectorProvider,
+  PlannerProvider,
+  RoutingPolicy,
+} from './types.js';
 
 /**
  * Select the product background-removal provider from env (Phase 1 / D63). Returns `undefined` when it
@@ -73,6 +80,24 @@ export function selectPlannerProvider(env: Record<string, string | undefined>): 
 }
 
 /**
+ * Select the fashion placement detector from env. Mock (no placement) offline or under `AI_PROVIDER=mock`; the
+ * gateway flash model when creds are present. Best-effort downstream: no/failed placement falls back to the
+ * plain generative path, so this needs no explicit "off" switch. Model defaults to the cheap flash model
+ * unless `PLACEMENT_MODEL` overrides it (one-file swap, #8).
+ */
+export function selectPlacementDetector(env: Record<string, string | undefined>): PlacementDetectorProvider {
+  const apiKey = env.AI_GATEWAY_API_KEY;
+  const hasCreds = Boolean(apiKey || env.VERCEL_OIDC_TOKEN);
+  if (!hasCreds || env.AI_PROVIDER === 'mock') {
+    return new MockPlacementDetector();
+  }
+  return new GatewayPlacementProvider({
+    model: env.PLACEMENT_MODEL ?? env.PLANNER_MODEL ?? env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
+    apiKey,
+  });
+}
+
+/**
  * Build an orchestrator from env. Falls back to a deterministic mock provider when no AI Gateway
  * credentials are present (`AI_GATEWAY_API_KEY` or, on Vercel, `VERCEL_OIDC_TOKEN`) or when
  * `AI_PROVIDER=mock` (used by local dev + the e2e script). Models, costs, and resolutions are all
@@ -87,6 +112,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
       chains: { quality: [mock], balanced: [mock], fast: [mock] },
       bgRemoval: new MockBgRemovalProvider(),
       planner: new MockPlannerProvider(),
+      detector: new MockPlacementDetector(),
       quantity: new MockQuantityProvider(),
     });
   }
@@ -124,6 +150,7 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     chains,
     bgRemoval: selectBgRemovalProvider(env),
     planner: selectPlannerProvider(env),
+    detector: selectPlacementDetector(env),
     quantity,
   });
 }
