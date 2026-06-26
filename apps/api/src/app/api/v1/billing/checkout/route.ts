@@ -4,6 +4,7 @@ import { PlanTierSchema } from '@lumina/shared';
 import { z } from 'zod';
 import { ensureStripeCustomer } from '@/lib/billing/customer';
 import { createStripeClient, priceForPlan } from '@/lib/billing/stripe';
+import { isAccountOwner } from '@/lib/account/account-owner';
 import { requireMerchant } from '@/lib/guard';
 import { errorResponse, jsonResponse, serverError } from '@/lib/http';
 
@@ -15,6 +16,11 @@ export async function POST(request: Request): Promise<Response> {
   const guard = await requireMerchant();
   if (!guard.ok) {
     return guard.response;
+  }
+  // Billing is account-owner-only (the support super-admin and plain members are blocked at the API, not
+  // just hidden in the UI). Mirrors billing/change + workspaces/delete.
+  if (!(await isAccountOwner(guard.db, guard.merchantId, guard.user.id))) {
+    return errorResponse('unauthorized', 'Only the account owner can manage billing.');
   }
   const parsed = CheckoutSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {

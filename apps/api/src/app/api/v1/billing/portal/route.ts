@@ -1,7 +1,8 @@
 import { accountStripeCustomerId, ensureStripeCustomer } from '@/lib/billing/customer';
 import { createStripeClient } from '@/lib/billing/stripe';
+import { isAccountOwner } from '@/lib/account/account-owner';
 import { requireMerchant } from '@/lib/guard';
-import { jsonResponse, serverError } from '@/lib/http';
+import { errorResponse, jsonResponse, serverError } from '@/lib/http';
 
 export const runtime = 'nodejs';
 
@@ -9,6 +10,11 @@ export async function POST(): Promise<Response> {
   const guard = await requireMerchant();
   if (!guard.ok) {
     return guard.response;
+  }
+  // Billing is account-owner-only (the support super-admin and plain members are blocked at the API, not
+  // just hidden in the UI). Mirrors billing/change + workspaces/delete.
+  if (!(await isAccountOwner(guard.db, guard.merchantId, guard.user.id))) {
+    return errorResponse('unauthorized', 'Only the account owner can manage billing.');
   }
   const secret = process.env.STRIPE_SECRET_KEY;
   if (!secret) {
