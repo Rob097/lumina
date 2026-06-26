@@ -164,7 +164,12 @@
 }
 
 .lumina-link {
-  color: var(--lumina-accent);
+  /* Mix the merchant accent toward the foreground so the inline link keeps enough contrast on both
+     dropzone surfaces. A saturated mid-tone accent (e.g. the default purple) drops to ~2.8:1 on the
+     dark surface as a raw accent, leaving the "browse" word almost unreadable. --lumina-fg is dark in
+     light mode and light in dark mode, so mixing toward it always moves the color away from the
+     background — contrast improves in both modes, for any accent, with no mode branching. */
+  color: color-mix(in srgb, var(--lumina-accent), var(--lumina-fg) 30%);
   font-weight: 700;
 }
 
