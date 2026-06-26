@@ -17,17 +17,17 @@ async function cutout(size: number): Promise<Uint8Array> {
 
 describe('paddingFraction', () => {
   it('shrinks small products more (linear in real width) and skips when no dims / already large', () => {
-    expect(paddingFraction({ w: 55, unit: 'cm' })).toBeNull(); // >= ref => no padding
+    expect(paddingFraction({ w: 120, unit: 'cm' })).toBeNull(); // >= ref (120) => no padding
     expect(paddingFraction(undefined)).toBeNull();
     expect(paddingFraction(null)).toBeNull();
     const f20 = paddingFraction({ w: 20, unit: 'cm' })!;
-    const f10 = paddingFraction({ w: 10, unit: 'cm' })!;
-    expect(f20).toBeCloseTo(20 / 55, 5);
-    expect(f10).toBeLessThan(f20); // smaller real size => smaller fraction => rendered smaller
+    const f40 = paddingFraction({ w: 40, unit: 'cm' })!;
+    expect(f20).toBeCloseTo(20 / 120, 5);
+    expect(f20).toBeLessThan(f40); // smaller real size => smaller fraction => rendered smaller
   });
   it('converts inches and clamps to a floor', () => {
     expect(paddingFraction({ w: 1, unit: 'cm' })).toBe(0.12); // floored
-    expect(paddingFraction({ w: 8, unit: 'in' })!).toBeCloseTo((8 * 2.54) / 55, 5);
+    expect(paddingFraction({ w: 8, unit: 'in' })!).toBeCloseTo((8 * 2.54) / 120, 5);
   });
 });
 
@@ -45,6 +45,6 @@ describe('padProductForFashion', () => {
   it('no-ops (null) when there are no dimensions or the product is already large', async () => {
     const src = await cutout(100);
     expect(await padProductForFashion(src, undefined)).toBeNull();
-    expect(await padProductForFashion(src, { w: 60, unit: 'cm' })).toBeNull();
+    expect(await padProductForFashion(src, { w: 130, unit: 'cm' })).toBeNull(); // >= ref (120)
   });
 });

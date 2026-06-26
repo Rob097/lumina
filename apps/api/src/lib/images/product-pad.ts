@@ -3,8 +3,10 @@ import { loadSharp } from './sharp.js';
 /** A product dimension (cm/in) — matches the stored `ProductSnapshot.dimensions` shape. */
 type Dims = { w?: number; h?: number; d?: number; unit?: 'cm' | 'in' } | null | undefined;
 
-/** The real-world product width (cm) that already "fills the frame" → no padding. Tunable. */
-const REF_CM = Number(process.env.FASHION_PADDING_REF_CM ?? 55);
+// The real-world product width (cm) treated as "fills the frame" (no padding). HIGHER => more padding => the
+// model renders the product SMALLER. 120 by default: a bag hanging from the elbow renders bigger than one in
+// the hand, so the earlier 55 left it oversized. Tunable per case via FASHION_PADDING_REF_CM.
+const REF_CM = Number(process.env.FASHION_PADDING_REF_CM ?? 120);
 const MIN_FRACTION = 0.12; // never shrink below this share of the canvas
 const MAX_FRACTION = 0.85; // at/above this the product is large enough that padding is pointless
 
