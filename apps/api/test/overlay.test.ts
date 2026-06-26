@@ -14,7 +14,11 @@ describe('drawPlacementOverlay', () => {
     const out = await drawPlacementOverlay(
       base,
       { left: 50, top: 60, width: 80, height: 40 },
-      { anchor: { x: 0.5, y: 0.2 }, label: 'forearm/left 80x40px' },
+      {
+        anchor: { x: 0.5, y: 0.2 },
+        label: 'forearm/left 80x40px',
+        parts: [{ label: 'left hand', box: { left: 40, top: 40, width: 30, height: 30 } }],
+      },
     );
     const meta = await sharp(Buffer.from(out.bytes)).metadata();
     expect(out.contentType).toBe('image/png');

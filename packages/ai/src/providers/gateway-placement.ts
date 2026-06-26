@@ -79,6 +79,6 @@ function createPlacementRunner(opts: GatewayPlacementProviderOptions): Placement
 /** Offline/test detector: reports no placement, so the workflow falls back to the plain generative path. */
 export class MockPlacementDetector implements PlacementDetectorProvider {
   async detect(_input: PlacementDetectorInput): Promise<FashionPlacement> {
-    return { found: false, carry: 'hand', armSide: 'none', anchor: { x: 0.5, y: 0.5 }, shoulderWidthNorm: 0.4 };
+    return { found: false, carry: 'hand', armSide: 'none', anchor: { x: 0.5, y: 0.5 }, shoulderWidthNorm: 0.4, parts: [] };
   }
 }

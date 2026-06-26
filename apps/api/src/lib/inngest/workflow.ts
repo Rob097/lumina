@@ -480,9 +480,20 @@ async function buildPlacementDebugResult(
   let overlay: { bytes: Uint8Array; contentType: string };
   if (placement?.found) {
     const box = computeProductBox(placement, dimensions, size.width, size.height);
+    // Convert the detector's normalized part boxes (e.g. the hands) to pixels so we can see what it localized.
+    const parts = (placement.parts ?? []).map((p) => ({
+      label: p.label,
+      box: {
+        left: Math.round(p.box.x * size.width),
+        top: Math.round(p.box.y * size.height),
+        width: Math.round(p.box.w * size.width),
+        height: Math.round(p.box.h * size.height),
+      },
+    }));
     overlay = await drawPlacementOverlay(baseImage, box, {
       anchor: placement.anchor,
-      label: `${placement.carry}/${placement.armSide} ${box.width}x${box.height}px`,
+      parts,
+      label: `${placement.carry}/${placement.armSide} box ${box.width}x${box.height}px anchor ${placement.anchor.x.toFixed(2)},${placement.anchor.y.toFixed(2)}`,
     });
   } else {
     overlay = await drawPlacementOverlay(

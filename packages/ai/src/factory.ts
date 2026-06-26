@@ -92,7 +92,9 @@ export function selectPlacementDetector(env: Record<string, string | undefined>)
     return new MockPlacementDetector();
   }
   return new GatewayPlacementProvider({
-    model: env.PLACEMENT_MODEL ?? env.PLANNER_MODEL ?? env.GATEWAY_MODEL_QUANTITY ?? 'google/gemini-2.5-flash',
+    // Spatial localization needs a stronger model than the flash planner — it's a cheap text call, so use a
+    // pro model by default (override with PLACEMENT_MODEL, one-file swap #8).
+    model: env.PLACEMENT_MODEL ?? 'google/gemini-2.5-pro',
     apiKey,
   });
 }

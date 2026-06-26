@@ -17,6 +17,22 @@ export const FashionCarrySchema = z.enum([
 ]);
 export type FashionCarry = z.infer<typeof FashionCarrySchema>;
 
+/** A normalized (0..1) bounding box on the image — x,y is the top-left corner, w,h the size. */
+export const NormBoxSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  w: z.number().min(0).max(1),
+  h: z.number().min(0).max(1),
+});
+export type NormBox = z.infer<typeof NormBoxSchema>;
+
+/** A concrete body part the detector localized (a hand, wrist, ear, …) — grounds the placement + aids debug. */
+export const DetectedPartSchema = z.object({
+  label: z.string(),
+  box: NormBoxSchema,
+});
+export type DetectedPart = z.infer<typeof DetectedPartSchema>;
+
 /**
  * Deterministic placement target for a fashion try-on, detected by a cheap vision pass over the SUBJECT photo
  * (no image generation). All coordinates and lengths are NORMALIZED to the image (0..1), so they are
@@ -37,5 +53,10 @@ export const FashionPlacementSchema = z.object({
    * shoulders are ~40 cm, so this fixes pixels-per-cm and lets us size the product from its real dimensions.
    */
   shoulderWidthNorm: z.number().min(0).max(2),
+  /**
+   * The concrete parts the detector localized (e.g. both hands) with their boxes. Forces real object detection
+   * rather than a vague centre guess, and is drawn on the debug overlay so detection accuracy is visible.
+   */
+  parts: z.array(DetectedPartSchema).default([]),
 });
 export type FashionPlacement = z.infer<typeof FashionPlacementSchema>;

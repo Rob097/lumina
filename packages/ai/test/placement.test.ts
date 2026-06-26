@@ -17,6 +17,7 @@ const sample: FashionPlacement = {
   armSide: 'left',
   anchor: { x: 0.3, y: 0.5 },
   shoulderWidthNorm: 0.45,
+  parts: [{ label: 'left hand', box: { x: 0.25, y: 0.45, w: 0.1, h: 0.1 } }],
 };
 
 describe('buildPlacementPrompt', () => {
@@ -26,8 +27,9 @@ describe('buildPlacementPrompt', () => {
     expect(p).toMatch(/armside/);
     expect(p).toMatch(/anchor/);
     expect(p).toMatch(/shoulderwidthnorm/);
-    expect(p).toMatch(/normalized/);
+    expect(p).toMatch(/fraction|normalized/);
     expect(p).toMatch(/do not generate/);
+    expect(p).toMatch(/parts|bounding box/); // concrete object detection, not an abstract point
   });
   it('passes the merchant category hint through', () => {
     expect(buildPlacementPrompt(input)).toContain('fashion');

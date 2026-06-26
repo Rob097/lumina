@@ -15,7 +15,12 @@ export interface OverlayBox {
 export async function drawPlacementOverlay(
   imageBytes: Uint8Array,
   box: OverlayBox,
-  opts: { anchor?: { x: number; y: number }; label?: string } = {},
+  opts: {
+    anchor?: { x: number; y: number };
+    label?: string;
+    /** Detected part boxes (in pixels), drawn in a second colour so detection accuracy is visible. */
+    parts?: { box: OverlayBox; label?: string }[];
+  } = {},
 ): Promise<{ bytes: Uint8Array; contentType: string }> {
   try {
     const sharp = await loadSharp();
@@ -30,15 +35,26 @@ export async function drawPlacementOverlay(
     const stroke = Math.max(2, Math.round(w / 250));
     const dot = Math.max(4, Math.round(w / 120));
     const fontSize = Math.max(14, Math.round(w / 36));
-    const label = (opts.label ?? '').replace(/[<>&]/g, ' ');
+    const esc = (s: string): string => s.replace(/[<>&]/g, ' ');
+    const label = esc(opts.label ?? '');
     const rect =
       box.width > 0 && box.height > 0
         ? `<rect x="${box.left}" y="${box.top}" width="${box.width}" height="${box.height}" fill="none" stroke="#ff2d55" stroke-width="${stroke}"/>`
         : '';
+    // Detected part boxes (e.g. the hands) in yellow, so we can see what the detector actually localized.
+    const partRects = (opts.parts ?? [])
+      .map(
+        (p) =>
+          `<rect x="${p.box.left}" y="${p.box.top}" width="${p.box.width}" height="${p.box.height}" fill="none" stroke="#ffd400" stroke-width="${stroke}"/>` +
+          (p.label
+            ? `<text x="${Math.max(2, p.box.left)}" y="${Math.max(fontSize, p.box.top - 4)}" font-family="sans-serif" font-size="${Math.round(fontSize * 0.7)}" fill="#ffd400" stroke="#000000" stroke-width="0.5">${esc(p.label)}</text>`
+            : ''),
+      )
+      .join('');
     const text = label
       ? `<text x="${Math.max(6, box.left)}" y="${Math.max(fontSize + 4, box.top - 8)}" font-family="sans-serif" font-size="${fontSize}" fill="#ff2d55" stroke="#ffffff" stroke-width="1">${label}</text>`
       : '';
-    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">${rect}<circle cx="${anchorX}" cy="${anchorY}" r="${dot}" fill="#00e0ff" stroke="#003844" stroke-width="2"/>${text}</svg>`;
+    const svg = `<svg width="${w}" height="${h}" xmlns="http://www.w3.org/2000/svg">${partRects}${rect}<circle cx="${anchorX}" cy="${anchorY}" r="${dot}" fill="#00e0ff" stroke="#003844" stroke-width="2"/>${text}</svg>`;
     const out = await sharp(Buffer.from(imageBytes))
       .composite([{ input: Buffer.from(svg), top: 0, left: 0 }])
       .png()
