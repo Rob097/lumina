@@ -11,7 +11,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "e2e": "tsx scripts/e2e-generate.ts",
-    "eval": "tsx scripts/eval-run.ts"
+    "eval": "tsx scripts/eval-run.ts",
+    "support:sync": "tsx scripts/sync-platform-support.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.713.0",

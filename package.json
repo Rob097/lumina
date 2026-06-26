@@ -19,6 +19,7 @@
     "db:generate": "pnpm -F @lumina/db db:generate",
     "db:migrate": "pnpm -F @lumina/db db:migrate",
     "db:seed": "pnpm -F @lumina/db db:seed",
+    "support:sync": "pnpm -F @lumina/api support:sync",
     "prepare": "husky"
   },
   "devDependencies": {
