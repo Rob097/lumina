@@ -44,24 +44,21 @@ export function playbookRules(): string {
 }
 
 /**
- * FASHION playbook — the owner-editable tuning loop for the person/accessory path, kept SEPARATE from the
+ * FASHION playbook — the owner-editable tuning loop for the person/try-on path, kept SEPARATE from the
  * furniture rules above so the furniture-specific scale rules (floor-lamp heights, door references, surface
- * cladding) never leak into a portrait prompt. Add one generic line here when a fashion generation comes out
- * wrong; it is injected into every fashion compose prompt. Same format/usage as `GENERATION_RULES`.
+ * cladding) never leak into a portrait prompt. Rules here are GENERIC across fashion items (jewellery, bags,
+ * eyewear, hats, garments) — never hardcoded to one product type, so they apply to any product. Add one generic
+ * line when a fashion generation comes out wrong; it is injected into every fashion compose prompt.
  */
 export const FASHION_GENERATION_RULES: string[] = [
-  // case: bag rendered far too large (torso-sized), ignoring the real 20x10cm dimensions (2026-06-26)
-  "Render the accessory at its REAL-WORLD size — when dimensions are given they are the authority. Anchor to the body: an adult hand is about 18 cm long, so a small handbag (e.g. 20x10 cm) is only about the size of one hand. Never enlarge it to fill the torso or the frame.",
-  // case: a bag rendered on EACH arm (two bags) when both arms were bent / both hands held the phone (2026-06-26)
-  "Add EXACTLY ONE bag, carried on ONE arm only — never a second bag on the other arm, never duplicated or mirrored. Even if both arms look free or both hands hold the phone, only one arm carries the single bag; the other arm stays exactly as in the original.",
-  // case: bag placed on the WRONG arm vs the guide — left/right across a mirror selfie + a reference image is unreliable (2026-06-26)
-  "Choose the arm from the SUBJECT's OWN pose, not by copying the guide's left/right: use the arm the subject has clearly prepared to receive the bag (a raised or curled hand, or a forearm held out ready). Reading the prepared arm in the subject's own photo is far more reliable than mirroring the guide's side. Only if neither arm is prepared, use the arm not holding the phone.",
-  // case: fingers rendered behind the handle instead of gripping it / bag fused into the clothing
-  'Carry the accessory on the existing arm: where the hand grips the handle, render the fingers and thumb OVER it; where the bag hangs from the forearm or the crook of the elbow, loop the handle over the arm. It never floats in front of the arm and never fuses into the clothing.',
-  // case: bag held by an INVENTED third arm/hand instead of the person's existing free arm — the pose was a forearm/elbow carry (2026-06-26)
-  "Carry the accessory on the arm the subject ALREADY has free (e.g. on a mirror selfie, the one not holding the phone) — hanging from the hand, or looped over the forearm / in the crook of the elbow as the handle suggests. NEVER add, duplicate, or invent a new hand, arm, or finger; the subject has only the limbs already shown. If the free hand isn't gripping, hang the bag on that existing arm rather than creating another arm to hold it.",
-  // case: the added handbag came out slightly see-through — the body/background showed through it (2026-06-24)
-  'Render the accessory as a fully opaque, solid object that completely hides whatever is behind it; never make it semi-transparent, translucent, ghosted, or a see-through overlay. The only parts that may be see-through are ones that are genuinely transparent in the product photo itself (e.g. clear plastic or mesh).',
+  // case: item rendered far too large (torso-sized), ignoring the real dimensions (e.g. a 20x10cm bag) (2026-06-26)
+  'Render the product at its REAL-WORLD size — when dimensions are given they are the authority. A small item stays small (for reference an adult hand is about 18 cm long); never enlarge it to fill the torso or the frame.',
+  // case: a single item duplicated (a bag on each arm), or a body part invented to wear it (2026-06-26)
+  'Put on ONLY the product, in the natural number of pieces for its type — a single bag, hat, ring or watch, or a matched PAIR (earrings, one per earlobe). Never duplicate a single item onto a second spot, never split a set, and never add or duplicate a hand, arm, finger, ear, or any body part to wear it.',
+  // case: item placed where it does not belong / wrong arm — follow the product type, the guide, and the pose (2026-06-26)
+  "Place the product where its KIND of item is worn or carried on the body (earrings on the lobes, a bag on the hand/forearm, glasses on the face, a hat on the head, etc.), following the merchant's placement-guide image when one is provided (as the example of where/how) and the subject's actual pose. For a hand-carried item, prefer the arm the subject has clearly prepared to receive it.",
+  // case: the added item came out slightly see-through — the body/background showed through it (2026-06-24)
+  'Render the product as a fully opaque, solid object that hides whatever is behind it; never make it semi-transparent, translucent, ghosted, or see-through — unless the product is genuinely transparent in its own photo (e.g. clear lenses, sheer fabric, mesh).',
 ];
 
 /** The fashion playbook rules rendered as one always-apply block (empty string when there are none). */

@@ -113,13 +113,13 @@ function placementReference(input: ComposeInput): string[] {
   }
   return [
     '',
-    'PLACEMENT REFERENCE (the LAST image): a positioning guide/diagram only. Use it SOLELY to understand WHERE' +
-      ' and HOW the PRODUCT is carried (which arm, hanging vs gripped). Do NOT copy its drawing, style, colors,' +
-      ' or the person/objects sketched in it. If it shows a placeholder bag, IGNORE that placeholder\'s size,' +
-      ' shape and count entirely — the bag\'s true look comes ONLY from the product image, its size ONLY from' +
-      ' the real-world dimensions, and there is only ONE bag. The real subject (their body, pose, identity) and' +
-      ' the scene/room come from the FIRST image and must NOT change; if the guide differs from the first' +
-      ' image, follow the FIRST image.',
+    "PLACEMENT REFERENCE (the LAST image): a positioning guide/diagram only — the merchant's EXAMPLE of where" +
+      ' and how this product is worn or carried. Follow it for placement, but do NOT copy its drawing, style,' +
+      ' colors, or the person/objects sketched in it. If it shows a placeholder product, IGNORE that' +
+      " placeholder's size, shape and count — the product's true look comes ONLY from the product image and its" +
+      ' size ONLY from the real-world dimensions. The real subject (their body, pose, identity) and the' +
+      ' scene/room come from the FIRST image and must NOT change; if the guide differs from the first image,' +
+      ' follow the FIRST image.',
   ];
 }
 
@@ -257,39 +257,37 @@ export function buildMultiPlacementTask(input: ComposeInput): string {
  */
 export function buildAccessoryPlacementTask(input: ComposeInput): string {
   const where = input.placementHint
-    ? `place the supplied accessory ${input.placementHint}`
-    : "carry the supplied accessory on the subject's existing free arm — hanging from the hand by its" +
-      ' handle/strap, or looped over the forearm / in the crook of the elbow as the handle suggests — matching' +
-      " the subject's pose";
+    ? `place the supplied product ${input.placementHint}`
+    : 'put the supplied product on the person where THIS KIND of fashion item is naturally worn or carried' +
+      " (earrings on the lobes, a bag on the hand/forearm, glasses on the face, etc.), following the placement" +
+      " guide when one is provided and the subject's pose";
   const lines: string[] = [
-    `OPERATION: accessory placement on a person. Task: ${where}. Insert EXACTLY ONE accessory on ONE arm only` +
-      ' — never a second bag on the other arm, never duplicated or mirrored. Size it to its real-world' +
-      ' dimensions (small — about the size of one hand, ~18 cm; NEVER enlarged to fill the torso or frame),' +
-      " against the subject's hand and forearm (NOT to any room, door, wall, or car), carried by the arm the" +
-      ' subject ALREADY has free — NEVER adding a new hand, arm, or finger to hold it — with the existing' +
-      ' fingers wrapping OVER the handle where it is gripped (or the forearm passing through the handle where' +
-      ' it hangs), a soft contact shadow where the accessory meets the body, and lighting matching the' +
-      " existing light on the person. Preserve the accessory's exact identity. Preserve the subject — face," +
-      ' hair, body, pose, hands, and clothing — and the entire background and the original framing/aspect' +
-      ' ratio exactly. Add ONLY the accessory.',
+    `OPERATION: fashion try-on on a person. Task: ${where}. Put on the natural number of pieces for the` +
+      ' product — a SINGLE item, or a matched PAIR where it comes in two (earrings, one per earlobe); never' +
+      ' duplicate a single item onto a second spot and never add a hand, arm, finger, ear, or any body part to' +
+      ' wear it. Render it at its real-world size (small items stay small; never enlarged to fill the torso or' +
+      ' frame), seated with correct contact and occlusion where it meets the body, a soft contact shadow, and' +
+      " lighting matching the existing light on the person. Preserve the product's exact identity. Preserve the" +
+      ' subject — face, hair, body, pose, hands — and the entire background and the original framing/aspect' +
+      ' ratio exactly. Add ONLY the product.',
     '',
-    'HUMAN-SUBJECT ANCHOR: the first image is a PERSON, not a room. Size and position the accessory relative' +
-      " to the person's hand and forearm; introduce no room or scene scale reasoning.",
+    'HUMAN-SUBJECT ANCHOR: the first image is a PERSON, not a room. Size and position the product relative to' +
+      " the person's body where the item is worn/carried; introduce no room or scene scale reasoning.",
     '',
     'REQUEST DETAILS for this generation:',
   ];
 
   const productDescription = input.productDescription?.trim();
   if (productDescription) {
-    lines.push(`- PRODUCT (insert this exact accessory; preserve its identity): ${productDescription}`);
+    lines.push(`- PRODUCT (insert this exact product; preserve its identity): ${productDescription}`);
   }
   lines.push(`- Product category (approximate merchant hint, may be inaccurate): ${input.category}.`);
   const dims = input.dimensions ? describeDimensions(input.dimensions) : '';
   if (dims) {
     lines.push(
-      `- Real-world accessory dimensions: ${dims}. This is the AUTHORITATIVE real size — render the accessory` +
-        ' exactly this big relative to the body (an adult hand is ~18 cm long, a forearm ~25 cm). Do NOT enlarge' +
-        ' it; a small bag stays about hand-sized.',
+      `- Real-world product dimensions: ${dims}. This is the AUTHORITATIVE real size — render the product` +
+        ' exactly this big relative to the body (for reference an adult hand is ~18 cm long). Do NOT enlarge it;' +
+        ' a small item stays small.',
     );
   }
   lines.push(...placementReference(input), ...customPreference(input));

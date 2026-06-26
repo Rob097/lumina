@@ -18,17 +18,23 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).not.toMatch(/environment compositor/i); // never the furniture master prompt
   });
 
-  it('preserves the person identity and adds ONLY the accessory', () => {
+  it('preserves the person identity and adds ONLY the product', () => {
     const p = buildComposePrompt(base);
     expect(p).toMatch(/preserve the subject/i);
     expect(p).toMatch(/face/i);
-    expect(p).toMatch(/add only the accessory/i);
+    expect(p).toMatch(/add only the product/i);
   });
 
-  it('scales to the hand/forearm with finger occlusion + a contact shadow (not room/door scale)', () => {
+  it('is GENERIC across fashion items (jewellery, eyewear, hats, bags — not bag-only)', () => {
+    const p = buildComposePrompt(base).toLowerCase();
+    expect(p).toMatch(/earring/);
+    expect(p).toMatch(/glasses|eyewear/);
+    expect(p).toMatch(/hat/);
+  });
+
+  it('seats the product with realistic occlusion + a contact shadow (not room/door scale)', () => {
     const p = buildComposePrompt(base);
-    expect(p).toMatch(/forearm/i);
-    expect(p).toMatch(/fingers/i);
+    expect(p).toMatch(/occlusion/i);
     expect(p).toMatch(/contact shadow/i);
   });
 
@@ -38,30 +44,23 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).not.toMatch(/place the supplied product once/i);
   });
 
-  it('uses the placement hint when provided, else a default carry on the existing free arm', () => {
+  it('uses the placement hint when provided, else a default "where this kind of item is worn" placement', () => {
     expect(buildComposePrompt({ ...base, placementHint: 'on the shoulder by the strap' })).toContain(
       'on the shoulder by the strap',
     );
-    expect(buildComposePrompt(base)).toMatch(/existing free arm/i);
-    expect(buildComposePrompt(base)).toMatch(/forearm|elbow/i);
+    expect(buildComposePrompt(base)).toMatch(/worn or carried/i);
   });
 
-  it('binds the accessory to the EXISTING free arm and forbids inventing a new hand/arm/limb', () => {
+  it('forbids adding or duplicating ANY body part to wear the item (no invented hand/arm/ear)', () => {
     const p = buildComposePrompt(base).toLowerCase();
-    expect(p).toMatch(/never add|never adding|existing (free )?arm/);
-    expect(p).toMatch(/third arm|new hand|invent|duplicat/);
+    expect(p).toMatch(/do not add|never add/);
+    expect(p).toMatch(/body part|hand, arm/);
   });
 
-  it('allows a forearm/elbow carry, not only a hand grip', () => {
-    const p = buildComposePrompt(base).toLowerCase();
-    expect(p).toMatch(/forearm|elbow/);
-    expect(p).toMatch(/hang|loop/);
-  });
-
-  it('injects the fashion playbook tuning rules (anchored to the body, not furniture scale)', () => {
+  it('injects the fashion playbook tuning rules (generic, not furniture scale)', () => {
     const p = buildComposePrompt(base);
     expect(p).toMatch(/TUNING RULES/i);
-    expect(p).toMatch(/two hands|fingers and thumb/i);
+    expect(p).toMatch(/matched pair|real-world size/i);
   });
 
   it('requires the accessory to be fully opaque (no see-through/translucent render)', () => {
@@ -69,16 +68,16 @@ describe('buildComposePrompt — fashion / accessory placement (person path)', (
     expect(p).toMatch(/opaque|see-through|see through|translucent|transparen/);
   });
 
-  it('inserts EXACTLY ONE accessory on ONE arm (never a bag on each arm)', () => {
+  it('renders the natural number of pieces (one item or a matched pair), never duplicated onto a second spot', () => {
     const p = buildComposePrompt(base).toLowerCase();
-    expect(p).toMatch(/exactly one|one arm|a single (bag|accessory)/);
-    expect(p).toMatch(/each arm|second bag|two bags|other arm/); // forbidden in the rules/AVOID
+    expect(p).toMatch(/single item|matched pair|natural number/);
+    expect(p).toMatch(/second spot|duplicate a single|split/);
   });
 
-  it("anchors the arm choice to the subject's prepared arm (guide left/right is only a weak fallback)", () => {
+  it("follows the placement guide and the subject's pose (soft — no rigid left/right)", () => {
     const p = buildComposePrompt(base).toLowerCase();
-    expect(p).toMatch(/prepared|raised|ready/);
-    expect(p).toMatch(/overrides the guide|strongest|most reliable/);
+    expect(p).toMatch(/guide/);
+    expect(p).toMatch(/pose|prepared/);
   });
 
   it('treats the real-world dimensions as the AUTHORITATIVE size and forbids enlarging', () => {

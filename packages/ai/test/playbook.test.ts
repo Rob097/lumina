@@ -40,30 +40,37 @@ describe('fashion generation playbook (separate from the furniture rules)', () =
     for (const rule of FASHION_GENERATION_RULES) expect(block).toContain(rule);
   });
 
-  it('anchors scale to the body (hand/fingers) and keeps furniture-only scale rules OUT', () => {
+  it('anchors scale to the body and keeps furniture-only scale rules OUT', () => {
     const block = fashionPlaybookRules().toLowerCase();
-    expect(block).toMatch(/hand|two hands|fingers|grip/);
+    expect(block).toMatch(/real-world size|hand/);
     // furniture scale cues (floor-lamp heights, door references) must never leak into a portrait prompt
     expect(block).not.toMatch(/floor lamp|1\.5|1\.8|door/);
   });
 
-  it('seeds the no-transparency fix: the accessory renders fully opaque (observed see-through bag)', () => {
+  it('is GENERIC across fashion items, not hardcoded to bags', () => {
+    const block = fashionPlaybookRules().toLowerCase();
+    expect(block).toMatch(/earring/);
+    expect(block).toMatch(/glasses|eyewear|hat/);
+    // bag-only carry mechanics must not be baked into the always-apply rules
+    expect(block).not.toMatch(/crook of the elbow|hanging from the hand by its handle/);
+  });
+
+  it('seeds the no-transparency fix: the product renders fully opaque (observed see-through item)', () => {
     const block = fashionPlaybookRules().toLowerCase();
     expect(block).toMatch(/opaque|see-through|see through|translucent|transparen/);
   });
 
-  it('seeds the no-invented-limb fix: carry on the EXISTING arm, never add a hand/arm', () => {
+  it('seeds the no-invented-body-part fix: never add a hand/arm/ear to wear it', () => {
     const block = fashionPlaybookRules().toLowerCase();
-    expect(block).toMatch(/existing|already has free|free arm/);
-    expect(block).toMatch(/never add|invent|duplicat/);
-    expect(block).toMatch(/arm|forearm|elbow/);
+    expect(block).toMatch(/never add|duplicat/);
+    expect(block).toMatch(/body part|hand, arm/);
   });
 
-  it('seeds the one-bag + real-size fixes (observed: a bag on each arm, oversized)', () => {
+  it('seeds the one-item + real-size fixes (observed: a bag on each arm, oversized)', () => {
     const block = fashionPlaybookRules().toLowerCase();
-    expect(block).toMatch(/one (bag|accessory)|single (bag|accessory)/); // exactly one
-    expect(block).toMatch(/each arm|second bag|other arm/); // never a bag per arm
-    expect(block).toMatch(/real size|real-world|one hand|never enlarge/); // size anchored, not oversized
+    expect(block).toMatch(/single (bag|item)|matched pair|natural number/); // right count
+    expect(block).toMatch(/second spot|duplicate a single|split a set/); // never duplicated/split
+    expect(block).toMatch(/real-world|never enlarge/); // size anchored, not oversized
     expect(block).not.toMatch(/two hands/); // the misleading oversizing heuristic is gone
   });
 });
