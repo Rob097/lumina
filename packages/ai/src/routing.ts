@@ -20,11 +20,12 @@ export function resolvePolicy(merchantPlan: string, plan: GenerationPlan): Routi
 }
 
 /**
- * Routing for the FASHION / person path. The (furniture-oriented) planner is skipped for fashion, so there
- * is no `GenerationPlan` to escalate on. Default to the FAST tier: the subject's face/identity comes from the
- * ORIGINAL pixels via the pixel-perfect composite, so the quality-sensitive region is never model-rendered,
- * and fast keeps the campaign well under the <1 min limit. `free` stays fast; an env-driven `qualityTier`
- * flag (`FASHION_QUALITY_TIER`) forces the quality model store-wide if hand/occlusion fidelity needs it.
+ * Routing for the FASHION / person path. The (furniture-oriented) planner is skipped for fashion, so there is
+ * no `GenerationPlan` to escalate on. `qualityTier` (the workflow now defaults `FASHION_QUALITY_TIER` to TRUE)
+ * routes PAID plans to the quality model — it renders a realistic product size and avoids malformations far
+ * better than fast, which matters more here than the small extra latency/cost. `free` always stays fast
+ * (watermarked). The function default stays `false` for explicit callers/tests; the live default is set in the
+ * workflow.
  */
 export function resolvePolicyFashion(merchantPlan: string, qualityTier = false): RoutingPolicy {
   if (merchantPlan === 'free') return 'fast';
