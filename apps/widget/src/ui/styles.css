@@ -19,6 +19,11 @@
   --lumina-success: #1e8e5a;
   --lumina-danger: #d2453e;
   --lumina-warning: #b97309;
+  /* Anchor text color to the widget's own --lumina-fg so it never inherits the host page's `color`
+     across the Shadow boundary. The dashboard live-preview mount renders without .lumina-overlay
+     (the only other place that sets this), so without it the widget text leaks the host's color —
+     e.g. dark-on-dark and invisible when the widget is in dark mode inside the light dashboard. */
+  color: var(--lumina-fg);
 }
 
 .lumina-overlay {
