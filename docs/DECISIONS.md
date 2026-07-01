@@ -1120,3 +1120,24 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
 - **Fail-safe enrollment.** Enrollment is post-commit + per-id try/catch, so a misconfigured
   `LUMINA_SUPPORT_USER_IDS` (e.g. an id not in `auth.users`) can never break a customer's signup or
   workspace creation; `support:sync` is the backstop.
+
+## Tiles — force floor covering + fast tier (2026-07-01)
+
+- **Symptom (field report):** widget generations for `category='tiles'` were often very slow and
+  sometimes never completed. **Root cause:** a tiles run took the general path — the vision planner
+  frequently mis-read a tile as a single object on a wall AND flagged a floor photo as cluttered /
+  low-confidence, so `resolvePolicy` escalated to the **quality** model (`gemini-3-pro-image`, 2K). That
+  render, on top of the planner + coverage pre-passes and any provider retry, blew past the **120s** hard
+  limit (`vercel.json`) → Inngest `onFailure` → refund + `failed` ("a volte non avviene proprio").
+- **Fix:** for single-product `tiles`, `processGeneration` now **forces** `mode='surface_covering'`,
+  `target={description:'the floor'}`, and the **fast/flash** tier — bypassing the planner's mode/target
+  read and the quality escalation. The planner still runs; only its mode/target/policy output is
+  overridden, so its per-image facts (lighting → matched shadows, deskew) and the product-identity anchor
+  still feed compose. Coverage-quantity estimate is unchanged (still surfaced in the dashboard).
+- **Consistent with existing precedent, not a special case:** the multi-product path and the fashion
+  path were already pinned to the fast tier for the *same* 120s-timeout reason (D86 / `resolvePolicyFashion`).
+  Tiles is the third member of that class.
+- **Scope:** single-product tiles only (`!isMulti && !isFashion && category==='tiles'`). Other coverage
+  categories (decor / renovation / outdoor) still trust the planner — a tile is unambiguously a *floor*
+  material, they are not. Covered by a workflow test asserting mode/target/policy override even when the
+  planner would escalate. Visual quality to be confirmed by the owner on a real run.

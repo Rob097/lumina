@@ -619,6 +619,14 @@ export async function processGeneration(
     const isMulti = productList.length > 1;
     // The fashion / person path (e.g. a handbag on a shopper's selfie) is fully isolated behind `isFashion`.
     const isFashion = isFashionCategory(category);
+    // Tiles (single-product) are the third case — after multi and fashion — that we pin to the FAST tier and
+    // force onto a known surface, for the same timeout reason the D86 comment records below. A tile is a
+    // floor-covering material: the (vision) planner too often mis-reads it as a single object on a wall AND
+    // escalates a cluttered/low-confidence floor photo to the slow quality model (2K), pushing past the
+    // 120s hard limit → timeout → refund+fail ("a volte non avviene proprio"). So we skip the planner's
+    // mode/target/policy read and force surface_covering on the floor at the fast tier. The plan's per-image
+    // facts (lighting/deskew) and product identity anchor still flow through; only the routing is overridden.
+    const isTiles = !isMulti && !isFashion && category === 'tiles';
 
     // The planner (§4.1) and the coverage estimate run in parallel (both best-effort). The product cutout
     // depends on the operation the planner decides, so it follows. (Phase 3 re-parallelizes the independent
@@ -640,7 +648,9 @@ export async function processGeneration(
       ? 'accessory_placement'
       : isMulti
         ? 'object_placement'
-        : genPlan.mode;
+        : isTiles
+          ? 'surface_covering'
+          : genPlan.mode;
     const scene = planToSceneAnalysis(genPlan);
 
     // Run the independent post-plan pre-passes in parallel (Phase 3 speed): the mode-dependent product
@@ -741,7 +751,9 @@ export async function processGeneration(
       dimensions: snapshot.dimensions,
       scene,
       mode,
-      target: isMulti ? undefined : genPlan.target,
+      // Tiles are forced onto the floor (see `isTiles` above) — override the planner's target surface so a
+      // wall/object read can't send the tiles anywhere but the floor.
+      target: isMulti ? undefined : isTiles ? { description: 'the floor' } : genPlan.target,
       repetition: isMulti ? undefined : genPlan.repetition,
       aspectRatio,
       // Phase 3 routing: fast common path, escalate to quality on a difficult scene / low confidence / top tier.
@@ -750,7 +762,7 @@ export async function processGeneration(
       // planner to escalate on and the face comes from the original pixels via the composite → fast by default.
       policy: isFashion
         ? resolvePolicyFashion(plan, FASHION_QUALITY_TIER)
-        : isMulti
+        : isMulti || isTiles
           ? 'fast'
           : resolvePolicy(plan, genPlan),
       watermark: plan === 'free',

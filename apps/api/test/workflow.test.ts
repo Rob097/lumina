@@ -10,7 +10,7 @@ import {
   type QuantityProvider,
   type SceneAnalysis,
 } from '@lumina/ai';
-import { neutralGenerationPlan, type GenerationPlan } from '@lumina/shared';
+import { neutralGenerationPlan, type GenerationMode, type GenerationPlan } from '@lumina/shared';
 import { eq } from 'drizzle-orm';
 import {
   creditLedger,
@@ -470,6 +470,64 @@ describe('processGeneration — planner (Phase 1)', () => {
 
     expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
     expect(captured.scene?.confidence).toBe(0); // neutral object_placement fallback
+  });
+});
+
+describe('processGeneration — tiles (force floor + flash)', () => {
+  // A planner read that, for any other category, would mis-classify a tile as a single object placed on a
+  // wall AND escalate to the slow quality tier (cluttered scene + low confidence). Tiles must ignore all of
+  // that: cover the FLOOR and stay on the fast tier.
+  const wallPlanLowConf: GenerationPlan = {
+    mode: 'object_placement',
+    target: { description: 'the back wall', bbox: [0, 0, 1, 1] },
+    repetition: { kind: 'single' },
+    scale: {},
+    sceneFacts: {
+      isExterior: false,
+      lighting: { direction: 'top', intensity: 'medium' },
+      surfaces: [{ kind: 'wall' }],
+      tiltDegrees: 0,
+      quality: { blurry: false, dark: false, cluttered: true },
+    },
+    productAnalysis: 'a ceramic floor tile',
+    confidence: 0.2,
+  };
+
+  /** An orchestrator whose compose records the routing decision (mode / target / policy) it received. */
+  function orchestratorCapturingRoute(
+    planFn: () => Promise<GenerationPlan>,
+    captured: { mode?: GenerationMode; target?: { description?: string }; policy?: string },
+  ): AIOrchestrator {
+    const provider: AIProvider = {
+      name: 'capture',
+      compose: async (input) => {
+        captured.mode = input.mode;
+        captured.target = input.target;
+        captured.policy = input.policy;
+        return { bytes: new Uint8Array([1]), contentType: 'image/png', model: 'mock-compose', costCents: 1, width: 100, height: 100 };
+      },
+    };
+    return new AIOrchestrator({
+      chains: { quality: [provider], balanced: [provider], fast: [provider] },
+      planner: { plan: planFn },
+    });
+  }
+
+  it('forces surface_covering on the floor and the fast tier for a Tiles product', async () => {
+    const { generationId } = await queued(5, {
+      category: 'tiles',
+      name: 'Terra',
+      imageUrl: 'https://shop.test/tile.png',
+    });
+    const captured: { mode?: GenerationMode; target?: { description?: string }; policy?: string } = {};
+    const orch = orchestratorCapturingRoute(async () => wallPlanLowConf, captured);
+
+    expect(await processGeneration({ db: ctx.db, orchestrator: orch, storage }, generationId)).toBe('succeeded');
+    // Forced onto the floor as a repeating surface — the planner's wall/object read is overridden.
+    expect(captured.mode).toBe('surface_covering');
+    expect(captured.target?.description).toBe('the floor');
+    // Pinned to the fast/flash tier, even though the cluttered + low-confidence plan would escalate to quality.
+    expect(captured.policy).toBe('fast');
   });
 });
 
