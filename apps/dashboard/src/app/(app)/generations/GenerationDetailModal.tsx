@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { GenerationDetail, GenerationSummary } from '@lumina/shared';
 import { categoryLabel } from '@/lib/product-format';
-import { latencyLabel, statusBadge } from '@/lib/generation-format';
+import { latencyLabel, statusBadge, totalTimeLabel } from '@/lib/generation-format';
 import { BeforeAfter } from './BeforeAfter';
 import { getGenerationDetailAction } from './actions';
 
@@ -81,7 +81,8 @@ export function GenerationDetailModal({
           <div className="gen-meta-list">
             <Row label="Category" value={categoryLabel(summary.productCategory)} />
             <Row label="Model" value={summary.model} />
-            <Row label="Latency" value={latencyLabel(summary.latencyMs)} />
+            <Row label="Latency (compose)" value={latencyLabel(summary.latencyMs)} />
+            <Row label="Total time" value={totalTimeLabel(summary.createdAt, summary.finishedAt)} />
             <Row label="Credits · cost" value={cost} />
             <Row label="Placement" value={detail?.placementHint} />
             {suggested ? <Row label="Suggested quantity" value={suggested} /> : null}
