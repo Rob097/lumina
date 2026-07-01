@@ -154,5 +154,33 @@ export function createOrchestratorFromEnv(env: Record<string, string | undefined
     planner: selectPlannerProvider(env),
     detector: selectPlacementDetector(env),
     quantity,
+    // Per-call timeouts (env-tunable) so a hung gateway call is aborted well under the 120s function limit
+    // instead of hard-killing the worker. Budget (defaults): pre-passes ≤18s (parallel) + compose ≤85s total
+    // (each attempt ≤55s: above a legit slow render, catches true hangs) + post ≈3s ⇒ ~106s < 120s, leaving
+    // margin. Raise AI_COMPOSE_* if Axiom shows legit quality renders being clipped.
+    ...timeoutConfig(env),
   });
+}
+
+/** Read the per-call timeout budget from env (all overridable), returning the orchestrator timeout fields. */
+export function timeoutConfig(env: Record<string, string | undefined>): {
+  composeAttemptTimeoutMs: number;
+  composeTotalTimeoutMs: number;
+  plannerTimeoutMs: number;
+  quantityTimeoutMs: number;
+  detectorTimeoutMs: number;
+  bgRemovalTimeoutMs: number;
+} {
+  const num = (v: string | undefined, fallback: number): number => {
+    const n = Number(v);
+    return Number.isFinite(n) && n > 0 ? n : fallback;
+  };
+  return {
+    composeAttemptTimeoutMs: num(env.AI_COMPOSE_ATTEMPT_TIMEOUT_MS, 55_000),
+    composeTotalTimeoutMs: num(env.AI_COMPOSE_TOTAL_TIMEOUT_MS, 85_000),
+    plannerTimeoutMs: num(env.AI_PLANNER_TIMEOUT_MS, 18_000),
+    quantityTimeoutMs: num(env.AI_QUANTITY_TIMEOUT_MS, 18_000),
+    detectorTimeoutMs: num(env.AI_PLACEMENT_TIMEOUT_MS, 18_000),
+    bgRemovalTimeoutMs: num(env.AI_BG_REMOVAL_TIMEOUT_MS, 25_000),
+  };
 }

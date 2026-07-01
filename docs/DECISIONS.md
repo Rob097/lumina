@@ -1141,3 +1141,34 @@ Non-obvious engineering decisions. Architecture/stack decisions already settled 
   categories (decor / renovation / outdoor) still trust the planner — a tile is unambiguously a *floor*
   material, they are not. Covered by a workflow test asserting mode/target/policy override even when the
   planner would escalate. Visual quality to be confirmed by the owner on a real run.
+
+## Per-call model timeouts — kill the FUNCTION_INVOCATION_TIMEOUT retry storm (2026-07-01)
+
+- **Symptom:** a tiles generation took ~7 minutes; the Inngest run showed many attempts, each failing with
+  `FUNCTION_INVOCATION_TIMEOUT`. **Root cause:** NO model call had a per-request timeout / `AbortSignal`
+  (`compose`, `plan`, `estimateQuantity`, `bgRemoval` all hit the AI Gateway via `generateText`/
+  `generateObject` with no `abortSignal`). When the gateway/model **hangs** (intermittent: cold start,
+  provider queue, network stall — common for image models) the call blocks indefinitely. The orchestrator's
+  retry/fallback only reacts to *thrown errors*, never to a *hang*; the "best-effort" try/catch around the
+  pre-passes likewise catches throws, not hangs. So one hung call runs until Vercel hard-kills the worker at
+  the 120s `maxDuration`. Because the whole `processGeneration` is a single `step.run()` with `retries: 2`,
+  and the hard-kill happens *before* the function's own `catch` (which would refund + `return 'failed'`
+  gracefully, with NO Inngest retry), Inngest retries the whole thing 3× → 3×~120s ≈ **7 min**. The eventual
+  success recorded `latencyMs=14.4s` (the one compose call that didn't hang).
+- **Fix (root cause):** the orchestrator now bounds every model call with a timeout (`packages/ai`
+  `AITimeoutError` + `withTimeout`). `compose` gets a **per-attempt** cap and an **overall deadline** across
+  all retries+fallback; when a provider hangs it is aborted (real `AbortSignal` forwarded to the gateway's
+  `generateText`, so the request is actually cancelled — no wasted gateway cost), the fast→quality fallback
+  gets its turn, and if the whole deadline is spent it throws `AIComposeError`. The best-effort pre-passes
+  (planner/quantity/detector/bg-removal) each get their own shorter cap and degrade on timeout. Net effect:
+  a hang now either recovers via fallback **within one attempt** or fails **gracefully with a refund** well
+  under 120s → the worker is never hard-killed, so Inngest never retries and the 7-min storm is gone. This
+  also closes a latent double-bill (HARD RULE #3): a hard-kill mid-run left the row `processing`, so a retry
+  re-ran (re-paid) compose.
+- **Budget (env-tunable, `AI_COMPOSE_*` / `AI_PLANNER_TIMEOUT_MS` etc.):** attempt 55s (above a legit slow
+  render, below a true hang) / compose-total 85s / pre-passes 18s / bg-removal 25s ⇒ worst-case ≈106s < 120s.
+  `maxDuration` config itself was **correct** (`vercel.json` path matches the deployed route) — ruled out.
+  Owner should watch Axiom p95 and raise the caps if legit quality renders get clipped.
+- **Display (`Latency` was misleading):** the dashboard `Latency` row showed only the compose call (14.4s)
+  for a 7-min run. Renamed to **`Latency (compose)`** and added a **`Total time`** row = `finishedAt −
+  createdAt` (both already on `GenerationSummary` → frontend-only, no migration) via `totalTimeLabel`.

@@ -115,7 +115,12 @@ export interface ComposeResult extends ProviderResult {
 /** The single model-call interface. Swapping fal ↔ vertex ↔ replicate is a one-file change. */
 export interface AIProvider {
   readonly name: string;
-  compose(input: ComposeInput, prompt: string): Promise<ProviderResult>;
+  /**
+   * `signal` (when passed by the orchestrator) aborts the underlying request on timeout so a hung gateway
+   * call is actually cancelled — providers should forward it to their HTTP/SDK call. Optional so mocks and
+   * signal-agnostic providers stay valid.
+   */
+  compose(input: ComposeInput, prompt: string, signal?: AbortSignal): Promise<ProviderResult>;
 }
 
 export interface BgRemovalProvider {

@@ -87,6 +87,8 @@ export interface GatewayCallArgs {
   aspectRatio?: string;
   /** Output resolution tier ('1K' | '2K' | '4K'). */
   imageSize?: string;
+  /** Aborts the request on the orchestrator's per-attempt timeout (cancels a hung gateway call). */
+  signal?: AbortSignal;
 }
 
 /** The network call. Injectable so the provider logic is unit-tested without hitting the gateway. */
@@ -122,7 +124,7 @@ export class GatewayProvider implements AIProvider {
     this.run = opts.run ?? createGatewayRunner(opts);
   }
 
-  async compose(input: ComposeInput, prompt: string): Promise<ProviderResult> {
+  async compose(input: ComposeInput, prompt: string, signal?: AbortSignal): Promise<ProviderResult> {
     // Always SCENE first, then the product(s) — the order the prompt contract relies on. For a
     // multi-product generation (F2) every product image follows the room, in request order. A merchant
     // placement-guide image, when supplied, goes LAST: a positioning reference only (see `placementReference`
@@ -134,6 +136,7 @@ export class GatewayProvider implements AIProvider {
       images: [input.room, ...products, ...(input.placementDiagram ? [input.placementDiagram] : [])],
       ...(input.aspectRatio ? { aspectRatio: input.aspectRatio } : {}),
       ...(this.opts.imageSize ? { imageSize: this.opts.imageSize } : {}),
+      ...(signal ? { signal } : {}),
     });
     return {
       bytes: image.bytes,
@@ -163,7 +166,7 @@ export function buildImageProviderOptions(args: { aspectRatio?: string; imageSiz
 
 /** Default runner: AI SDK `generateText` through the Vercel AI Gateway. Network-bound (e2e/eval). */
 function createGatewayRunner(opts: GatewayProviderOptions): GatewayRunner {
-  return async ({ model, prompt, images, aspectRatio, imageSize }) => {
+  return async ({ model, prompt, images, aspectRatio, imageSize, signal }) => {
     const [{ generateText }, { createGateway }] = await Promise.all([
       import('ai'),
       import('@ai-sdk/gateway'),
@@ -176,6 +179,9 @@ function createGatewayRunner(opts: GatewayProviderOptions): GatewayRunner {
       model: gateway(model),
       messages: buildEditMessages(prompt, images),
       providerOptions: buildImageProviderOptions({ aspectRatio, imageSize }),
+      // Cancel the request when the orchestrator's timeout fires — frees the connection and avoids paying
+      // the gateway for a compose we've already abandoned.
+      ...(signal ? { abortSignal: signal } : {}),
     });
     const image = extractFirstImage(result.files);
     // The gateway reports the REAL cost + a generation id on every request — capture them live so we never
